@@ -68,7 +68,7 @@ def component_visual_test(
     js_test(
         name = name,
         env_inherit = ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH", "DOCKER_CONFIG"] + env_inherit,
-        tags = ["manual", "visual_test", "requires-network", "no-sandbox", "no-remote", "no-cache"] + tags,
+        tags = ["manual", "external", "visual_test", "requires-network", "no-sandbox", "no-remote", "no-cache"] + tags,
         timeout = timeout,
         **common
     )
