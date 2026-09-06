@@ -6,7 +6,7 @@ Bazel Central Registry (BCR), and commit-hook setup follows
 Browser testing rules are not implemented yet; the smoke tests verify module
 packaging and consumption from a separate Bazel workspace.
 
-See the [OSS extraction plan](docs/oss-browser-testing-plan.md) for the proposed
+See the [OSS browser testing plan](docs/oss-browser-testing-plan.md) for the proposed
 Playwright, web E2E, component browser, and VRT scope.
 
 ## Development
