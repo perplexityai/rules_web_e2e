@@ -51,8 +51,8 @@ Configure the same repository integrations as `gazelle_py` before releasing:
   [publish-to-bcr](https://github.com/bazel-contrib/publish-to-bcr#a-note-on-release-automation).
 - The `perplexityai/bazel-central-registry` fork and the publish-to-bcr GitHub
   App installation on that fork.
-- `.bcr/config.yml` and `.bcr/metadata.template.json` use the same releaser and
-  maintainer roster as `gazelle_py`.
+- `.bcr/config.yml` uses `longlho` as the releaser. The maintainers in
+  `.bcr/metadata.template.json` are `longlho`, `pplx-oss`, and `dan-pplx`.
 
 To prepare an archive locally for an existing tag:
 
