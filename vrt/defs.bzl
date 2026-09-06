@@ -1,6 +1,6 @@
 """Bazel component screenshot comparison and explicit baseline updates."""
 
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
 
 PLAYWRIGHT_IMAGE = "mcr.microsoft.com/playwright:v1.62.0-noble@sha256:baed2032d533817f3dbe6425de795788430ba345e819a1201337009ba17c9d07"
 
@@ -52,9 +52,16 @@ def component_visual_test(
         fail("baseline_dir must be a nonempty relative directory without dot segments")
     if "@sha256:" not in image:
         fail("image must be pinned by digest")
+    js_library(
+        name = name + "_sources",
+        srcs = srcs + [config] + baselines,
+        data = data,
+        deps = deps,
+    )
     common = dict(
+        copy_data_to_bin = False,
         entry_point = Label("//runtime:runner_entry"),
-        data = [runner, playwright_core, config, Label("//runtime:files")] + srcs + deps + data + baselines,
+        data = [runner, playwright_core, config, ":" + name + "_sources", Label("//runtime:files")],
         env = env | {
             "VRT_RUNNER": "$(rlocationpath %s)" % runner,
             "VRT_PLAYWRIGHT_CORE": "$(rlocationpath %s)" % playwright_core,

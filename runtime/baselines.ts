@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-export function baselineDestination(workspace, relative) {
+export function baselineDestination(workspace: string, relative: string) {
   if (
     !workspace ||
     !relative ||
@@ -22,7 +22,7 @@ export function baselineDestination(workspace, relative) {
   return current
 }
 
-export function updateBaselines(generated, destination) {
+export function updateBaselines(generated: string, destination: string) {
   const names = fs.readdirSync(generated).filter(name => name.endsWith('.png'))
   if (!names.length)
     throw new Error(
@@ -32,7 +32,7 @@ export function updateBaselines(generated, destination) {
     const file = path.join(generated, name)
     if (!fs.lstatSync(file).isFile())
       throw new Error('Captured screenshots must be regular files')
-    return [name, fs.readFileSync(file)]
+    return [name, fs.readFileSync(file)] as const
   })
   fs.mkdirSync(destination, {recursive: true})
   for (const [name, bytes] of images) {

@@ -38,8 +38,13 @@ before committing. Each VRT target must own a separate baseline directory.
    config file. Call `expect(element).toMatchScreenshot('stable-name')`
    in the browser test; screenshot names are simple filenames.
 
-Consumers own React providers, CSS, fixtures, TypeScript checking, and CI
-scheduling. The macro does not add a typecheck target. The helper sets a 1280×720
+The runtime and config helper are compiled from strict TypeScript and export
+declarations. Consumers own React providers, CSS, fixtures, and CI scheduling.
+The example wires its strict `:typecheck` target into the VRT target’s `data`,
+so type errors fail the build before browser execution. Its filegroup requests
+`transitive_typecheck` outputs explicitly from `ts_project`; `no_emit` alone
+does not guarantee those outputs are built. Run `bazel build //:typecheck`
+inside the example to check its config and browser tests independently. The helper sets a 1280×720
 viewport, light theme, reduced motion, en-US locale, UTC timezone, and zero
 allowed mismatched pixels by default; configure `viewport` and `tolerance`
 explicitly when needed. Wait for loaded data and fonts with polling assertions

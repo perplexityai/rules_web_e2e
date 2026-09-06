@@ -1,20 +1,58 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
-load("@bazel_lib//lib:copy_file.bzl", "copy_file")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 
-exports_files(["runner.mjs"])
+ts_project(
+    name = "typecheck",
+    srcs = glob(["*.ts"]),
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = {"compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": True,
+        "declaration": True,
+        "skipLibCheck": True,
+        "types": ["node"],
+        "lib": [
+            "ES2022",
+            "DOM",
+            "DOM.Iterable",
+        ],
+    }},
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:node_modules/@types/node",
+        "//:node_modules/@vitest/browser-playwright",
+        "//:node_modules/playwright",
+        "//:node_modules/vite",
+        "//:node_modules/vitest",
+    ],
+)
 
 js_library(
     name = "files",
-    srcs = ["baselines.mjs"],
+    srcs = [
+        "baselines.js",
+        "package.json",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "runner_entry",
+    srcs = ["runner.js"],
     visibility = ["//visibility:public"],
 )
 
 npm_package(
     name = "package",
     srcs = [
-        "browser-channel.mjs",
-        "config.mjs",
+        "browser-channel.d.ts",
+        "browser-channel.js",
+        "config.d.ts",
+        "config.js",
         "package.json",
     ],
     package = "@rules-web-e2e/vrt",
@@ -24,13 +62,9 @@ npm_package(
 js_test(
     name = "baselines_test",
     size = "small",
-    data = ["baselines.mjs"],
-    entry_point = "baselines.test.mjs",
-)
-
-copy_file(
-    name = "runner_entry",
-    src = "runner.mjs",
-    out = "runner_entry.mjs",
-    visibility = ["//visibility:public"],
+    data = [
+        "package.json",
+        ":typecheck",
+    ],
+    entry_point = "baselines.test.js",
 )

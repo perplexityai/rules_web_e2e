@@ -1,17 +1,17 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import {spawn, execFileSync} from 'node:child_process'
+import {spawn, execFileSync, type ChildProcess} from 'node:child_process'
 import {setTimeout as delay} from 'node:timers/promises'
-import {baselineDestination, updateBaselines} from './baselines.mjs'
+import {baselineDestination, updateBaselines} from './baselines.js'
 
-function required(name) {
+function required(name: string) {
   const value = process.env[name]
   if (!value) throw new Error(`Missing ${name}`)
   return value
 }
 
-function runfile(name) {
+function runfile(name: string) {
   const root = process.env.RUNFILES_DIR || process.env.JS_BINARY__RUNFILES
   if (root && fs.existsSync(path.join(root, name))) return path.join(root, name)
   if (process.env.RUNFILES_MANIFEST_FILE) {
@@ -29,7 +29,7 @@ function runfile(name) {
   throw new Error(`Missing runfile: ${name}`)
 }
 
-function docker(...args) {
+function docker(...args: string[]) {
   return execFileSync('docker', args, {
     encoding: 'utf8',
     timeout: 120_000,
@@ -82,8 +82,8 @@ async function main() {
   if (!update && fs.existsSync(baselineInputs))
     fs.cpSync(baselineInputs, baselines, {recursive: true, dereference: true})
   let succeeded = false
-  let container
-  let child
+  let container: string | undefined
+  let child: ChildProcess | undefined
   const stop = () => {
     if (container) {
       const id = container
@@ -91,7 +91,7 @@ async function main() {
       try {
         docker('rm', '--force', id)
       } catch (error) {
-        console.error(`Container cleanup failed: ${error.message}`)
+        console.error(`Container cleanup failed: ${String(error)}`)
       }
     }
   }
@@ -158,7 +158,7 @@ async function main() {
     const dockerHost = process.env.DOCKER_HOST?.startsWith('tcp:')
       ? new URL(process.env.DOCKER_HOST).hostname
       : '127.0.0.1'
-    const code = await new Promise((resolve, reject) => {
+    const code = await new Promise<number>((resolve, reject) => {
       child = spawn(
         runner,
         ['run', '--config', config, ...(update ? ['--update'] : [])],
@@ -197,7 +197,7 @@ async function main() {
       console.error(`VRT artifacts: ${outputs}`)
       return
     }
-    if (update) {
+    if (destination) {
       updateBaselines(baselines, destination)
       console.log(`Updated baselines: ${destination}`)
     }

@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
-import {baselineDestination, updateBaselines} from './baselines.mjs'
+import {baselineDestination, updateBaselines} from './baselines.js'
 
 test('updates captures, removes stale PNGs, and preserves unrelated files', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-'))

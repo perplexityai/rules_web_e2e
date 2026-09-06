@@ -1,3 +1,5 @@
+import type {UserConfig} from '@commitlint/types'
+
 export default {
   parserPreset: {
     parserOpts: {headerPattern: /^(\w*)(?:\((.*)\))?!?: (.*)$/},
@@ -35,4 +37,4 @@ export default {
       ],
     ],
   },
-};
+} satisfies UserConfig;

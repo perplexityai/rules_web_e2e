@@ -1,5 +1,14 @@
+import type {ViteUserConfig} from 'vitest/config'
+import type {playwright} from '@vitest/browser-playwright'
+
+export interface VisualConfigOptions {
+  provider: typeof playwright
+  root: string
+  viewport?: {width: number; height: number}
+  tolerance?: number
+}
 import path from 'node:path'
-import {installVitestBridge} from './browser-channel.mjs'
+import {installVitestBridge} from './browser-channel.js'
 
 /** Merge these defaults with consumer Vite plugins, aliases, and test include. */
 export function visualConfig({
@@ -7,7 +16,7 @@ export function visualConfig({
   root,
   viewport = {width: 1280, height: 720},
   tolerance = 0,
-}) {
+}: VisualConfigOptions): ViteUserConfig {
   if (
     !process.env.VRT_WS_ENDPOINT ||
     !process.env.VRT_BASELINES ||
@@ -20,6 +29,7 @@ export function visualConfig({
   if (!Number.isFinite(tolerance) || tolerance < 0 || tolerance > 1) {
     throw new Error('tolerance must be a pixel mismatch ratio between 0 and 1')
   }
+  const baselines = process.env.VRT_BASELINES
   const bridge = `(${installVitestBridge.toString()})();`
   return {
     root,
@@ -76,7 +86,7 @@ export function visualConfig({
                   'Screenshot names must be simple filenames without directories'
                 )
               }
-              return path.join(process.env.VRT_BASELINES, `${arg}${ext}`)
+              return path.join(baselines, `${arg}${ext}`)
             },
             screenshotOptions: {
               animations: 'disabled',

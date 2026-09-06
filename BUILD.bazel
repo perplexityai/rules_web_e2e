@@ -1,3 +1,8 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@rules_web_e2e_npm//:defs.bzl", "npm_link_all_packages")
+
+npm_link_all_packages(name = "node_modules")
+
 exports_files([
     "LICENSE",
     "MODULE.bazel",
@@ -11,4 +16,21 @@ filegroup(
         "README.md",
     ],
     visibility = ["//visibility:public"],
+)
+
+ts_project(
+    name = "tooling_typecheck",
+    srcs = [".commitlintrc.ts"],
+    transpiler = "tsc",
+    tsconfig = {"compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": True,
+        "skipLibCheck": True,
+    }},
+    deps = [
+        ":node_modules/@commitlint/types",
+        ":node_modules/@types/node",
+    ],
 )

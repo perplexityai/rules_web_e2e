@@ -4,6 +4,9 @@
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
-    ".": "./config.mjs"
+    ".": {
+      "types": "./config.d.ts",
+      "import": "./config.js"
+    }
   }
 }

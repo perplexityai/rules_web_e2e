@@ -14,3 +14,9 @@ npm.npm_translate_lock(
     pnpm_lock = "//:pnpm-lock.yaml",
 )
 use_repo(npm, "npm")
+
+bazel_dep(name = "aspect_rules_ts", version = "3.9.1")
+
+typescript = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+typescript.deps(ts_version = "5.9.3")
+use_repo(typescript, "npm_typescript")
