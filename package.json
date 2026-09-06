@@ -1,0 +1,15 @@
+{
+  "name": "rules-web-e2e-dev",
+  "packageManager": "pnpm@11.17.0",
+  "private": true,
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.1",
+    "lefthook": "^2.1.10"
+  },
+  "scripts": {
+    "build": "bazelisk build //...",
+    "test": "bazelisk test //...",
+    "test:bcr": "cd bcr_test && bazelisk test //...",
+    "hooks:install": "lefthook install"
+  }
+}

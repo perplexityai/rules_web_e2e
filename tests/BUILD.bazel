@@ -1,0 +1,17 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+exports_files(["module_smoke_test.sh"])
+
+sh_test(
+    name = "module_smoke_test",
+    size = "small",
+    srcs = ["module_smoke_test.sh"],
+    args = [
+        "$(location //:MODULE.bazel)",
+        "$(location //:LICENSE)",
+    ],
+    data = [
+        "//:LICENSE",
+        "//:MODULE.bazel",
+    ],
+)

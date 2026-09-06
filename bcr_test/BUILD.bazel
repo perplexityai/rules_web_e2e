@@ -1,0 +1,16 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+sh_test(
+    name = "module_smoke_test",
+    size = "small",
+    srcs = ["@rules_web_e2e//tests:module_smoke_test.sh"],
+    args = [
+        "$(location @rules_web_e2e//:MODULE.bazel)",
+        "$(location @rules_web_e2e//:LICENSE)",
+    ],
+    data = [
+        "@rules_web_e2e//:LICENSE",
+        "@rules_web_e2e//:MODULE.bazel",
+        "@rules_web_e2e//:distribution",
+    ],
+)
