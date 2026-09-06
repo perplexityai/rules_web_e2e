@@ -1,0 +1,14 @@
+exports_files([
+    "LICENSE",
+    "MODULE.bazel",
+])
+
+filegroup(
+    name = "distribution",
+    srcs = [
+        "LICENSE",
+        "MODULE.bazel",
+        "README.md",
+    ],
+    visibility = ["//visibility:public"],
+)
