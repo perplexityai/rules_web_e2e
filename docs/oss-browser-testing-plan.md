@@ -3,7 +3,8 @@
 Build reusable Bazel rules for Playwright, web end-to-end tests, React component
 browser tests, and visual regression tests (VRT). Publish through the Bazel
 Central Registry (BCR), with standalone examples and documented compatibility.
-The APIs below are proposed; this repo currently contains packaging smoke tests.
+`component_visual_test` is implemented; the other APIs below remain proposed.
+See the [component VRT guide](component-vrt.md) for the current supported setup.
 
 ## Proposed APIs
 
