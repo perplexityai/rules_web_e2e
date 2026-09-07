@@ -48,6 +48,10 @@ completion or handled termination. Vitest execution and Bazel have separate
 timeouts. The supported contract currently requires a local Docker daemon;
 remote daemons and shared-container reuse need separate validation.
 
+The [Testcontainers design](testcontainers-vrt.md) explains why a pinned browser
+environment improves VRT stability and how a future lifecycle adapter would
+replace the current Docker CLI without changing consumer APIs.
+
 ## TypeScript and Bazel inputs
 
 All maintained runtime code and executable configuration are TypeScript. Bazel

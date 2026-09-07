@@ -4,6 +4,9 @@ A screenshot is a reviewed assertion about a rendered state. Useful VRT must
 make that state repeatable, distinguish comparison from approval, and leave
 inspectable evidence when it changes.
 
+See [Testcontainers and VRT stability](testcontainers-vrt.md) for container
+lifecycle, readiness, isolation, and reuse decisions.
+
 ## Stable capture
 
 Pin the browser image by digest and match its Playwright version to the
