@@ -6,10 +6,10 @@ PLAYWRIGHT_IMAGE = "mcr.microsoft.com/playwright:v1.62.0-noble@sha256:baed2032d5
 
 def component_visual_test(
         name,
-        runner,
+        playwright_test,
         playwright_core,
         config,
-        server,
+        vite,
         server_config,
         srcs,
         deps = [],
@@ -20,22 +20,23 @@ def component_visual_test(
         playwright_version = "1.62.0",
         env = {},
         env_inherit = [],
+        network_origins = [],
         tags = [],
         timeout = "long",
         execution_timeout_seconds = 180):
     """Run Playwright Test specs against a pinned Linux Playwright server.
 
-    runner is a consumer-owned playwright_binary. playwright_core is the matching
+    playwright_test is a consumer-owned @playwright/test package directory. playwright_core is the matching
     npm_link_package /dir target. config and all imports must be declared
     in srcs/deps/data. The generated <name>.update binary owns baseline_dir:
     it replaces its PNG files only after a successful full capture.
 
     Args:
         name: Compare target name; also creates <name>.update.
-        runner: Consumer playwright_binary target.
+        playwright_test: Consumer @playwright/test npm /dir target.
         playwright_core: Matching playwright-core npm /dir target.
         config: Consumer Playwright Test config file.
-        server: Consumer Vite binary target.
+        vite: Consumer Vite npm /dir target.
         server_config: Consumer Vite config file.
         srcs: Browser test sources.
         deps: Runtime npm and library dependencies.
@@ -46,6 +47,7 @@ def component_visual_test(
         playwright_version: Version installed in the image.
         env: Additional environment values for the runner.
         env_inherit: Additional explicitly inherited environment names.
+        network_origins: Additional explicit HTTP(S) origins exposed through the browser tunnel.
         tags: Additional Bazel test tags.
         timeout: Bazel test timeout category.
         execution_timeout_seconds: Limit for the Playwright Test child process.
@@ -65,14 +67,16 @@ def component_visual_test(
     common = dict(
         copy_data_to_bin = False,
         entry_point = Label("//runtime:runner_entry"),
-        data = [runner, playwright_core, config, server, server_config, ":" + name + "_sources", Label("//runtime:files")],
+        data = [playwright_test, playwright_core, config, vite, server_config, ":" + name + "_sources", Label("//runtime:files")],
         env = env | {
-            "VRT_RUNNER": "$(rlocationpath %s)" % runner,
+            "VRT_PLAYWRIGHT_TEST": "$(rlocationpath %s)" % playwright_test,
             "VRT_PLAYWRIGHT_CORE": "$(rlocationpath %s)" % playwright_core,
             "VRT_CONFIG": "$(rlocationpath %s)" % config,
-            "VRT_SERVER": "$(rlocationpath %s)" % server,
+            "VRT_VITE": "$(rlocationpath %s)" % vite,
             "VRT_SERVER_CONFIG": "$(rlocationpath %s)" % server_config,
             "VRT_BASELINE_RELATIVE": _paths_join(native.package_name(), baseline_dir),
+            "VRT_NETWORK_ORIGINS": json.encode(network_origins),
+            "VRT_ENV_NAMES": json.encode(env.keys() + env_inherit),
             "VRT_TIMEOUT_MS": str(execution_timeout_seconds * 1000),
             "VRT_IMAGE": image,
             "VRT_PLAYWRIGHT_VERSION": playwright_version,

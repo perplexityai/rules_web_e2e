@@ -1,4 +1,5 @@
 import path from 'node:path'
+import {networkTargets} from './network.js'
 import type {PlaywrightTestConfig} from '@playwright/test'
 
 export interface VisualConfigOptions {
@@ -12,10 +13,6 @@ function required(name: string): string {
   if (!value)
     throw new Error(`Missing ${name}; run the VRT target through Bazel`)
   return value
-}
-
-function shellQuote(value: string): string {
-  return "'" + value.replaceAll("'", "'\"'\"'") + "'"
 }
 
 /** Playwright Test defaults for a consumer-owned Vite application. */
@@ -62,17 +59,11 @@ export function visualConfig({
       screenshot: 'only-on-failure',
       connectOptions: {
         wsEndpoint: required('VRT_WS_ENDPOINT'),
-        exposeNetwork: '<loopback>',
+        exposeNetwork: networkTargets(
+          required('VRT_APP_URL'),
+          JSON.parse(required('VRT_NETWORK_ORIGINS')) as string[]
+        ),
       },
-    },
-    webServer: {
-      command: `${shellQuote(required('VRT_SERVER'))} --config ${shellQuote(required('VRT_SERVER_CONFIG'))} --host 127.0.0.1 --port 0`,
-      cwd: root,
-      wait: {stdout: /Local:\s+(?<vrt_app_url>http:\/\/127\.0\.0\.1:\d+\/)/},
-      env: {NO_COLOR: '1', FORCE_COLOR: '0'},
-      timeout: 30_000,
-      reuseExistingServer: false,
-      gracefulShutdown: {signal: 'SIGTERM', timeout: 5_000},
     },
   }
 }

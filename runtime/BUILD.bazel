@@ -26,6 +26,8 @@ ts_project(
         "//:node_modules/@playwright/test",
         "//:node_modules/@types/node",
         "//:node_modules/playwright",
+        "//:node_modules/testcontainers",
+        "//:node_modules/vite",
     ],
 )
 
@@ -33,9 +35,14 @@ js_library(
     name = "files",
     srcs = [
         "baselines.js",
+        "container.js",
+        "isolation.js",
         "package.json",
+        "relay.js",
+        "server.js",
     ],
     visibility = ["//visibility:public"],
+    deps = ["//:node_modules/testcontainers"],
 )
 
 filegroup(
@@ -49,6 +56,8 @@ npm_package(
     srcs = [
         "config.d.ts",
         "config.js",
+        "network.d.ts",
+        "network.js",
         "package.json",
     ],
     package = "@rules-web-e2e/vrt",
@@ -63,4 +72,14 @@ js_test(
         ":typecheck",
     ],
     entry_point = "baselines.test.js",
+)
+
+js_test(
+    name = "isolation_test",
+    size = "small",
+    data = [
+        "package.json",
+        ":typecheck",
+    ],
+    entry_point = "isolation.test.js",
 )

@@ -1,90 +1,69 @@
 # Testcontainers and VRT stability
 
-Run screenshot browsers in a pinned Linux environment so local and CI captures
-use the same browser, system libraries, and installed fonts. Use a container
-lifecycle layer to make that environment reliably available to each test.
-These solve different problems: the image controls rendering inputs, while
-Testcontainers manages startup, endpoint discovery, ownership, and cleanup.
-
-**Current implementation:** the [TypeScript runner](../runtime/runner.ts) uses
-the Docker CLI, with one container per invocation. Adopting the Testcontainers
-library is a planned runtime change, not an existing dependency. The design
-below preserves the current public Bazel and screenshot contracts.
-
-## What makes screenshots stable
-
-| Control               | Why it matters                                                                 | Current implementation                                                    |
-| --------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| Image digest          | Holds browser binaries, OS libraries, and system fonts constant.               | Public Playwright image pinned by digest.                                 |
-| Client/server version | Avoids mixing a host Playwright client with a different server/browser bundle. | Validates the declared core package version and copies it into the image. |
-| CPU architecture      | Different rasterization paths can still produce different pixels.              | Linux amd64 screenshots validated; no cross-architecture guarantee.       |
-| Browser settings      | Viewport, locale, timezone, theme, motion, and caret affect captures.          | Fixed defaults with explicit viewport and tolerance options.              |
-| Application readiness | An available server does not mean data, fonts, or UI transitions have settled. | Consumer assertions and font readiness before capture.                    |
-| Fresh execution       | Stale results can hide a rendering change or skip a capture.                   | Uncached VRT invocations and fresh capture directories.                   |
-
-Containers do not freeze clocks, network responses, animation state, or fonts
-loaded by the application. Consumers still need deterministic fixtures and
-explicit readiness. Increasing pixel tolerance should not compensate for an
-uncontrolled rendering environment. An image upgrade requires fresh comparison
-and review, not automatic replacement of every baseline.
-
-## Proposed Testcontainers lifecycle
+The TypeScript runtime uses Testcontainers 11.14.0 to start a fresh browser and
+control relay per invocation. Both use the same digest-pinned Playwright image
+and explicit `linux/amd64` platform. The runner verifies the browser's platform
+and the declared Playwright package version before running tests. Ryuk, the
+cleanup helper, also uses a pinned Linux amd64 image digest.
 
 ```mermaid
-sequenceDiagram
-  participant Target as Bazel target
-  participant Runtime as TypeScript runtime
-  participant TC as Testcontainers
-  participant PW as Container Playwright server
-  participant App as Host Playwright Test and Vite
-  Target->>Runtime: Declared inputs and pinned image
-  Runtime->>TC: Start owned container
-  TC->>PW: Launch server and await readiness
-  TC-->>Runtime: Reachable host and mapped port
-  Runtime->>App: Configure WebSocket endpoint
-  App->>PW: Connect and capture in a fresh context
-  PW->>App: Forward loopback requests for app assets
-  App-->>Runtime: Test result and artifacts
-  Runtime->>TC: Stop owned container
-  Runtime-->>Target: Exit status
+flowchart LR
+  Bazel[Bazel declared runfiles] --> Stage[Private input tree]
+  Stage --> Vite[Vite fixture server]
+  Stage --> Test[Playwright Test]
+  Test --> Relay[Fixed control socket relay]
+  subgraph Internal Docker network
+    Relay --> Browser[Playwright browser server]
+  end
+  Browser -->|Exact fixture host and port via Playwright tunnel| Vite
 ```
 
-Keep lifecycle details behind a small typed runtime interface that returns a
-WebSocket endpoint and an asynchronous cleanup operation. Consumers should not
-need Testcontainers types in their Playwright config or BUILD files.
+Docker cannot publish ports from an internal-only network. The relay joins that
+network and a normal bridge, publishing a loopback control port. It forwards TCP
+only to the browser server; it is not a general network proxy. The browser has
+no external network route. Playwright's host tunnel allows only the fixture's
+assigned `127.0.0.1:port` by default, so unrelated host services are not exposed.
+Targets may opt into additional HTTP(S) `network_origins`; these expose the exact
+host and port through the tunnel and intentionally introduce external inputs.
+Wildcards, credentials, and URL paths are rejected.
 
-The implementation should wait for both the mapped port and Playwright server
-readiness, then establish the browser connection before running cases. Use the
-container runtime's reported host and mapped port rather than assuming a fixed
-host port. Keep startup and test deadlines separate; retain server logs on
-startup failure. Preserve loopback forwarding so source files and Vite remain
-on the host without Docker bind mounts.
+The adapter owns readiness checks, endpoint discovery, startup deadlines, and
+cleanup. Both containers use an init process; Chromium has 1 GiB shared memory.
+It removes resources after success, test failure, or partial startup failure.
+The runtime terminates host children on cancellation and timeout, escalating to
+SIGKILL if needed. Ryuk handles lost client connections, including abrupt runner
+termination. A broken Docker daemon can still prevent cleanup. No browser
+container reuse is enabled.
 
-Use an init process to reap browser children and sufficient shared memory for
-Chromium. Explicit CPU/memory limits may help avoid resource-driven timeouts,
-but do not make rendering deterministic. Cleanup must cover success, assertion
-failure, failed startup, and cancellation. Qualify any resource-reaper behavior
-in the supported CI environment; signal handlers alone cannot clean up after
-an uncatchable process termination or daemon failure.
+## Controlling rendering inputs
 
-## Isolation before reuse
+| Input                               | Control                                                                                                                |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Browser, OS libraries, system fonts | Pinned image digest and Linux amd64 platform.                                                                          |
+| Application and npm packages        | Materialized runfiles manifest; no source or output-tree mounts.                                                       |
+| Environment                         | Only target `env` and `env_inherit`, with fixed locale/timezone and private home/cache directories.                    |
+| Vite discovery                      | Explicit config; dotenv disabled; filesystem serving restricted to staged inputs; implicit PostCSS discovery disabled. |
+| Browser requests                    | Fixture endpoint only; vendor fonts and mock API responses in declared fixtures.                                       |
+| Screenshot settings                 | Fixed viewport, theme, locale, timezone, reduced motion, and caret behavior.                                           |
+| Application readiness               | Consumer assertions and font readiness before capture.                                                                 |
 
-Start with one owned server container per Bazel target and isolated browser
-contexts for its tests. Reuse is a later performance option, disabled by default
-in CI. Reusing the browser server must never mean reusing page state, storage,
-fixtures, temporary outputs, or previous test results.
+Compare and update use the same input staging and environment policy. Update
+changes snapshot mode and the final destination; it does not inherit additional
+shell configuration. Image upgrades still require reviewing fresh captures.
+Containers do not freeze clocks, random values, UI transitions, or application
+state. Pixel tolerance should not hide uncontrolled inputs.
 
-If reuse is added, key it on the image digest, architecture, Playwright version,
-server command, and runtime settings. Coordinate concurrent creators, probe
-cached endpoints, replace stale containers, and distinguish the owning process
-from clients that merely connect. A client must not stop another target's
-container. Keep an explicit teardown path for reusable development containers.
+## Scope and verification
 
-## Acceptance before replacing the CLI
+This is reproducible local browser testing, not a fully sandboxed Bazel action.
+The host Node processes execute trusted consumer config, plugins, and tests;
+those can explicitly read host files or access the network. Docker discovery,
+credentials, daemon/kernel behavior, image availability, and machine resources
+remain external inputs. Tests therefore remain manual, local, and uncached.
+Remote Docker daemons are not supported by the loopback control binding.
 
-Verify unchanged captures across fresh containers and repeated invocations,
-plus intentional mismatch and missing-baseline failures. Exercise two targets
-concurrently, startup timeout, browser disconnect, and cancellation; check for
-leaked containers and orphan processes. Confirm matching screenshots and useful
-artifacts in local and CI runs on the supported architecture. Keep compare/update
-semantics unchanged as described in [visual testing design](visual-testing-design.md).
+Regression tests cover staging and environment isolation, fixture access,
+blocked unrelated host ports, and blocked direct public-network access. The
+standalone example and FormatJS editor retain their existing screenshot
+baselines. Compare/update probes verify that adjacent `.env.local` files and
+undeclared shell variables cannot affect rendering.

@@ -32,7 +32,7 @@ flowchart TD
   Runner --> Container[Pinned Linux container]
   Host <-->|Playwright WebSocket| Container
   Container --> Browser[Chromium]
-  Browser -->|Forwarded loopback requests| Host
+  Browser -->|Exact fixture endpoint tunnel| Host
   Host --> Results[JUnit and screenshot artifacts]
   Results --> Baselines[Compare inputs or explicit baseline update]
 ```
@@ -43,14 +43,14 @@ the browser and OS rendering environment. The runner verifies the declared
 starting the server. Playwright forwards browser requests to the host Vite
 server; Docker does not need a source-tree bind mount or an npm install.
 
-Each invocation creates one container, waits for readiness, and removes it on
-completion or handled termination. Playwright Test execution and Bazel have separate
+Each invocation uses Testcontainers to create a browser, control relay, and
+internal network, and removes them on completion or handled termination. Playwright Test execution and Bazel have separate
 timeouts. The supported contract currently requires a local Docker daemon;
 remote daemons and shared-container reuse need separate validation.
 
 The [Testcontainers design](testcontainers-vrt.md) explains why a pinned browser
-environment improves VRT stability and how a future lifecycle adapter would
-replace the current Docker CLI without changing consumer APIs.
+environment improves VRT stability and describes the implemented input,
+environment, and network isolation boundaries.
 
 ## TypeScript and Bazel inputs
 

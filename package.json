@@ -1,20 +1,22 @@
 {
   "name": "rules-web-e2e-dev",
-  "packageManager": "pnpm@11.17.0",
   "private": true,
-  "devDependencies": {
-    "@commitlint/cli": "^21.2.1",
-    "lefthook": "^2.1.10",
-    "typescript": "5.9.3",
-    "@types/node": "24.10.1",
-    "playwright": "1.62.0",
-    "@commitlint/types": "21.2.0",
-    "@playwright/test": "1.62.0"
-  },
   "scripts": {
     "build": "bazelisk build //...",
     "test": "bazelisk test //...",
     "test:bcr": "cd bcr_test && bazelisk test //...",
     "hooks:install": "lefthook install"
-  }
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/types": "21.2.0",
+    "@playwright/test": "1.62.0",
+    "@types/node": "24.10.1",
+    "lefthook": "^2.1.10",
+    "playwright": "1.62.0",
+    "testcontainers": "11.14.0",
+    "typescript": "5.9.3",
+    "vite": "8.1.0"
+  },
+  "packageManager": "pnpm@11.17.0"
 }

@@ -47,8 +47,8 @@ flowchart TD
   inputs and isolate temporary files. Retain reports, traces, and screenshots as
   Bazel test outputs. Document supported Node, Playwright, React component-testing,
   Vite, and browser versions, including ESM/CJS support.
-- **Container lifecycle:** preserve the pinned-browser contract while moving
-  Docker orchestration behind a typed Testcontainers adapter. Validate readiness,
+- **Container lifecycle:** the component VRT runtime now uses a typed
+  Testcontainers adapter with pinned Linux amd64 images. Validate readiness,
   endpoint discovery, cancellation, and cleanup before enabling reuse. See the
   [Testcontainers design](testcontainers-vrt.md).
 - **Visual stability:** use a public, digest-pinned Linux browser image with

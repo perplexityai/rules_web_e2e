@@ -27,10 +27,11 @@ before committing. Each VRT target must own a separate baseline directory.
    `local_path_override` pointing to your checkout; use a published version when
    available. Translate the consumer’s npm lockfile with `rules_js`.
 2. Link `@rules_web_e2e//runtime:package` with `npm_link_package` as
-   `node_modules/@rules-web-e2e/vrt`. Provide a consumer `playwright_binary` and the
-   `node_modules/playwright-core/dir` target.
+   `node_modules/@rules-web-e2e/vrt`. Provide the consumer `@playwright/test`, `playwright-core`, and Vite
+   npm `/dir` targets.
 3. Define `component_visual_test` with `config`, `srcs`, `deps`, and `data`.
-   Supply a Vite binary as `server` and its config as `server_config`.
+   Set `playwright_test`, `playwright_core`, and `vite` to those package
+   directories, and `server_config` to the Vite config.
    Include the fixture HTML, app entrypoint, and `package.json` in `srcs`.
    List existing PNGs in `baselines` and set `baseline_dir` (default:
    `__screenshots__`). Config and baselines belong to the consumer repository.
@@ -41,7 +42,7 @@ before committing. Each VRT target must own a separate baseline directory.
    `defineConfig` from `@playwright/test` to add consumer options. Keep React
    plugins, CSS, and aliases in a separate `vite.config.ts`.
 5. Write `*.visual.spec.ts` tests using Playwright's `test` and `expect`.
-   Navigate to `process.env.VRT_APP_URL`, populated from Vite readiness output,
+   Navigate to `process.env.VRT_APP_URL`, populated after Vite starts,
    then call `expect(page.locator(...)).toHaveScreenshot('stable-name.png')`.
    Use unique simple PNG filenames across the target.
 
@@ -68,12 +69,18 @@ threshold is `0.1`; `tolerance` controls the allowed mismatched pixel ratio.
   Playwright version must match the consumer’s `playwright-core` package.
   The runner copies that declared package into the container; it does not run
   npm installs or mount source paths inside Docker.
-- Docker must be on PATH and its local daemon reachable. Docker connection
-  variables are inherited explicitly. Browser traffic reaches the host Vite
-  server through Playwright’s loopback forwarding.
-- Each invocation owns and cleans up one container. Tests run locally, outside
+- A local Docker daemon must be reachable by Testcontainers. Docker connection
+  variables are inherited explicitly. The browser tunnel exposes only the
+  fixture server’s exact host and port by default. Prefer declared fixtures;
+  `network_origins = ["https://fixtures.example"]` explicitly permits an
+  additional host/port and introduces an external dependency.
+- Each invocation owns a browser container, control relay, and internal network. Tests run locally, outside
   Bazel’s filesystem sandbox, and disable result caching. Docker/browser tests
   are `manual`; invoke them explicitly in a dedicated CI job.
+- Sources and dependencies are copied from the runfiles manifest into a private
+  tree. Vite dotenv loading is disabled. Compare and update use only declared
+  `env`/`env_inherit` variables and fresh home/cache directories. See
+  [the isolation boundaries](testcontainers-vrt.md).
 - Compare mode copies declared baselines to a temporary directory. Missing or
   changed screenshots fail without modifying source baselines. Playwright writes
   JUnit and image attachments under `TEST_UNDECLARED_OUTPUTS_DIR`.
