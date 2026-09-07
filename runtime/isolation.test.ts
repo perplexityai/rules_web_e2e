@@ -35,7 +35,7 @@ test('staging excludes adjacent files and preserves a single npm package identit
   assert.equal(fs.existsSync(path.join(staged, '_main/.env.local')), false)
   assert.equal(
     fs.realpathSync(path.join(staged, '_main/node_modules/pkg')),
-    path.join(staged, '_main/node_modules/.store/pkg')
+    fs.realpathSync(path.join(staged, '_main/node_modules/.store/pkg'))
   )
   fs.writeFileSync(path.join(source, 'config.ts'), 'changed after staging')
   assert.equal(
