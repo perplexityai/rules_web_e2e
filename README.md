@@ -8,6 +8,8 @@ Playwright container and explicit baseline updates. See the
 [component VRT guide](docs/component-vrt.md) and [React example](examples/react).
 The other APIs in the plan are not implemented yet.
 
+See the [documentation index](docs/README.md) for the approach and design.
+
 See the [OSS browser testing plan](docs/oss-browser-testing-plan.md) for the proposed
 Playwright, web E2E, component browser, and VRT scope.
 

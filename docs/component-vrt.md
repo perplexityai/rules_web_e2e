@@ -3,7 +3,9 @@
 `component_visual_test` runs consumer-owned Vitest browser tests against a
 Playwright server in a digest-pinned Linux container. It provides comparison,
 failure artifacts, and an explicit `<name>.update` target. The runtime is consumed
-through Bazel; a separate npm publication is not required.
+through Bazel; a separate npm publication is not required. See
+[architecture](architecture.md) and [visual testing design](visual-testing-design.md)
+for the rationale and planned extensions.
 
 ## Try the standalone example
 
@@ -44,8 +46,9 @@ The example wires its strict `:typecheck` target into the VRT target’s `data`,
 so type errors fail the build before browser execution. Its filegroup requests
 `transitive_typecheck` outputs explicitly from `ts_project`; `no_emit` alone
 does not guarantee those outputs are built. Run `bazel build //:typecheck`
-inside the example to check its config and browser tests independently. The helper sets a 1280×720
-viewport, light theme, reduced motion, en-US locale, UTC timezone, and zero
+inside the example to check its config and browser tests independently.
+
+The helper sets a 1280×720 viewport, light theme, reduced motion, en-US locale, UTC timezone, and zero
 allowed mismatched pixels by default; configure `viewport` and `tolerance`
 explicitly when needed. Wait for loaded data and fonts with polling assertions
 before taking a one-shot screenshot. Vitest 4.1.6 screenshot failures inside

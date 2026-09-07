@@ -4,18 +4,19 @@ Build reusable Bazel rules for Playwright, web end-to-end tests, React component
 browser tests, and visual regression tests (VRT). Publish through the Bazel
 Central Registry (BCR), with standalone examples and documented compatibility.
 `component_visual_test` is implemented; the other APIs below remain proposed.
-See the [component VRT guide](component-vrt.md) for the current supported setup.
+See [architecture](architecture.md) and [visual testing design](visual-testing-design.md)
+for the design boundaries. See the [component VRT guide](component-vrt.md) for the current supported setup.
 
 ## Proposed APIs
 
-| API | Purpose |
-| --- | --- |
-| `playwright_test` | Run consumer-provided Playwright specs and configuration with declared dependencies and browser artifacts. |
-| `web_e2e_test` | Test a managed local server or an explicitly configured deployed URL. |
-| `component_browser_test` | Mount React components and test interactions with Playwright component testing. |
-| `component_visual_module` | Declare reusable visual cases, rendering hooks, and viewport settings. |
-| `component_visual_test` | Compare component screenshots using Vitest browser mode and Playwright. |
-| `web_visual_test` | Compare page screenshots using Playwright. |
+| API                       | Purpose                                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `playwright_test`         | Run consumer-provided Playwright specs and configuration with declared dependencies and browser artifacts. |
+| `web_e2e_test`            | Test a managed local server or an explicitly configured deployed URL.                                      |
+| `component_browser_test`  | Mount React components and test interactions with Playwright component testing.                            |
+| `component_visual_module` | Declare reusable visual cases, rendering hooks, and viewport settings.                                     |
+| `component_visual_test`   | Compare component screenshots using Vitest browser mode and Playwright.                                    |
+| `web_visual_test`         | Compare page screenshots using Playwright.                                                                 |
 
 ## Architecture
 
