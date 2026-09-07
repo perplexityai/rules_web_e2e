@@ -159,23 +159,22 @@ async function main() {
       ? new URL(process.env.DOCKER_HOST).hostname
       : '127.0.0.1'
     const code = await new Promise<number>((resolve, reject) => {
-      child = spawn(
-        runner,
-        ['run', '--config', config, ...(update ? ['--update'] : [])],
-        {
-          stdio: 'inherit',
-          detached: true,
-          env: {
-            ...process.env,
-            CI: '1',
-            VRT_UPDATE: update ? '1' : '0',
-            VRT_WS_ENDPOINT: `ws://${dockerHost}:${port}/`,
-            VRT_BASELINES: baselines,
-            VRT_OUTPUTS: outputs,
-            VRT_CACHE: path.join(temp, 'vite-cache'),
-          },
-        }
-      )
+      child = spawn(runner, ['test', '--config', config], {
+        stdio: 'inherit',
+        detached: true,
+        env: {
+          ...process.env,
+          CI: '1',
+          VRT_UPDATE: update ? '1' : '0',
+          VRT_SERVER: runfile(required('VRT_SERVER')),
+          VRT_SERVER_CONFIG: runfile(required('VRT_SERVER_CONFIG')),
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
+          VRT_WS_ENDPOINT: `ws://${dockerHost}:${port}/`,
+          VRT_BASELINES: baselines,
+          VRT_OUTPUTS: outputs,
+          VRT_CACHE: path.join(temp, 'vite-cache'),
+        },
+      })
       const timer = setTimeout(
         () => {
           console.error('VRT exceeded its execution timeout')
@@ -193,6 +192,7 @@ async function main() {
       })
     })
     if (code !== 0) {
+      fs.cpSync(baselines, path.join(outputs, 'reference'), {recursive: true})
       process.exitCode = code
       console.error(`VRT artifacts: ${outputs}`)
       return

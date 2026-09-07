@@ -36,7 +36,7 @@ sequenceDiagram
   participant Runtime as TypeScript runtime
   participant TC as Testcontainers
   participant PW as Container Playwright server
-  participant App as Host Vitest and Vite
+  participant App as Host Playwright Test and Vite
   Target->>Runtime: Declared inputs and pinned image
   Runtime->>TC: Start owned container
   TC->>PW: Launch server and await readiness
@@ -51,7 +51,7 @@ sequenceDiagram
 
 Keep lifecycle details behind a small typed runtime interface that returns a
 WebSocket endpoint and an asynchronous cleanup operation. Consumers should not
-need Testcontainers types in their Vitest config or BUILD files.
+need Testcontainers types in their Playwright config or BUILD files.
 
 The implementation should wait for both the mapped port and Playwright server
 readiness, then establish the browser connection before running cases. Use the

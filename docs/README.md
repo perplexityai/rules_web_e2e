@@ -13,7 +13,7 @@ consumers supply the application, test cases, styling, and fixtures.
 
 ## Implementation status
 
-Component VRT is implemented with strict TypeScript, Vitest browser mode, and
+Component VRT is implemented with strict TypeScript, Playwright Test, and
 Playwright Chromium in a pinned Linux container. The [React example](../examples/react)
 is a standalone consumer and runs in a dedicated CI job.
 

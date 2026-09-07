@@ -15,7 +15,7 @@ for the design boundaries. See the [component VRT guide](component-vrt.md) for t
 | `web_e2e_test`            | Test a managed local server or an explicitly configured deployed URL.                                      |
 | `component_browser_test`  | Mount React components and test interactions with Playwright component testing.                            |
 | `component_visual_module` | Declare reusable visual cases, rendering hooks, and viewport settings.                                     |
-| `component_visual_test`   | Compare component screenshots using Vitest browser mode and Playwright.                                    |
+| `component_visual_test`   | Compare component screenshots using Playwright Test screenshot assertions.                                 |
 | `web_visual_test`         | Compare page screenshots using Playwright.                                                                 |
 
 ## Architecture
@@ -46,7 +46,7 @@ flowchart TD
 - **Execution:** manage local server readiness, ports, and cleanup. Declare test
   inputs and isolate temporary files. Retain reports, traces, and screenshots as
   Bazel test outputs. Document supported Node, Playwright, React component-testing,
-  Vitest, and browser versions, including ESM/CJS support.
+  Vite, and browser versions, including ESM/CJS support.
 - **Container lifecycle:** preserve the pinned-browser contract while moving
   Docker orchestration behind a typed Testcontainers adapter. Validate readiness,
   endpoint discovery, cancellation, and cleanup before enabling reuse. See the

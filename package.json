@@ -7,11 +7,9 @@
     "lefthook": "^2.1.10",
     "typescript": "5.9.3",
     "@types/node": "24.10.1",
-    "vitest": "4.1.6",
-    "@vitest/browser-playwright": "4.1.6",
     "playwright": "1.62.0",
-    "vite": "8.1.0",
-    "@commitlint/types": "21.2.0"
+    "@commitlint/types": "21.2.0",
+    "@playwright/test": "1.62.0"
   },
   "scripts": {
     "build": "bazelisk build //...",

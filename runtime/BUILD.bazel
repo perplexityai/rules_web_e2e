@@ -23,11 +23,9 @@ ts_project(
     }},
     visibility = ["//visibility:public"],
     deps = [
+        "//:node_modules/@playwright/test",
         "//:node_modules/@types/node",
-        "//:node_modules/@vitest/browser-playwright",
         "//:node_modules/playwright",
-        "//:node_modules/vite",
-        "//:node_modules/vitest",
     ],
 )
 
@@ -49,8 +47,6 @@ filegroup(
 npm_package(
     name = "package",
     srcs = [
-        "browser-channel.d.ts",
-        "browser-channel.js",
         "config.d.ts",
         "config.js",
         "package.json",

@@ -9,6 +9,8 @@ def component_visual_test(
         runner,
         playwright_core,
         config,
+        server,
+        server_config,
         srcs,
         deps = [],
         data = [],
@@ -21,18 +23,20 @@ def component_visual_test(
         tags = [],
         timeout = "long",
         execution_timeout_seconds = 180):
-    """Run Vitest browser tests against a pinned Linux Playwright server.
+    """Run Playwright Test specs against a pinned Linux Playwright server.
 
-    runner is a consumer-owned vitest_binary. playwright_core is the matching
+    runner is a consumer-owned playwright_binary. playwright_core is the matching
     npm_link_package /dir target. config and all imports must be declared
     in srcs/deps/data. The generated <name>.update binary owns baseline_dir:
     it replaces its PNG files only after a successful full capture.
 
     Args:
         name: Compare target name; also creates <name>.update.
-        runner: Consumer vitest_binary target.
+        runner: Consumer playwright_binary target.
         playwright_core: Matching playwright-core npm /dir target.
-        config: Consumer Vitest config file.
+        config: Consumer Playwright Test config file.
+        server: Consumer Vite binary target.
+        server_config: Consumer Vite config file.
         srcs: Browser test sources.
         deps: Runtime npm and library dependencies.
         data: Other declared source files and assets.
@@ -44,7 +48,7 @@ def component_visual_test(
         env_inherit: Additional explicitly inherited environment names.
         tags: Additional Bazel test tags.
         timeout: Bazel test timeout category.
-        execution_timeout_seconds: Limit for the Vitest child process.
+        execution_timeout_seconds: Limit for the Playwright Test child process.
     """
     if execution_timeout_seconds <= 0:
         fail("execution_timeout_seconds must be positive")
@@ -54,18 +58,20 @@ def component_visual_test(
         fail("image must be pinned by digest")
     js_library(
         name = name + "_sources",
-        srcs = srcs + [config] + baselines,
+        srcs = srcs + [config, server_config] + baselines,
         data = data,
         deps = deps,
     )
     common = dict(
         copy_data_to_bin = False,
         entry_point = Label("//runtime:runner_entry"),
-        data = [runner, playwright_core, config, ":" + name + "_sources", Label("//runtime:files")],
+        data = [runner, playwright_core, config, server, server_config, ":" + name + "_sources", Label("//runtime:files")],
         env = env | {
             "VRT_RUNNER": "$(rlocationpath %s)" % runner,
             "VRT_PLAYWRIGHT_CORE": "$(rlocationpath %s)" % playwright_core,
             "VRT_CONFIG": "$(rlocationpath %s)" % config,
+            "VRT_SERVER": "$(rlocationpath %s)" % server,
+            "VRT_SERVER_CONFIG": "$(rlocationpath %s)" % server_config,
             "VRT_BASELINE_RELATIVE": _paths_join(native.package_name(), baseline_dir),
             "VRT_TIMEOUT_MS": str(execution_timeout_seconds * 1000),
             "VRT_IMAGE": image,

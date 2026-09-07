@@ -7,7 +7,7 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["node", "react", "react-dom", "@vitest/browser-playwright"],
+    "types": ["node", "react", "react-dom"],
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
   "include": ["*.ts", "*.tsx"]

@@ -17,7 +17,7 @@ values, clocks, or asynchronous application state.
 The current helper fixes viewport, locale, timezone, color scheme, and reduced
 motion; it disables animations and hides the caret during capture. Consumers
 wait for visible content, loaded fonts, and completed interactions before a
-one-shot screenshot assertion. Reset mounted components and browser state
+Playwright screenshot assertion. Reset mounted components and browser state
 between cases. Screenshots of portals must include the intended overlay element.
 
 The default allows zero mismatched pixels under the configured comparator;

@@ -7,13 +7,13 @@ the consuming repository.
 
 ## Ownership
 
-| Layer               | Owns                                                                                                    |
-| ------------------- | ------------------------------------------------------------------------------------------------------- |
-| Consumer            | Specs, React providers, CSS, fonts, fixtures, aliases, authentication, and server configuration.        |
-| Bazel macro         | Source staging, runner labels, runfiles locations, environment, timeouts, and target tags.              |
-| TypeScript runtime  | Container lifecycle, Playwright connection, isolated capture directories, and baseline synchronization. |
-| Vitest / Playwright | Test execution, assertions, browser automation, and screenshot comparison.                              |
-| Consumer CI         | Scheduling, artifact upload, and review of baseline changes.                                            |
+| Layer              | Owns                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------- |
+| Consumer           | Specs, React providers, CSS, fonts, fixtures, aliases, authentication, and server configuration.        |
+| Bazel macro        | Source staging, runner labels, runfiles locations, environment, timeouts, and target tags.              |
+| TypeScript runtime | Container lifecycle, Playwright connection, isolated capture directories, and baseline synchronization. |
+| Playwright Test    | Test execution, assertions, browser automation, and screenshot comparison.                              |
+| Consumer CI        | Scheduling, artifact upload, and review of baseline changes.                                            |
 
 No framework theme, deployment platform, secret provider, telemetry service,
 or CI vendor is required by the test runtime. Consumers explicitly declare
@@ -28,7 +28,7 @@ flowchart TD
   Types --> Test[Compare or update target]
   Bazel --> Test
   Test --> Runner[TypeScript runner]
-  Runner --> Host[Vitest and Vite on host]
+  Runner --> Host[Playwright Test and Vite on host]
   Runner --> Container[Pinned Linux container]
   Host <-->|Playwright WebSocket| Container
   Container --> Browser[Chromium]
@@ -44,7 +44,7 @@ starting the server. Playwright forwards browser requests to the host Vite
 server; Docker does not need a source-tree bind mount or an npm install.
 
 Each invocation creates one container, waits for readiness, and removes it on
-completion or handled termination. Vitest execution and Bazel have separate
+completion or handled termination. Playwright Test execution and Bazel have separate
 timeouts. The supported contract currently requires a local Docker daemon;
 remote daemons and shared-container reuse need separate validation.
 
@@ -96,12 +96,11 @@ ordinary setup, interactions, and assertions. See the
 
 - [Public macro](../vrt/defs.bzl): Bazel targets and execution contract.
 - [Runner](../runtime/runner.ts): runfiles, Docker, child process, and outputs.
-- [Config helper](../runtime/config.ts): typed Vitest and browser defaults.
-- [Browser channel bridge](../runtime/browser-channel.ts): version-specific control-channel integration.
+- [Config helper](../runtime/config.ts): typed Playwright Test and browser defaults.
 - [Runtime build](../runtime/BUILD.bazel): compilation and declaration packaging.
 
-The bridge is a narrowly scoped compatibility measure for the tested Vitest
-setup, installed synchronously before its orchestrator and iframe initialize.
-Only `vitest:*` channels use it. Keep version-specific workarounds localized and
-revalidate them when upgrading; the standalone browser example exercises this
-path without requiring consumers to patch their npm packages.
+Playwright Test owns fixtures, isolated browser contexts, assertions, traces,
+and the Vite server lifecycle. Its web-server readiness pattern captures the
+dynamically assigned URL as `VRT_APP_URL` for test workers. Consumers write
+ordinary page/locator tests against a Vite-served fixture application; React
+component mounting stays in that application, without an experimental harness.
