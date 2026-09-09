@@ -1,5 +1,6 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
+import {createRoot} from 'react-dom/client'
+import {TestShell} from './shell'
 
 function Card() {
   const [saved, setSaved] = React.useState(false)
@@ -7,7 +8,6 @@ function Card() {
     <section
       style={{
         padding: 24,
-        fontFamily: 'sans-serif',
         width: 320,
         background: '#f5f7fa',
       }}
@@ -19,4 +19,8 @@ function Card() {
   )
 }
 
-ReactDOM.render(<Card />, document.getElementById('card-root'))
+createRoot(document.getElementById('card-root')!).render(
+  <TestShell>
+    <Card />
+  </TestShell>
+)

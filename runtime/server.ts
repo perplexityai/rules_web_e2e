@@ -1,25 +1,40 @@
-import path from 'node:path'
 import {pathToFileURL} from 'node:url'
-import type * as Vite from 'vite'
+import type {ServerAdapter, ServerContext} from './server-types.js'
 
-const vite = (await import(
-  pathToFileURL(path.join(process.env.VRT_VITE!, 'dist/node/index.js')).href
-)) as typeof Vite
-const server = await vite.createServer({
-  configFile: process.env.VRT_SERVER_CONFIG!,
-  envDir: false,
-  cacheDir: process.env.VRT_CACHE!,
-  css: {postcss: {}},
-  server: {
-    host: '127.0.0.1',
-    port: 0,
-    open: false,
-    fs: {strict: true, allow: [process.env.VRT_INPUTS!]},
-  },
-})
-await server.listen()
-process.send?.({url: server.resolvedUrls!.local[0]})
+const context: ServerContext = {
+  root: process.cwd(),
+  inputs: process.env.VRT_INPUTS!,
+  cache: process.env.VRT_CACHE!,
+  host: '127.0.0.1',
+}
+const adapterUrl = process.env.VRT_CUSTOM_SERVER
+  ? pathToFileURL(process.env.VRT_CUSTOM_SERVER)
+  : new URL('./vite-server.js', import.meta.url)
+const {default: start} = (await import(adapterUrl.href)) as {
+  default: ServerAdapter
+}
+const server = await start(context)
+try {
+  const url = new URL(server.url)
+  if (
+    url.protocol !== 'http:' ||
+    url.hostname !== context.host ||
+    !url.port ||
+    url.username ||
+    url.password
+  )
+    throw new Error(
+      'Server adapter must return an HTTP URL on 127.0.0.1 with an explicit port'
+    )
+  process.send?.({url: url.href})
+} catch (error) {
+  await server.close()
+  throw error
+}
+let stopping = false
 for (const signal of ['SIGINT', 'SIGTERM'] as const)
   process.once(signal, () => {
-    void server.close().then(() => process.exit())
+    if (stopping) return
+    stopping = true
+    void Promise.resolve(server.close()).then(() => process.exit())
   })

@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        bazel: ["9.0.0", "8.6.0"]
+        bazel: ["9.2.0", "8.6.0"]
         os: [ubuntu-latest, macos-latest]
     env:
       USE_BAZEL_VERSION: ${{ matrix.bazel }}

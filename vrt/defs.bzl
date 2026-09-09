@@ -2,22 +2,23 @@
 
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
 
-PLAYWRIGHT_IMAGE = "mcr.microsoft.com/playwright:v1.62.0-noble@sha256:baed2032d533817f3dbe6425de795788430ba345e819a1201337009ba17c9d07"
+PLAYWRIGHT_IMAGE = "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7"
 
 def component_visual_test(
         name,
         playwright_test,
         playwright_core,
         config,
-        vite,
-        server_config,
         srcs,
+        vite = None,
+        server_config = None,
+        server = None,
         deps = [],
         data = [],
         baselines = [],
         baseline_dir = "__screenshots__",
         image = PLAYWRIGHT_IMAGE,
-        playwright_version = "1.62.0",
+        playwright_version = "1.63.0",
         env = {},
         env_inherit = [],
         network_origins = [],
@@ -37,7 +38,8 @@ def component_visual_test(
         playwright_core: Matching playwright-core npm /dir target.
         config: Consumer Playwright Test config file.
         vite: Consumer Vite npm /dir target.
-        server_config: Consumer Vite config file.
+        server_config: Consumer Vite config file; required with vite.
+        server: Compiled TS module exporting a ServerAdapter; replaces the Vite adapter.
         srcs: Browser test sources.
         deps: Runtime npm and library dependencies.
         data: Other declared source files and assets.
@@ -58,22 +60,30 @@ def component_visual_test(
         fail("baseline_dir must be a nonempty relative directory without dot segments")
     if "@sha256:" not in image:
         fail("image must be pinned by digest")
+    if server:
+        if vite or server_config:
+            fail("server is mutually exclusive with vite/server_config")
+    elif not vite or not server_config:
+        fail("Supply either server or both vite and server_config")
+    server_inputs = [server] if server else [vite, server_config]
+    server_env = {"VRT_CUSTOM_SERVER": "$(rlocationpath %s)" % server} if server else {
+        "VRT_VITE": "$(rlocationpath %s)" % vite,
+        "VRT_SERVER_CONFIG": "$(rlocationpath %s)" % server_config,
+    }
     js_library(
         name = name + "_sources",
-        srcs = srcs + [config, server_config] + baselines,
+        srcs = srcs + [config] + ([server_config] if server_config else []) + baselines,
         data = data,
         deps = deps,
     )
     common = dict(
         copy_data_to_bin = False,
         entry_point = Label("//runtime:runner_entry"),
-        data = [playwright_test, playwright_core, config, vite, server_config, ":" + name + "_sources", Label("//runtime:files")],
-        env = env | {
+        data = server_inputs + [playwright_test, playwright_core, config, ":" + name + "_sources", Label("//runtime:files")],
+        env = env | server_env | {
             "VRT_PLAYWRIGHT_TEST": "$(rlocationpath %s)" % playwright_test,
             "VRT_PLAYWRIGHT_CORE": "$(rlocationpath %s)" % playwright_core,
             "VRT_CONFIG": "$(rlocationpath %s)" % config,
-            "VRT_VITE": "$(rlocationpath %s)" % vite,
-            "VRT_SERVER_CONFIG": "$(rlocationpath %s)" % server_config,
             "VRT_BASELINE_RELATIVE": _paths_join(native.package_name(), baseline_dir),
             "VRT_NETWORK_ORIGINS": json.encode(network_origins),
             "VRT_ENV_NAMES": json.encode(env.keys() + env_inherit),

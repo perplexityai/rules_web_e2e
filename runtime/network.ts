@@ -1,6 +1,6 @@
 /** Turn explicit HTTP origins into exact Playwright tunnel host:port entries. */
 export function networkTargets(fixture: string, origins: string[]): string {
-  return [fixture, ...origins]
+  return [new URL(fixture).origin, ...origins]
     .map(origin => {
       const url = new URL(origin)
       if (

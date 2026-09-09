@@ -64,8 +64,12 @@ async function main() {
     ),
     VRT_NETWORK_ORIGINS: required('VRT_NETWORK_ORIGINS'),
     VRT_INPUTS: inputs,
-    VRT_VITE: input('VRT_VITE'),
-    VRT_SERVER_CONFIG: input('VRT_SERVER_CONFIG'),
+    ...(process.env.VRT_CUSTOM_SERVER
+      ? {VRT_CUSTOM_SERVER: input('VRT_CUSTOM_SERVER')}
+      : {
+          VRT_VITE: input('VRT_VITE'),
+          VRT_SERVER_CONFIG: input('VRT_SERVER_CONFIG'),
+        }),
     VRT_UPDATE: update ? '1' : '0',
     VRT_BASELINES: baselines,
     VRT_OUTPUTS: outputs,

@@ -11,6 +11,9 @@ consumers supply the application, test cases, styling, and fixtures.
 | [Component VRT guide](component-vrt.md)                   | Working setup, commands, and supported versions.                                      |
 | [Delivery plan](oss-browser-testing-plan.md)              | Proposed Playwright, web E2E, and component browser APIs.                             |
 
+See also [custom servers and UI shells](customization.md) and
+[dependency versions](dependencies.md).
+
 ## Implementation status
 
 Component VRT is implemented with strict TypeScript, Playwright Test, and

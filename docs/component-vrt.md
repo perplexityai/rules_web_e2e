@@ -61,9 +61,15 @@ before taking a screenshot. Playwright waits for stable consecutive captures
 and compares them with its built-in pixelmatch comparator. The per-pixel color
 threshold is `0.1`; `tolerance` controls the allowed mismatched pixel ratio.
 
+## Custom servers and shells
+
+Pass `server = ":server.js"` instead of `vite`/`server_config` to use a compiled
+consumer `ServerAdapter`. Compose the UI shell in the browser entrypoint. See
+[the interface and integration patterns](customization.md).
+
 ## Execution contract
 
-- Tested versions: Bazel 8.6/9.0/9.2, Playwright Test/core 1.62.0, Vite 8.1.0, React 17.0.2. Initial screenshot support is Linux amd64.
+- Tested versions: Bazel 8.6/9.0/9.2, Playwright Test/core 1.63.0, Vite 8.2.2, React 19.2.8. Initial screenshot support is Linux amd64.
   macOS/arm64 screenshot equivalence has not been validated.
 - The image, including fonts and browser binaries, is pinned by digest. Its
   Playwright version must match the consumer’s `playwright-core` package.

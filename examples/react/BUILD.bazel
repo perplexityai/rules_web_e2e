@@ -28,6 +28,7 @@ component_visual_test(
         "index.html",
         "isolation.visual.spec.ts",
         "package.json",
+        "shell.tsx",
     ],
     baselines = glob(
         ["__screenshots__/*.png"],

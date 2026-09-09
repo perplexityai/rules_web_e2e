@@ -28,7 +28,7 @@ pnpm test:bcr
 
 The corresponding Bazel commands are `bazelisk build //...` and
 `bazelisk test //...`. Run `bazelisk test //...` inside `bcr_test/` to test
-the module as a dependency. CI runs both workspaces with Bazel 9.0.0 and
+the module as a dependency. CI runs both workspaces with Bazel 9.2.0 and
 8.6.0 on Linux and macOS. Local overrides belong in `.bazelrc.user`.
 
 Lefthook validates Conventional Commit messages, for example

@@ -7,6 +7,10 @@
     ".": {
       "types": "./config.d.ts",
       "import": "./config.js"
+    },
+    "./server": {
+      "types": "./server-types.d.ts",
+      "import": "./server-types.js"
     }
   }
 }

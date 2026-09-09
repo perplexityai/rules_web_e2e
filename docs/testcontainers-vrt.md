@@ -1,6 +1,6 @@
 # Testcontainers and VRT stability
 
-The TypeScript runtime uses Testcontainers 11.14.0 to start a fresh browser and
+The TypeScript runtime uses Testcontainers 12.1.0 to start a fresh browser and
 control relay per invocation. Both use the same digest-pinned Playwright image
 and explicit `linux/amd64` platform. The runner verifies the browser's platform
 and the declared Playwright package version before running tests. Ryuk, the
@@ -42,7 +42,7 @@ container reuse is enabled.
 | Browser, OS libraries, system fonts | Pinned image digest and Linux amd64 platform.                                                                          |
 | Application and npm packages        | Materialized runfiles manifest; no source or output-tree mounts.                                                       |
 | Environment                         | Only target `env` and `env_inherit`, with fixed locale/timezone and private home/cache directories.                    |
-| Vite discovery                      | Explicit config; dotenv disabled; filesystem serving restricted to staged inputs; implicit PostCSS discovery disabled. |
+| Vite discovery                      | Built-in adapter: explicit config; dotenv disabled; filesystem serving restricted to staged inputs; implicit PostCSS discovery disabled. |
 | Browser requests                    | Fixture endpoint only; vendor fonts and mock API responses in declared fixtures.                                       |
 | Screenshot settings                 | Fixed viewport, theme, locale, timezone, reduced motion, and caret behavior.                                           |
 | Application readiness               | Consumer assertions and font readiness before capture.                                                                 |

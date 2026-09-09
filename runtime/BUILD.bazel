@@ -4,7 +4,10 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 
 ts_project(
     name = "typecheck",
-    srcs = glob(["*.ts"]),
+    srcs = glob([
+        "*.ts",
+        "fixtures/*.ts",
+    ]),
     declaration = True,
     transpiler = "tsc",
     tsconfig = {"compilerOptions": {
@@ -40,6 +43,7 @@ js_library(
         "package.json",
         "relay.js",
         "server.js",
+        "vite-server.js",
     ],
     visibility = ["//visibility:public"],
     deps = ["//:node_modules/testcontainers"],
@@ -59,6 +63,8 @@ npm_package(
         "network.d.ts",
         "network.js",
         "package.json",
+        "server-types.d.ts",
+        "server-types.js",
     ],
     package = "@rules-web-e2e/vrt",
     visibility = ["//visibility:public"],
@@ -82,4 +88,14 @@ js_test(
         ":typecheck",
     ],
     entry_point = "isolation.test.js",
+)
+
+js_test(
+    name = "server_test",
+    size = "small",
+    data = [
+        "package.json",
+        ":typecheck",
+    ],
+    entry_point = "server.test.js",
 )
