@@ -3,18 +3,20 @@
 Build reusable Bazel rules for Playwright, web end-to-end tests, React component
 browser tests, and visual regression tests (VRT). Publish through the Bazel
 Central Registry (BCR), with standalone examples and documented compatibility.
-The APIs below are proposed; this repo currently contains packaging smoke tests.
+`component_visual_test` is implemented; the other APIs below remain proposed.
+See [architecture](architecture.md) and [visual testing design](visual-testing-design.md)
+for the design boundaries. See the [component VRT guide](component-vrt.md) for the current supported setup.
 
 ## Proposed APIs
 
-| API | Purpose |
-| --- | --- |
-| `playwright_test` | Run consumer-provided Playwright specs and configuration with declared dependencies and browser artifacts. |
-| `web_e2e_test` | Test a managed local server or an explicitly configured deployed URL. |
-| `component_browser_test` | Mount React components and test interactions with Playwright component testing. |
-| `component_visual_module` | Declare reusable visual cases, rendering hooks, and viewport settings. |
-| `component_visual_test` | Compare component screenshots using Vitest browser mode and Playwright. |
-| `web_visual_test` | Compare page screenshots using Playwright. |
+| API                       | Purpose                                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `playwright_test`         | Run consumer-provided Playwright specs and configuration with declared dependencies and browser artifacts. |
+| `web_e2e_test`            | Test a managed local server or an explicitly configured deployed URL.                                      |
+| `component_browser_test`  | Mount React components and test interactions with Playwright component testing.                            |
+| `component_visual_module` | Declare reusable visual cases, rendering hooks, and viewport settings.                                     |
+| `component_visual_test`   | Compare component screenshots using Playwright Test screenshot assertions.                                 |
+| `web_visual_test`         | Compare page screenshots using Playwright.                                                                 |
 
 ## Architecture
 
@@ -44,7 +46,11 @@ flowchart TD
 - **Execution:** manage local server readiness, ports, and cleanup. Declare test
   inputs and isolate temporary files. Retain reports, traces, and screenshots as
   Bazel test outputs. Document supported Node, Playwright, React component-testing,
-  Vitest, and browser versions, including ESM/CJS support.
+  Vite, and browser versions, including ESM/CJS support.
+- **Container lifecycle:** the component VRT runtime now uses a typed
+  Testcontainers adapter with pinned Linux amd64 images. Validate readiness,
+  endpoint discovery, cancellation, and cleanup before enabling reuse. See the
+  [Testcontainers design](testcontainers-vrt.md).
 - **Visual stability:** use a public, digest-pinned Linux browser image with
   matching fonts and browser version. Configure viewports, rendering hooks, and
   diff tolerances. Make Docker connection and lifecycle explicit; verify

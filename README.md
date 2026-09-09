@@ -3,8 +3,12 @@
 Bazel module scaffold for web end-to-end testing rules. The build, release,
 Bazel Central Registry (BCR), and commit-hook setup follows
 [perplexityai/gazelle_py](https://github.com/perplexityai/gazelle_py).
-Browser testing rules are not implemented yet; the smoke tests verify module
-packaging and consumption from a separate Bazel workspace.
+Component VRT is available through `component_visual_test`, with a pinned Linux
+Playwright container and explicit baseline updates. See the
+[component VRT guide](docs/component-vrt.md) and [React example](examples/react).
+The other APIs in the plan are not implemented yet.
+
+See the [documentation index](docs/README.md) for the approach and design.
 
 See the [OSS browser testing plan](docs/oss-browser-testing-plan.md) for the proposed
 Playwright, web E2E, component browser, and VRT scope.
@@ -24,7 +28,7 @@ pnpm test:bcr
 
 The corresponding Bazel commands are `bazelisk build //...` and
 `bazelisk test //...`. Run `bazelisk test //...` inside `bcr_test/` to test
-the module as a dependency. CI runs both workspaces with Bazel 9.0.0 and
+the module as a dependency. CI runs both workspaces with Bazel 9.2.0 and
 8.6.0 on Linux and macOS. Local overrides belong in `.bazelrc.user`.
 
 Lefthook validates Conventional Commit messages, for example

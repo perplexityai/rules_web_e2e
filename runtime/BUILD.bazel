@@ -1,0 +1,101 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "typecheck",
+    srcs = glob([
+        "*.ts",
+        "fixtures/*.ts",
+    ]),
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = {"compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": True,
+        "declaration": True,
+        "skipLibCheck": True,
+        "types": ["node"],
+        "lib": [
+            "ES2022",
+            "DOM",
+            "DOM.Iterable",
+        ],
+    }},
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:node_modules/@playwright/test",
+        "//:node_modules/@types/node",
+        "//:node_modules/playwright",
+        "//:node_modules/testcontainers",
+        "//:node_modules/vite",
+    ],
+)
+
+js_library(
+    name = "files",
+    srcs = [
+        "baselines.js",
+        "container.js",
+        "isolation.js",
+        "package.json",
+        "relay.js",
+        "server.js",
+        "vite-server.js",
+    ],
+    visibility = ["//visibility:public"],
+    deps = ["//:node_modules/testcontainers"],
+)
+
+filegroup(
+    name = "runner_entry",
+    srcs = ["runner.js"],
+    visibility = ["//visibility:public"],
+)
+
+npm_package(
+    name = "package",
+    srcs = [
+        "config.d.ts",
+        "config.js",
+        "network.d.ts",
+        "network.js",
+        "package.json",
+        "server-types.d.ts",
+        "server-types.js",
+    ],
+    package = "@rules-web-e2e/vrt",
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "baselines_test",
+    size = "small",
+    data = [
+        "package.json",
+        ":typecheck",
+    ],
+    entry_point = "baselines.test.js",
+)
+
+js_test(
+    name = "isolation_test",
+    size = "small",
+    data = [
+        "package.json",
+        ":typecheck",
+    ],
+    entry_point = "isolation.test.js",
+)
+
+js_test(
+    name = "server_test",
+    size = "small",
+    data = [
+        "package.json",
+        ":typecheck",
+    ],
+    entry_point = "server.test.js",
+)

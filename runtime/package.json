@@ -1,0 +1,16 @@
+{
+  "name": "@rules-web-e2e/vrt",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./config.d.ts",
+      "import": "./config.js"
+    },
+    "./server": {
+      "types": "./server-types.d.ts",
+      "import": "./server-types.js"
+    }
+  }
+}

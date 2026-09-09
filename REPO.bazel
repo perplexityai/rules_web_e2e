@@ -1,2 +1,2 @@
 # The BCR consumer has its own module and is tested separately.
-ignore_directories(["bcr_test"])
+ignore_directories(["bcr_test", "examples"])

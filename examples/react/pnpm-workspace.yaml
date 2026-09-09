@@ -1,8 +1,6 @@
-allowBuilds:
-  cpu-features: false
-  lefthook: true
-  protobufjs: false
-  ssh2: false
+packages:
+  - '.'
+allowBuilds: {}
 
 # Exact releases requested for the current toolchain upgrade.
 minimumReleaseAgeExclude:
@@ -10,3 +8,4 @@ minimumReleaseAgeExclude:
   - "playwright@1.63.0"
   - "playwright-core@1.63.0"
   - "@types/node@26.5.0"
+  - "@types/react-dom@19.2.7"
