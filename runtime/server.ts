@@ -1,4 +1,5 @@
 import {pathToFileURL} from 'node:url'
+import {serveDirectory} from './static-server.js'
 import type {ServerAdapter, ServerContext} from './server-types.js'
 
 const context: ServerContext = {
@@ -7,13 +8,15 @@ const context: ServerContext = {
   cache: process.env.VRT_CACHE!,
   host: '127.0.0.1',
 }
-const adapterUrl = process.env.VRT_CUSTOM_SERVER
-  ? pathToFileURL(process.env.VRT_CUSTOM_SERVER)
-  : new URL('./vite-server.js', import.meta.url)
-const {default: start} = (await import(adapterUrl.href)) as {
-  default: ServerAdapter
-}
-const server = await start(context)
+const server = process.env.VRT_SHELL
+  ? await serveDirectory(process.env.VRT_SHELL, process.env.VRT_SHELL_ENTRY)
+  : await (async () => {
+      const {default: start} = (await import(
+        pathToFileURL(process.env.VRT_CUSTOM_SERVER!).href
+      )) as {default: ServerAdapter}
+      return start(context)
+    })()
+
 try {
   const url = new URL(server.url)
   if (

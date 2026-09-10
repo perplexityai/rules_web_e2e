@@ -114,3 +114,5 @@ export function componentBrowserConfig({
     },
   }
 }
+
+export type {VisualMatching} from './matching.js'
