@@ -11,6 +11,10 @@
     "./server": {
       "types": "./server-types.d.ts",
       "import": "./server-types.js"
+    },
+    "./visual": {
+      "types": "./visuals.d.ts",
+      "import": "./visuals.js"
     }
   }
 }

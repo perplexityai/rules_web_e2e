@@ -25,4 +25,4 @@ is a standalone consumer and runs in a dedicated CI job.
 Managed-server and remote-URL E2E use native Playwright specs and the shared
 container runtime. [Component browser tests](component-browser.md) use the 1.63
 native mount fixture with a consumer-owned gallery, also covered by VRT.
-Reusable visual-module APIs remain planned.
+Reusable `.visual.tsx` modules now supply previews, browser mounts, and generated VRT captures.

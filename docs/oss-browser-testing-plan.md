@@ -3,7 +3,8 @@
 Build reusable Bazel rules for Playwright, web end-to-end tests, React component
 browser tests, and visual regression tests (VRT). Publish through the Bazel
 Central Registry (BCR), with standalone examples and documented compatibility.
-`component_visual_test` is implemented; the other APIs below remain proposed.
+Component VRT, component browser tests, managed/remote E2E, and reusable visual
+modules are implemented. The remaining generic/page wrappers below are proposed.
 See [architecture](architecture.md) and [visual testing design](visual-testing-design.md)
 for the design boundaries. See the [component VRT guide](component-vrt.md) for the current supported setup.
 

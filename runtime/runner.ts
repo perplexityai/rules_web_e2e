@@ -47,6 +47,20 @@ async function main() {
   const input = (name: string) => path.join(inputs, required(name))
   const node = fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
   const config = input('VRT_CONFIG')
+  if (visual) {
+    const template = fs.readFileSync(
+      new URL('./capture.js', import.meta.url),
+      'utf8'
+    )
+    fs.writeFileSync(
+      path.join(path.dirname(config), '.rules-visual.spec.ts'),
+      template.replace('./visuals.js', './.rules-visual-runtime.js')
+    )
+    fs.copyFileSync(
+      fileURLToPath(new URL('./visuals.js', import.meta.url)),
+      path.join(path.dirname(config), '.rules-visual-runtime.js')
+    )
+  }
   const core = input('VRT_PLAYWRIGHT_CORE')
   const coreVersion = JSON.parse(
     fs.readFileSync(path.join(core, 'package.json'), 'utf8')
@@ -85,6 +99,7 @@ async function main() {
     VRT_UPDATE: update ? '1' : '0',
     VRT_BASELINES: baselines,
     VRT_OUTPUTS: outputs,
+    VRT_VISUAL_CATALOG: path.join(temp, 'visual-catalog.json'),
     VRT_CACHE: path.join(temp, 'vite-cache'),
   }
   // Docker discovery is deliberately separate from the fixture environment.
@@ -156,44 +171,48 @@ async function main() {
     }
     browser = await startBrowser(required('VRT_IMAGE'), core)
     if (interrupted) throw new Error('VRT interrupted')
-    const code = await new Promise<number>((resolve, reject) => {
-      const child = spawn(
-        node,
-        [
-          path.join(input('VRT_PLAYWRIGHT_TEST'), 'cli.js'),
-          'test',
-          '--config',
-          config,
-          ...selectors,
-        ],
-        {
-          cwd: path.dirname(config),
-          stdio: 'inherit',
-          detached: true,
-          env: {
-            ...env,
-            VRT_APP_URL: appUrl,
-            VRT_WS_ENDPOINT: browser!.endpoint,
+    const run = (discover: boolean) =>
+      new Promise<number>((resolve, reject) => {
+        const child = spawn(
+          node,
+          [
+            path.join(input('VRT_PLAYWRIGHT_TEST'), 'cli.js'),
+            'test',
+            '--config',
+            config,
+            ...selectors,
+          ],
+          {
+            cwd: path.dirname(config),
+            stdio: 'inherit',
+            detached: true,
+            env: {
+              ...env,
+              VRT_DISCOVER: discover ? '1' : '0',
+              VRT_APP_URL: appUrl,
+              VRT_WS_ENDPOINT: browser!.endpoint,
+            },
+          }
+        )
+        children.push(child)
+        const timer = setTimeout(
+          () => {
+            console.error('VRT exceeded its execution timeout')
+            killChildren()
           },
-        }
-      )
-      children.push(child)
-      const timer = setTimeout(
-        () => {
-          console.error('VRT exceeded its execution timeout')
-          killChildren()
-        },
-        Number(required('VRT_TIMEOUT_MS'))
-      )
-      child.once('error', error => {
-        clearTimeout(timer)
-        reject(error)
+          Number(required('VRT_TIMEOUT_MS'))
+        )
+        child.once('error', error => {
+          clearTimeout(timer)
+          reject(error)
+        })
+        child.once('exit', code => {
+          clearTimeout(timer)
+          resolve(code ?? 1)
+        })
       })
-      child.once('exit', code => {
-        clearTimeout(timer)
-        resolve(code ?? 1)
-      })
-    })
+    const discoveryCode = visual ? await run(true) : 0
+    const code = discoveryCode === 0 ? await run(false) : discoveryCode
     if (code !== 0) {
       if (visual)
         fs.cpSync(baselines, path.join(outputs, 'reference'), {recursive: true})

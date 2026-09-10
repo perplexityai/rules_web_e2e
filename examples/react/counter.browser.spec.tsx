@@ -1,5 +1,5 @@
 import {expect, test} from '@playwright/test'
-import type {Counter} from './counter.story'
+import type {Counter} from './counter.visual'
 
 test('mount, click, update without losing state, and unmount', async ({
   mount,
@@ -20,7 +20,7 @@ test('mount, click, update without losing state, and unmount', async ({
 
 test('unknown stories fail at mount', async ({mount}) => {
   await expect(mount('Missing/Story')).rejects.toThrow(
-    'Unknown story: Missing/Story'
+    'Unknown visual: Missing/Story'
   )
 })
 

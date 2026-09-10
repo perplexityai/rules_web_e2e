@@ -74,7 +74,7 @@ export function visualConfig({
     throw new Error('tolerance must be a pixel mismatch ratio between 0 and 1')
   return {
     ...e2eConfig({root, viewport}),
-    testMatch: '**/*.visual.spec.ts',
+    testMatch: '**/.rules-visual.spec.ts',
     testIgnore: [],
     updateSnapshots: process.env.VRT_UPDATE === '1' ? 'all' : 'none',
     snapshotPathTemplate: path.join(required('VRT_BASELINES'), '{arg}{ext}'),
