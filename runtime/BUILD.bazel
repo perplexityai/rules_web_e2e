@@ -37,9 +37,11 @@ ts_project(
 js_library(
     name = "files",
     srcs = [
+        "arguments.js",
         "baselines.js",
         "container.js",
         "isolation.js",
+        "network.js",
         "package.json",
         "relay.js",
         "server.js",
@@ -98,4 +100,24 @@ js_test(
         ":typecheck",
     ],
     entry_point = "server.test.js",
+)
+
+js_test(
+    name = "arguments_test",
+    size = "small",
+    data = [
+        "package.json",
+        ":typecheck",
+    ],
+    entry_point = "arguments.test.js",
+)
+
+js_test(
+    name = "network_test",
+    size = "small",
+    data = [
+        "package.json",
+        ":typecheck",
+    ],
+    entry_point = "network.test.js",
 )

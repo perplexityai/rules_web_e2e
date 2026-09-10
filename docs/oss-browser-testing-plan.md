@@ -77,3 +77,8 @@ flowchart TD
    and dependency availability. Validate the release archive in an independent
    BCR consumer without private packages or credentials. Run Docker VRT in
    dedicated CI; keep live-service tests outside registry presubmits.
+
+Current delivery: managed-server `web_e2e_test` and `e2eConfig` are implemented
+with standalone and FormatJS interaction specs. See [the E2E guide](e2e.md).
+Explicit remote endpoints and native Playwright 1.63 component mounting are
+implemented and exercised in CI. See [component browser tests](component-browser.md).

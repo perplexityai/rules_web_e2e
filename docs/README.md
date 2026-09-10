@@ -11,6 +11,8 @@ consumers supply the application, test cases, styling, and fixtures.
 | [Component VRT guide](component-vrt.md)                   | Working setup, commands, and supported versions.                                      |
 | [Delivery plan](oss-browser-testing-plan.md)              | Proposed Playwright, web E2E, and component browser APIs.                             |
 
+See [end-to-end tests](e2e.md) for click/navigation specs.
+
 See also [custom servers and UI shells](customization.md) and
 [dependency versions](dependencies.md).
 
@@ -20,6 +22,7 @@ Component VRT is implemented with strict TypeScript, Playwright Test, and
 Playwright Chromium in a pinned Linux container. The [React example](../examples/react)
 is a standalone consumer and runs in a dedicated CI job.
 
-The generic Playwright wrapper, managed-server web E2E, direct component browser
-rule, page VRT, and reusable visual-module API are planned. Design descriptions
-for those features are proposals, not currently available entrypoints.
+Managed-server and remote-URL E2E use native Playwright specs and the shared
+container runtime. [Component browser tests](component-browser.md) use the 1.63
+native mount fixture with a consumer-owned gallery, also covered by VRT.
+Reusable visual-module APIs remain planned.

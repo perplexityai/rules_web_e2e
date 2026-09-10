@@ -74,23 +74,23 @@ rules are an external module. Never derive consumer paths from the rules'
 checkout location. Cache directories and generated captures belong in temporary
 storage, separate from committed baselines.
 
-## Planned test layers
+## Test layers
 
-| Proposed API             | Intended boundary                                                                              |
-| ------------------------ | ---------------------------------------------------------------------------------------------- |
-| `playwright_test`        | Thin wrapper around consumer Playwright specs/config, declared browser artifacts, and reports. |
-| `web_e2e_test`           | Adds either managed local-server startup or an explicit deployed URL.                          |
-| `component_browser_test` | Mounts JSX directly for real-browser interaction and layout assertions.                        |
-| `web_visual_test`        | Adds the visual capture/update contract to page tests.                                         |
+| Proposed API                   | Intended boundary                                                                              |
+| ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `playwright_test`              | Thin wrapper around consumer Playwright specs/config, declared browser artifacts, and reports. |
+| `web_e2e_test` (implemented)   | Adds either managed local-server startup or an explicit deployed URL.                          |
+| Native `mount()` (implemented) | Uses `web_e2e_test` and a consumer gallery for real-browser component assertions.              |
+| `web_visual_test`              | Adds the visual capture/update contract to page tests.                                         |
 
 Managed-server mode must own startup, readiness, ports, and teardown. Deployed
 mode must explicitly opt into network access and consumer-provided auth setup;
 it must not silently fall back to a local service or ambient credentials.
 
-Direct component tests should not require visual stories. A reusable visual
-catalog serves preview and screenshot coverage, while behavioral tests retain
-ordinary setup, interactions, and assertions. See the
-[visual testing design](visual-testing-design.md) for that planned model.
+Native Playwright 1.63 component specs mount named browser stories. The consumer
+owns the gallery, framework rendering, and provider setup. The same gallery
+supports interaction tests and independent screenshot targets. See
+[component browser tests](component-browser.md).
 
 ## Implementation map
 
@@ -99,8 +99,8 @@ ordinary setup, interactions, and assertions. See the
 - [Config helper](../runtime/config.ts): typed Playwright Test and browser defaults.
 - [Runtime build](../runtime/BUILD.bazel): compilation and declaration packaging.
 
-Playwright Test owns fixtures, isolated browser contexts, assertions, traces,
-and the Vite server lifecycle. Its web-server readiness pattern captures the
-dynamically assigned URL as `VRT_APP_URL` for test workers. Consumers write
-ordinary page/locator tests against a Vite-served fixture application; React
-component mounting stays in that application, without an experimental harness.
+Playwright Test owns fixtures, browser contexts, assertions, and traces. The
+runtime owns managed-server readiness and cleanup; remote endpoints remain
+caller-owned. Both supply `VRT_APP_URL` to the config helper and retain exact
+host/port browser tunnel restrictions. [Remote E2E](e2e.md) deliberately depends
+on external application state while retaining the pinned browser environment.

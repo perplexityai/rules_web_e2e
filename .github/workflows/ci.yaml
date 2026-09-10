@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        bazel: ["9.2.0", "8.6.0"]
+        bazel: ['9.2.0', '8.6.0']
         os: [ubuntu-latest, macos-latest]
     env:
       USE_BAZEL_VERSION: ${{ matrix.bazel }}
@@ -43,7 +43,7 @@ jobs:
           bazelisk test //...
 
   component-vrt:
-    name: component VRT (Linux amd64)
+    name: browser tests (Linux amd64)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -52,12 +52,12 @@ jobs:
         with:
           bazelisk-cache: true
           repository-cache: true
-      - name: Compare component screenshots
+      - name: Run E2E and visual tests
         working-directory: examples/react
-        run: bazelisk test //:visual_test --test_output=errors
+        run: bazelisk test //:e2e_test //:visual_test //:component_test //:component_visual_test //:remote_integration_test --test_output=errors
       - name: Upload visual test artifacts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: component-vrt
-          path: examples/react/bazel-testlogs/visual_test/
+          name: browser-tests
+          path: examples/react/bazel-testlogs/

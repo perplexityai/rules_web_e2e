@@ -1,6 +1,8 @@
+load("@aspect_rules_js//js:defs.bzl", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_link_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_test")
 load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test")
 
 npm_link_all_packages(name = "node_modules")
@@ -62,4 +64,116 @@ filegroup(
     name = "typecheck",
     srcs = [":typecheck_project"],
     output_group = "transitive_typecheck",
+)
+
+web_e2e_test(
+    name = "e2e_test",
+    srcs = [
+        "app.tsx",
+        "card.spec.ts",
+        "index.html",
+        "package.json",
+        "shell.tsx",
+    ],
+    config = "e2e.config.ts",
+    data = [":typecheck"],
+    playwright_core = ":node_modules/playwright-core/dir",
+    playwright_test = ":node_modules/@playwright/test/dir",
+    server_config = "vite.config.ts",
+    vite = ":node_modules/vite/dir",
+    deps = VRT_DEPS,
+)
+
+COMPONENT_SRCS = [
+    "counter.story.tsx",
+    "gallery.html",
+    "gallery.tsx",
+    "package.json",
+    "shell.tsx",
+]
+
+web_e2e_test(
+    name = "component_test",
+    srcs = COMPONENT_SRCS + ["counter.browser.spec.ts"],
+    config = "component.config.ts",
+    data = [":typecheck"],
+    playwright_core = ":node_modules/playwright-core/dir",
+    playwright_test = ":node_modules/@playwright/test/dir",
+    server_config = "vite.config.ts",
+    vite = ":node_modules/vite/dir",
+    deps = VRT_DEPS,
+)
+
+component_visual_test(
+    name = "component_visual_test",
+    srcs = COMPONENT_SRCS + ["component.visual.spec.ts"],
+    baseline_dir = "__component_screenshots__",
+    baselines = glob(
+        ["__component_screenshots__/*.png"],
+        allow_empty = True,
+    ),
+    config = "component-visual.config.ts",
+    data = [":typecheck"],
+    playwright_core = ":node_modules/playwright-core/dir",
+    playwright_test = ":node_modules/@playwright/test/dir",
+    server_config = "vite.config.ts",
+    vite = ":node_modules/vite/dir",
+    deps = VRT_DEPS,
+)
+
+web_e2e_test(
+    name = "remote_test",
+    srcs = [
+        "package.json",
+        "remote.spec.ts",
+    ],
+    base_url_env = "EXAMPLE_REMOTE_URL",
+    config = "remote.config.ts",
+    data = [":typecheck"],
+    env_inherit = ["EXAMPLE_BLOCKED_URL"],
+    playwright_core = ":node_modules/playwright-core/dir",
+    playwright_test = ":node_modules/@playwright/test/dir",
+    deps = VRT_DEPS,
+)
+
+ts_project(
+    name = "remote_harness",
+    srcs = ["remote-harness.ts"],
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = {"compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "types": ["node"],
+        "strict": True,
+        "skipLibCheck": True,
+    }},
+    deps = [":node_modules/@types/node"],
+)
+
+js_test(
+    name = "remote_integration_test",
+    copy_data_to_bin = False,
+    data = [
+        "package.json",
+        ":remote_test",
+    ],
+    entry_point = "remote-harness.js",
+    env = {"REMOTE_TEST": "$(rlocationpath :remote_test)"},
+    env_inherit = [
+        "DOCKER_HOST",
+        "DOCKER_CONTEXT",
+        "DOCKER_TLS_VERIFY",
+        "DOCKER_CERT_PATH",
+        "DOCKER_CONFIG",
+    ],
+    tags = [
+        "external",
+        "manual",
+        "no-cache",
+        "no-remote",
+        "no-sandbox",
+        "requires-network",
+    ],
 )
