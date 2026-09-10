@@ -16,7 +16,7 @@ flowchart LR
 
 A consumer-owned gallery exposes `window.mount({story, props})` and
 `window.unmount()`, rendering into `#root`. Its registry imports declared fixture
-modules. `.fixture.tsx` is our naming convention; the `story` field is part of
+modules. `.visual.tsx` is our naming convention; the `story` field is part of
 Playwright's native mount protocol. No Storybook integration is involved. Reuse the React root for prop updates, reject unknown stories and render
 errors, and release the root on unmount. Put providers and callbacks in browser
 stories; pass serializable props from specs. The runtime remains framework-free.
@@ -33,7 +33,7 @@ strict typecheck.
 
 ```ts
 import {expect, test} from '@playwright/test'
-import type {Counter} from './counter.fixture'
+import type {Counter} from './counter.visual'
 
 test('retains state across prop updates', async ({mount}) => {
   const component = await mount<typeof Counter>('Counter/Default', {
@@ -68,7 +68,7 @@ bazel run //:component_visual_test.update
 | Node callbacks and JSX children                  | Browser-owned scenario; assert DOM or network effects |
 | Mount hooks and provider wrappers                | Consumer gallery shell and fixture setup                |
 | `ctViteConfig` and CT-managed server             | Existing server adapter and its normal bundler config |
-| `*.browser.spec.tsx` with inline JSX             | `*.browser.spec.ts` and typed `*.fixture.tsx`           |
+| `*.browser.spec.tsx` with inline JSX             | `*.browser.spec.ts` and typed `*.visual.tsx`           |
 
 Existing JSX-based specs require migration; this is not a compatibility shim.
 Large repositories can adapt an existing preview registry to the gallery
@@ -84,7 +84,7 @@ load("@rules_web_e2e//component:defs.bzl", "component_browser_test")
 component_browser_test(
     name = "component_test",
     config = "component.config.ts",
-    srcs = ["widget.browser.spec.ts", "widget.fixture.tsx", "gallery.tsx", "gallery.html", "package.json"],
+    srcs = ["widget.browser.spec.ts", "widget.visual.tsx", "gallery.tsx", "gallery.html", "package.json"],
     server = ":server.js",
     playwright_test = "//:node_modules/@playwright/test/dir",
     playwright_core = "//:node_modules/playwright-core/dir",
