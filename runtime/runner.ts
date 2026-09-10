@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {spawn, type ChildProcess} from 'node:child_process'
+import {testArguments} from './arguments.js'
 import {baselineDestination, updateBaselines} from './baselines.js'
 import {stageRunfiles, testEnvironment} from './isolation.js'
 
@@ -13,11 +14,11 @@ function required(name: string) {
 }
 
 async function main() {
-  const update = process.argv.includes('--update')
-  if (process.argv.slice(2).some(arg => arg !== '--update'))
-    throw new Error(
-      'Filtered updates are unsupported: run the full target to preserve all baselines'
-    )
+  const visual = required('VRT_MODE') === 'visual'
+  const args = process.argv.slice(2)
+  const update = args.includes('--update')
+  if (!visual && update) throw new Error('E2E tests do not update baselines')
+  const selectors = testArguments(visual, args)
   const destination = update
     ? baselineDestination(
         required('BUILD_WORKSPACE_DIRECTORY'),
@@ -47,14 +48,16 @@ async function main() {
     throw new Error(
       `playwright-core ${coreVersion} does not match configured browser version ${process.env.VRT_PLAYWRIGHT_VERSION}`
     )
-  const baselineInputs = path.join(
-    inputs,
-    required('VRT_CONFIG').split('/')[0],
-    required('VRT_BASELINE_RELATIVE')
-  )
+  const baselineInputs = visual
+    ? path.join(
+        inputs,
+        required('VRT_CONFIG').split('/')[0],
+        required('VRT_BASELINE_RELATIVE')
+      )
+    : undefined
   const baselines = path.join(temp, 'baselines')
   fs.mkdirSync(baselines)
-  if (!update && fs.existsSync(baselineInputs))
+  if (!update && baselineInputs && fs.existsSync(baselineInputs))
     fs.cpSync(baselineInputs, baselines, {recursive: true})
   const env = {
     ...testEnvironment(
@@ -149,6 +152,7 @@ async function main() {
           'test',
           '--config',
           config,
+          ...selectors,
         ],
         {
           cwd: path.dirname(config),
@@ -179,7 +183,8 @@ async function main() {
       })
     })
     if (code !== 0) {
-      fs.cpSync(baselines, path.join(outputs, 'reference'), {recursive: true})
+      if (visual)
+        fs.cpSync(baselines, path.join(outputs, 'reference'), {recursive: true})
       process.exitCode = code
       console.error(`VRT artifacts: ${outputs}`)
       return

@@ -104,3 +104,8 @@ and the Vite server lifecycle. Its web-server readiness pattern captures the
 dynamically assigned URL as `VRT_APP_URL` for test workers. Consumers write
 ordinary page/locator tests against a Vite-served fixture application; React
 component mounting stays in that application, without an experimental harness.
+
+Managed-server `web_e2e_test` is now implemented; see [the E2E guide](e2e.md).
+It shares server/container orchestration with VRT, supplies Playwright `baseURL`,
+and discovers ordinary specs separately from visual specs. Deployed-URL support
+in the roadmap remains a proposal.

@@ -70,3 +70,7 @@ To prepare an archive locally for an existing tag:
 The `module-release` workflow also accepts an existing tag through manual
 dispatch, allowing a release to be retried. Publishing requires the integrations
 above; creating this scaffold does not publish a release.
+
+Run native Playwright click/navigation specs with `web_e2e_test`; see the
+[E2E guide](docs/e2e.md). The standalone example provides `//:e2e_test` alongside
+its visual target, sharing the same server and browser isolation.

@@ -1,6 +1,7 @@
 load("@aspect_rules_js//npm:defs.bzl", "npm_link_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_test")
 load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test")
 
 npm_link_all_packages(name = "node_modules")
@@ -62,4 +63,22 @@ filegroup(
     name = "typecheck",
     srcs = [":typecheck_project"],
     output_group = "transitive_typecheck",
+)
+
+web_e2e_test(
+    name = "e2e_test",
+    srcs = [
+        "app.tsx",
+        "card.spec.ts",
+        "index.html",
+        "package.json",
+        "shell.tsx",
+    ],
+    config = "e2e.config.ts",
+    data = [":typecheck"],
+    playwright_core = ":node_modules/playwright-core/dir",
+    playwright_test = ":node_modules/@playwright/test/dir",
+    server_config = "vite.config.ts",
+    vite = ":node_modules/vite/dir",
+    deps = VRT_DEPS,
 )
