@@ -46,7 +46,7 @@ bazel test //:e2e_test --test_arg=--grep=save
 
 Selection flags `--grep`, `--grep-invert`, `--project`, and `--shard` are forwarded
 through `--test_arg`. Configure other Playwright settings in the declared config;
-CLI overrides of config, reporters, output paths, and snapshot updates are rejected.
+Add custom reporters through the [compiled Playwright config](api.md#optional-playwright-configuration). CLI overrides of config, reporters, output paths, and snapshot updates are rejected.
 No matching tests fail by default. Visual targets keep their separate full-capture
 policy. See [the example BUILD file](../examples/react/BUILD.bazel).
 

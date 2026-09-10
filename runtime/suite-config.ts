@@ -1,6 +1,11 @@
 // Copied beside the generated config so native Playwright imports resolve to the selected runtime.
-import {defineConfig, type PlaywrightTestConfig} from '@playwright/test'
+import {
+  defineConfig,
+  type PlaywrightTestConfig,
+  type ReporterDescription,
+} from '@playwright/test'
 import {pathToFileURL} from 'node:url'
+import {createRequire} from 'node:module'
 import {e2eConfig, componentBrowserConfig, visualConfig} from './config.js'
 import {screenshotMatching, type VisualMatching} from './matching.js'
 
@@ -24,8 +29,34 @@ const matching = process.env.VRT_MATCHING
   ? ((await import(pathToFileURL(process.env.VRT_MATCHING).href))
       .default as VisualMatching)
   : {}
-// Consumers may customize fixtures/projects, but not disconnect from the managed browser
-// or redirect baseline updates and reports outside the runner's output directories.
+// Resolve reporters from the consumer config, not this generated config's directory.
+const builtInReporters = new Set([
+  'blob',
+  'dot',
+  'line',
+  'list',
+  'github',
+  'json',
+  'junit',
+  'null',
+  'html',
+  'perfetto',
+])
+const reporters =
+  typeof custom.reporter === 'string'
+    ? [[custom.reporter] as [string]]
+    : (custom.reporter ?? [])
+const resolveReporter = process.env.VRT_CONFIG_OVERRIDE
+  ? createRequire(pathToFileURL(process.env.VRT_CONFIG_OVERRIDE)).resolve
+  : undefined
+const additionalReporters: ReporterDescription[] = reporters.map(
+  ([name, ...options]) =>
+    [
+      builtInReporters.has(name) ? name : resolveReporter!(name),
+      ...options,
+    ] as ReporterDescription
+)
+// Keep browser connections, baseline updates, and required reports managed.
 const merged = defineConfig(defaults, custom)
 const testMatch =
   mode === 'visual'
@@ -44,7 +75,10 @@ export default defineConfig(merged, {
   testMatch,
   testIgnore: [],
   outputDir: defaults.outputDir,
-  reporter: defaults.reporter,
+  reporter: [
+    ...(defaults.reporter as ReporterDescription[]),
+    ...additionalReporters,
+  ],
   updateSnapshots: defaults.updateSnapshots,
   snapshotPathTemplate: defaults.snapshotPathTemplate,
   use: managedUse,

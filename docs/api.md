@@ -134,8 +134,35 @@ Defaults: Chromium, headless, one worker, no retries, 30-second tests,
 1280×720, en-US, UTC, light theme, reduced motion. Component tests block service
 workers. VRT disables animations, hides the caret, and captures at CSS scale.
 The runner retains ownership of discovery, browser connection, output paths,
-reporters, and snapshot policy when composing overrides. Visual targets reject
+required list/JUnit reports, and snapshot policy when composing overrides. Visual targets reject
 Playwright projects; use separate targets and baseline directories instead.
+
+Custom reporters use the standard Playwright `reporter` field and run alongside
+required list/JUnit reports in E2E, component, and VRT targets:
+
+```ts
+import path from 'node:path'
+import type {PlaywrightTestConfig} from '@playwright/test'
+
+export default {
+  reporter: [
+    [
+      'json',
+      {outputFile: path.join(process.env.VRT_OUTPUTS!, 'custom-results.json')},
+    ],
+    ['./reporter.js', {project: 'example'}],
+  ],
+} satisfies PlaywrightTestConfig
+```
+
+Reporter modules resolve relative to the compiled consumer config, including npm
+packages declared in its dependencies. Local reporters must be compiled from
+TypeScript and included in its runtime inputs. Write report files beneath
+`VRT_OUTPUTS`, using names distinct from `junit.xml` and `artifacts`. Reporter
+credentials must be explicitly supplied through `env`/`env_inherit`. Reporters
+execute on the host; browser `network_origins` do not control their uploads.
+VRT discovery and capture are separate Playwright invocations, so reporters run
+for each phase. CLI reporter overrides remain disabled.
 
 The low-level `e2eConfig`, `componentBrowserConfig`, and `visualConfig` helpers
 remain exported from `@rules-web-e2e/vrt`. They require the runner environment;
