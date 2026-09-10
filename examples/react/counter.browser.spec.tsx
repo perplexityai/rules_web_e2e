@@ -20,7 +20,7 @@ test('mount, click, update without losing state, and unmount', async ({
 
 test('unknown stories fail at mount', async ({mount}) => {
   await expect(mount('Missing/Story')).rejects.toThrow(
-    'Unknown story: Missing/Story'
+    'Unknown visual: Missing/Story'
   )
 })
 

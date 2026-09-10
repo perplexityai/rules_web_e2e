@@ -39,12 +39,14 @@ js_library(
     srcs = [
         "arguments.js",
         "baselines.js",
+        "capture.js",
         "container.js",
         "isolation.js",
         "network.js",
         "package.json",
         "relay.js",
         "server.js",
+        "visuals.js",
         "vite-server.js",
     ],
     visibility = ["//visibility:public"],
@@ -67,6 +69,8 @@ npm_package(
         "package.json",
         "server-types.d.ts",
         "server-types.js",
+        "visuals.d.ts",
+        "visuals.js",
     ],
     package = "@rules-web-e2e/vrt",
     visibility = ["//visibility:public"],
@@ -130,4 +134,14 @@ js_test(
         ":typecheck",
     ],
     entry_point = "config.test.js",
+)
+
+js_test(
+    name = "visuals_test",
+    size = "small",
+    data = [
+        "package.json",
+        ":typecheck",
+    ],
+    entry_point = "visuals.test.js",
 )

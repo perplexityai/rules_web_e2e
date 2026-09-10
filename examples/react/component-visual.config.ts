@@ -6,7 +6,6 @@ const defaults = visualConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
 })
 const config: PlaywrightTestConfig = defineConfig(defaults, {
-  testMatch: '**/component.visual.spec.ts',
   use: {
     baseURL: new URL('./gallery.html', defaults.use!.baseURL).href,
     serviceWorkers: 'block',

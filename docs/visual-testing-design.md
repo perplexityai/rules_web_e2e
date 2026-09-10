@@ -73,30 +73,69 @@ Also verify type errors stop the build, repeated captures remain stable, and
 owned containers are cleaned up. The [React example](../examples/react) is the
 small integration fixture; larger consumers exercise real application rendering.
 
-## Planned reusable visual modules
+## Reusable visual modules
 
-This model is not implemented yet. A component visual module would describe
-named states once, for both a local preview catalog and generated VRT specs.
+A `*.visual.tsx` module declares component states for previews, browser tests,
+and generated VRT. A `*.browser.spec.tsx` file contains interaction assertions.
+There are no consumer-authored screenshot specs.
 
-| Concept         | Intended responsibility                                                            |
-| --------------- | ---------------------------------------------------------------------------------- |
-| Module identity | Stable ID and display title for a collection of related states.                    |
-| Render shell    | Optional consumer-owned providers, theme, CSS, and shared assets.                  |
-| Visual case     | Stable case ID, display name, and render function.                                 |
-| Capture hooks   | Await readiness/interactions and select an element, including portals.             |
-| VRT options     | Opt out, set a screenshot name, or declare viewport, language, theme, and density. |
+```tsx
+import type {ComponentVisualModule} from '@rules-web-e2e/vrt/visual'
+import type {ReactNode} from 'react'
 
-Keep display names independent of screenshot identity. Reject duplicate output
-names before capture, and require explicitly configured device scales. Reset
-language, theme, and other per-case state rather than allowing it to leak into
-later cases. Preview-only cases should remain available in the catalog without
-creating baseline expectations.
+const visuals: ComponentVisualModule<ReactNode> = {
+  id: 'components/Button',
+  title: 'Button',
+  renderShell: children => <AppProviders>{children}</AppProviders>,
+  visuals: [
+    {
+      visualId: 'primary',
+      name: 'Primary',
+      render: () => <Button>Save</Button>,
+      vrt: {viewport: {width: 400, height: 200}},
+    },
+  ],
+}
+export default visuals
+```
 
-A Bazel provider would carry typed module entrypoints and dependencies. Build
-preview manifests and test specs from the same declarations; each consumer
-app selects its own modules rather than depending on a repository-wide catalog.
-Generated sources stay in Bazel outputs. These additions should preserve direct
-browser tests and the current baseline ownership contract.
+| Field                   | Responsibility                                                              |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `id`, `title`           | Stable module identity and display name                                     |
+| `visualId`, `name`      | Stable case identity and display name                                       |
+| `render`, `renderShell` | Consumer-owned component and providers                                      |
+| `beforeCapture`         | Browser-side setup/readiness before capture                                 |
+| `getScreenshotElement`  | Capture an element, including portals; defaults to `#root`                  |
+| `vrt: false`            | Keep a preview/browser case out of screenshots                              |
+| `vrt` options           | Screenshot name, viewport, integer device scale, language, light/dark theme |
 
-See the [delivery plan](oss-browser-testing-plan.md) for the remaining APIs and
-acceptance checks, and the [component guide](component-vrt.md) for today's setup.
+VRT is enabled by default. Names default to the kebab-cased module filename plus
+visual ID, with `.png`; explicit names retain existing baselines. Duplicate IDs,
+duplicate filenames, and unsafe paths fail. The gallery accepts `mount('module/id',
+props)` for native component browser tests; optional serializable props are
+passed to `render`. Rendering stays in the browser, and the framework-free runtime
+has no React dependency.
+
+```mermaid
+flowchart LR
+  Modules["*.visual.tsx"] --> Gallery[Consumer gallery and shell]
+  Gallery --> Discover[Playwright catalog discovery]
+  Discover --> Cases[Generated Playwright capture cases]
+  Cases --> PNG[Compare or explicit update]
+  Specs["*.browser.spec.tsx"] --> Gallery
+```
+
+Register modules with `installVisualGallery(modules, {render, unmount})`. The
+consumer renderer must await a committed render, preserve its root for updates,
+and surface render errors. Imports and generated assets must be declared Bazel
+inputs. See the React example's gallery.
+
+The runner creates its capture spec only inside staged temporary inputs. It runs
+a discovery pass through the consumer Playwright config, validates the catalog,
+then runs one test per enabled visual with native context isolation. Per-case
+viewport, density, and theme use Playwright test options; language and capture
+hooks run inside the page. Global setup/teardown therefore runs for both phases
+and must tolerate repeated invocation. An empty catalog fails, including updates.
+
+Comparison and `.update` use the same generated cases and existing baseline
+synchronization contract. Discovery failure prevents capture and baseline updates.

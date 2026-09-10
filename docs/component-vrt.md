@@ -1,6 +1,6 @@
 # Component visual regression tests
 
-`component_visual_test` runs consumer-owned Playwright Test specs against a
+`component_visual_test` generates Playwright Test captures from consumer `.visual.tsx` modules against a
 Playwright server in a digest-pinned Linux container. It provides comparison,
 failure artifacts, and an explicit `<name>.update` target. The runtime is consumed
 through Bazel; a separate npm publication is not required. See
@@ -41,10 +41,11 @@ before committing. Each VRT target must own a separate baseline directory.
    and pass an absolute `root` derived from the config file. Use
    `defineConfig` from `@playwright/test` to add consumer options. Keep React
    plugins, CSS, and aliases in a separate `vite.config.ts`.
-5. Write `*.visual.spec.ts` tests using Playwright's `test` and `expect`.
-   Navigate to `process.env.VRT_APP_URL`, populated after Vite starts,
-   then call `expect(page.locator(...)).toHaveScreenshot('stable-name.png')`.
-   Use unique simple PNG filenames across the target.
+5. Export a `ComponentVisualModule` from each `*.visual.tsx` file. Register the
+   modules with `installVisualGallery` from `@rules-web-e2e/vrt/visual` in the
+   consumer gallery. Point `visualConfig`'s `use.baseURL` at that gallery.
+   The runtime discovers enabled visuals and generates the screenshot tests;
+   consumers do not write screenshot spec files. See [visual modules](visual-testing-design.md#reusable-visual-modules).
 
 The runtime and config helper are compiled from strict TypeScript and export
 declarations. Consumers own React providers, CSS, fixtures, and CI scheduling.

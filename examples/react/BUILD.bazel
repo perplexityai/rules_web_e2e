@@ -27,9 +27,8 @@ component_visual_test(
     name = "visual_test",
     srcs = [
         "app.tsx",
-        "card.visual.spec.ts",
+        "card.visual.tsx",
         "index.html",
-        "isolation.visual.spec.ts",
         "package.json",
         "shell.tsx",
     ],
@@ -72,7 +71,9 @@ web_e2e_test(
     srcs = [
         "app.tsx",
         "card.spec.ts",
+        "card.visual.tsx",
         "index.html",
+        "isolation.spec.ts",
         "package.json",
         "shell.tsx",
     ],
@@ -95,7 +96,7 @@ COMPONENT_SRCS = [
 
 component_browser_test(
     name = "component_test",
-    srcs = COMPONENT_SRCS + ["counter.browser.spec.ts"],
+    srcs = COMPONENT_SRCS + ["counter.browser.spec.tsx"],
     config = "component.config.ts",
     data = [":typecheck"],
     playwright_core = ":node_modules/playwright-core/dir",
@@ -107,7 +108,7 @@ component_browser_test(
 
 component_visual_test(
     name = "component_visual_test",
-    srcs = COMPONENT_SRCS + ["component.visual.spec.ts"],
+    srcs = COMPONENT_SRCS,
     baseline_dir = "__component_screenshots__",
     baselines = glob(
         ["__component_screenshots__/*.png"],
