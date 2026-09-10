@@ -121,3 +121,13 @@ js_test(
     ],
     entry_point = "network.test.js",
 )
+
+js_test(
+    name = "config_test",
+    size = "small",
+    data = [
+        "package.json",
+        ":typecheck",
+    ],
+    entry_point = "config.test.js",
+)

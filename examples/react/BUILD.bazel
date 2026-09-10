@@ -2,6 +2,7 @@ load("@aspect_rules_js//js:defs.bzl", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_link_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@rules_web_e2e//component:defs.bzl", "component_browser_test")
 load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_test")
 load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test")
 
@@ -92,7 +93,7 @@ COMPONENT_SRCS = [
     "shell.tsx",
 ]
 
-web_e2e_test(
+component_browser_test(
     name = "component_test",
     srcs = COMPONENT_SRCS + ["counter.browser.spec.ts"],
     config = "component.config.ts",

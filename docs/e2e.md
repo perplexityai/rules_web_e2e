@@ -37,7 +37,8 @@ export default defineConfig(
 ```
 
 The existing Bazel-linked runtime package exports both config helpers; it needs
-no npm publication. E2E discovers `*.spec.ts` and excludes `*.visual.spec.ts`.
+no npm publication. E2E discovers `*.spec.ts` and excludes `*.visual.spec.ts` and
+`*.browser.spec.ts` / `*.browser.spec.tsx`.
 `baseURL` is the ready server URL, also available as `VRT_APP_URL`. Relative URLs
 follow normal Playwright URL resolution; use a relative path such as `./` when
 preserving a server's base path. Keep custom fixtures, page objects, auth setup,

@@ -11,6 +11,7 @@ def browser_test(
         config,
         srcs,
         visual = False,
+        component = False,
         vite = None,
         server_config = None,
         server = None,
@@ -38,6 +39,7 @@ def browser_test(
     Args:
         name: Test target name.
         visual: Enable screenshot policy and create <name>.update.
+        component: Run native component browser specs without baseline updates.
         playwright_test: Consumer @playwright/test npm /dir target.
         playwright_core: Matching playwright-core npm /dir target.
         config: Consumer Playwright Test config file.
@@ -60,6 +62,8 @@ def browser_test(
         timeout: Bazel test timeout category.
         execution_timeout_seconds: Limit for the Playwright Test child process.
     """
+    if visual and component:
+        fail("Visual and component browser modes are separate targets")
     if execution_timeout_seconds <= 0:
         fail("execution_timeout_seconds must be positive")
     if not baseline_dir or baseline_dir.startswith("/") or any([p in ["", ".", ".."] for p in baseline_dir.split("/")]):
@@ -110,7 +114,7 @@ def browser_test(
             "VRT_PLAYWRIGHT_TEST": "$(rlocationpath %s)" % playwright_test,
             "VRT_PLAYWRIGHT_CORE": "$(rlocationpath %s)" % playwright_core,
             "VRT_CONFIG": "$(rlocationpath %s)" % config,
-            "VRT_MODE": "visual" if visual else "e2e",
+            "VRT_MODE": "visual" if visual else "component" if component else "e2e",
             "VRT_BASELINE_RELATIVE": _paths_join(native.package_name(), baseline_dir) if visual else "",
             "VRT_NETWORK_ORIGINS": json.encode(network_origins),
             "VRT_ENV_NAMES": json.encode(env.keys() + env_inherit),
@@ -122,7 +126,7 @@ def browser_test(
     js_test(
         name = name,
         env_inherit = ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH", "DOCKER_CONFIG"] + env_inherit,
-        tags = ["manual", "external", "visual_test" if visual else "e2e_test", "requires-network", "no-sandbox", "no-remote", "no-cache"] + tags,
+        tags = ["manual", "external", "visual_test" if visual else "component_browser_test" if component else "e2e_test", "requires-network", "no-sandbox", "no-remote", "no-cache"] + tags,
         timeout = timeout,
         **common
     )
