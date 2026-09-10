@@ -81,3 +81,33 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
     rmSync(temp, {recursive: true, force: true})
   }
 })
+
+test('compiled component suite preserves remote gallery paths and literal spec filenames', async () => {
+  const previous = {...process.env}
+  const file = '/compiled/[fixture].browser.spec.js'
+  Object.assign(process.env, {
+    VRT_MODE: 'component',
+    VRT_APP_URL: 'https://preview.example/app/gallery.html?fixture=1',
+    VRT_OUTPUTS: '/outputs',
+    VRT_WS_ENDPOINT: 'ws://127.0.0.1:5678',
+    VRT_NETWORK_ORIGINS: '[]',
+    VRT_TEST_ROOT: '/compiled',
+    VRT_TEST_FILES: JSON.stringify([file]),
+  })
+  delete process.env.VRT_CONFIG_OVERRIDE
+  delete process.env.VRT_MATCHING
+  try {
+    const module = new URL('./suite-config.js?component', import.meta.url)
+    const config = (await import(module.href)).default
+    assert.equal(
+      config.use.baseURL,
+      'https://preview.example/app/gallery.html?fixture=1'
+    )
+    assert.equal(config.testMatch[0].test(file), true)
+    assert.equal(config.testMatch[0].test('/compiled/f.browser.spec.js'), false)
+  } finally {
+    for (const key of Object.keys(process.env))
+      if (!(key in previous)) delete process.env[key]
+    Object.assign(process.env, previous)
+  }
+})

@@ -10,7 +10,7 @@ const defaults =
   mode === 'visual'
     ? visualConfig({root})
     : mode === 'component'
-      ? componentBrowserConfig({root, gallery: './'})
+      ? componentBrowserConfig({root, gallery: process.env.VRT_APP_URL!})
       : e2eConfig({root})
 const custom = process.env.VRT_CONFIG_OVERRIDE
   ? ((await import(pathToFileURL(process.env.VRT_CONFIG_OVERRIDE).href))
