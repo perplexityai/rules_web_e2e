@@ -7,7 +7,8 @@ Component VRT is available through `component_visual_test`, with a pinned Linux
 Playwright container and explicit baseline updates. See the
 [component VRT guide](docs/component-vrt.md) and [React example](examples/react).
 Native Playwright E2E supports managed servers and explicit remote URLs.
-[Component browser tests](docs/component-browser.md) use Playwright 1.63 `mount()`
+[Component browser tests](docs/component-browser.md) use `component_browser_test`,
+`componentBrowserConfig`, and Playwright 1.63 `mount()`
 with consumer-owned galleries, alongside screenshot coverage.
 
 See the [documentation index](docs/README.md) for the approach and design.

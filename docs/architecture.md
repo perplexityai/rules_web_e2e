@@ -80,7 +80,7 @@ storage, separate from committed baselines.
 | ------------------------------ | ---------------------------------------------------------------------------------------------- |
 | `playwright_test`              | Thin wrapper around consumer Playwright specs/config, declared browser artifacts, and reports. |
 | `web_e2e_test` (implemented)   | Adds either managed local-server startup or an explicit deployed URL.                          |
-| Native `mount()` (implemented) | Uses `web_e2e_test` and a consumer gallery for real-browser component assertions.              |
+| Native `mount()` (implemented) | Uses `component_browser_test` and a consumer gallery for real-browser component assertions.    |
 | `web_visual_test`              | Adds the visual capture/update contract to page tests.                                         |
 
 Managed-server mode must own startup, readiness, ports, and teardown. Deployed

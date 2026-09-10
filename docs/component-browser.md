@@ -1,7 +1,8 @@
 # Native component browser tests
 
-Playwright **1.63.0** supplies `mount()` in `@playwright/test`. Use the existing
-`web_e2e_test` rule and pinned Testcontainers browser. No experimental React test
+Playwright **1.63.0** supplies `mount()` in `@playwright/test`. Use
+`component_browser_test` from `@rules_web_e2e//component:defs.bzl` with the pinned
+Testcontainers browser. No experimental React test
 package or second bundler is needed. See the [Playwright component guide](https://playwright.dev/docs/test-components).
 
 ```mermaid
@@ -21,8 +22,10 @@ stories; pass serializable props from specs. The runtime remains framework-free.
 
 The [typed React gallery](../examples/react/gallery.tsx) uses the existing UI shell
 and Vite adapter. The [component config](../examples/react/component.config.ts)
-composes `e2eConfig`, selects `*.browser.spec.ts`, and sets `use.baseURL` to the
-gallery URL on the allowed server origin. It blocks service workers; omit that
+uses `componentBrowserConfig({root, gallery: "./gallery.html"})`, which selects
+`*.browser.spec.ts` / `*.browser.spec.tsx` and resolves the gallery on the
+application origin. Empty, cross-origin, credential-bearing, and fragment URLs
+are rejected; the existing browser tunnel allowlist stays intact. It blocks service workers; omit that
 setting if a story intentionally uses a service-worker mock. Declare stories,
 HTML, config, CSS, generated assets, and dependencies in the target's inputs and
 strict typecheck.
@@ -71,3 +74,30 @@ Large repositories can adapt an existing preview registry to the gallery
 contract and retain their aliases, generated styles, auth fixtures, and CI
 reporters internally. Keep both behavioral specs and VRT targets throughout the
 migration. Playwright/browser pins must match at 1.63.0.
+
+## Bazel target
+
+```starlark
+load("@rules_web_e2e//component:defs.bzl", "component_browser_test")
+
+component_browser_test(
+    name = "component_test",
+    config = "component.config.ts",
+    srcs = ["widget.browser.spec.ts", "widget.story.tsx", "gallery.tsx", "gallery.html", "package.json"],
+    server = ":server.js",
+    playwright_test = "//:node_modules/@playwright/test/dir",
+    playwright_core = "//:node_modules/playwright-core/dir",
+    deps = [":browser_sources"],
+    data = [":typecheck"],
+)
+```
+
+Use the same `server`, `vite`/`server_config`, or `base_url`/`base_url_env`
+options as E2E. `componentBrowserConfig` accepts `root`, `gallery`, and optional
+`viewport`; compose native Playwright overrides with `defineConfig`. The target
+has the `component_browser_test` tag and forwards the same selector flags as E2E.
+It does not accept baseline options or create an update target.
+
+E2E discovery excludes `*.browser.spec.ts` / `*.browser.spec.tsx`, so sharing a
+source graph does not execute mount specs against the application homepage.
+VRT retains its own visual-spec discovery and baseline lifecycle.

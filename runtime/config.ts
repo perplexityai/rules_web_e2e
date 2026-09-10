@@ -7,6 +7,11 @@ export interface BrowserConfigOptions {
   viewport?: {width: number; height: number}
 }
 
+export interface ComponentBrowserConfigOptions extends BrowserConfigOptions {
+  /** Gallery path relative to the application URL, or a URL on the same origin. */
+  gallery: string
+}
+
 export interface VisualConfigOptions extends BrowserConfigOptions {
   tolerance?: number
 }
@@ -26,7 +31,7 @@ export function e2eConfig({
   return {
     testDir: root,
     testMatch: '**/*.spec.ts',
-    testIgnore: '**/*.visual.spec.ts',
+    testIgnore: ['**/*.visual.spec.ts', '**/*.browser.spec.{ts,tsx}'],
     forbidOnly: true,
     retries: 0,
     workers: 1,
@@ -81,6 +86,31 @@ export function visualConfig({
         threshold: 0.1,
         maxDiffPixelRatio: tolerance,
       },
+    },
+  }
+}
+
+/** Native mount fixtures with consumer-owned gallery rendering and providers. */
+export function componentBrowserConfig({
+  gallery,
+  ...options
+}: ComponentBrowserConfigOptions): PlaywrightTestConfig {
+  const defaults = e2eConfig(options)
+  const base = new URL(defaults.use!.baseURL!)
+  if (!gallery.trim()) throw new Error('Component gallery must not be empty')
+  const url = new URL(gallery, base)
+  if (url.origin !== base.origin || url.username || url.password || url.hash)
+    throw new Error(
+      'Component gallery must stay on the application origin without credentials or fragments'
+    )
+  return {
+    ...defaults,
+    testMatch: '**/*.browser.spec.{ts,tsx}',
+    testIgnore: '**/*.visual.spec.ts',
+    use: {
+      ...defaults.use,
+      baseURL: url.href,
+      serviceWorkers: 'block',
     },
   }
 }
