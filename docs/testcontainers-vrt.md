@@ -37,15 +37,15 @@ container reuse is enabled.
 
 ## Controlling rendering inputs
 
-| Input                               | Control                                                                                                                |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Browser, OS libraries, system fonts | Pinned image digest and Linux amd64 platform.                                                                          |
-| Application and npm packages        | Materialized runfiles manifest; no source or output-tree mounts.                                                       |
-| Environment                         | Only target `env` and `env_inherit`, with fixed locale/timezone and private home/cache directories.                    |
+| Input                               | Control                                                                                                                                  |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Browser, OS libraries, system fonts | Pinned image digest and Linux amd64 platform.                                                                                            |
+| Application and npm packages        | Materialized runfiles manifest; no source or output-tree mounts.                                                                         |
+| Environment                         | Only target `env` and `env_inherit`, with fixed locale/timezone and private home/cache directories.                                      |
 | Vite discovery                      | Built-in adapter: explicit config; dotenv disabled; filesystem serving restricted to staged inputs; implicit PostCSS discovery disabled. |
-| Browser requests                    | Fixture endpoint only; vendor fonts and mock API responses in declared fixtures.                                       |
-| Screenshot settings                 | Fixed viewport, theme, locale, timezone, reduced motion, and caret behavior.                                           |
-| Application readiness               | Consumer assertions and font readiness before capture.                                                                 |
+| Browser requests                    | Fixture endpoint only; vendor fonts and mock API responses in declared fixtures.                                                         |
+| Screenshot settings                 | Fixed viewport, theme, locale, timezone, reduced motion, and caret behavior.                                                             |
+| Application readiness               | Consumer assertions and font readiness before capture.                                                                                   |
 
 Compare and update use the same input staging and environment policy. Update
 changes snapshot mode and the final destination; it does not inherit additional
@@ -64,6 +64,5 @@ Remote Docker daemons are not supported by the loopback control binding.
 
 Regression tests cover staging and environment isolation, fixture access,
 blocked unrelated host ports, and blocked direct public-network access. The
-standalone example and FormatJS editor retain their existing screenshot
-baselines. Compare/update probes verify that adjacent `.env.local` files and
+standalone example checks committed screenshot baselines. Compare/update probes verify that adjacent `.env.local` files and
 undeclared shell variables cannot affect rendering.

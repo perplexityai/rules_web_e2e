@@ -109,8 +109,8 @@ export default visuals
 | `vrt: false`            | Keep a preview/browser case out of screenshots                              |
 | `vrt` options           | Screenshot name, viewport, integer device scale, language, light/dark theme |
 
-VRT is enabled by default. Names default to the kebab-cased module filename plus
-visual ID, with `.png`; explicit names retain existing baselines. Duplicate IDs,
+VRT is enabled by default. Names default to the kebab-cased final segment of `module.id` plus
+`visualId`, with `.png`; explicit names retain existing baselines. Duplicate IDs,
 duplicate filenames, and unsafe paths fail. The gallery accepts `mount('module/id',
 props)` for native component browser tests; optional serializable props are
 passed to `render`. Rendering stays in the browser, and the framework-free runtime

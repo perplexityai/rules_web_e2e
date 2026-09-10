@@ -1,6 +1,6 @@
 # Dependency versions
 
-Verified against npm and the Bazel Central Registry on 2026-09-09. Direct npm
+Versions pinned in this repository (2026-09-09). Direct npm
 versions are exact pins; lockfiles pin transitive dependencies.
 
 | Dependency                               | Version                                   |
@@ -21,11 +21,7 @@ The Playwright image pins its Linux amd64 manifest digest. Keep image and npm
 versions synchronized and compare reviewed screenshots after upgrades. pnpm 12's
 release-age exceptions name only the exact recent releases selected here.
 
-Consumer compatibility remains explicit: FormatJS's legacy Material UI 4 editor
-requires React 17 and a compatible react-intl release. Its root build also owns a
-patched rules_ts override. The runtime supports those consumer choices without
-forcing their versions on standalone consumers.
-
-The legacy react-intl package declares TypeScript 4/5 peers. The editor is
-validated with its monorepo TypeScript 7 compiler; this remains a known consumer
-peer-range mismatch, not a runtime dependency of the OSS package.
+The runtime has no React dependency. Consumers own their framework versions,
+plugins, lockfiles, and strict TypeScript configuration. The React example is
+the tested integration; other frameworks must implement the gallery renderer
+and validate their own compatibility.

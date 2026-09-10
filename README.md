@@ -1,79 +1,41 @@
 # rules_web_e2e
 
-Bazel module scaffold for web end-to-end testing rules. The build, release,
-Bazel Central Registry (BCR), and commit-hook setup follows
-[perplexityai/gazelle_py](https://github.com/perplexityai/gazelle_py).
-Component VRT is available through `component_visual_test`, with a pinned Linux
-Playwright container and explicit baseline updates. See the
-[component VRT guide](docs/component-vrt.md) and [React example](examples/react).
-Native Playwright E2E supports managed servers and explicit remote URLs.
-[Component browser tests](docs/component-browser.md) use `component_browser_test`,
-`componentBrowserConfig`, and Playwright 1.63 `mount()`
-with consumer-owned galleries, alongside screenshot coverage.
+Bazel rules for native Playwright end-to-end tests, component browser tests,
+and visual regression testing (VRT). All three use a pinned Linux Chromium
+container managed by Testcontainers. Applications own their server, UI shell,
+fixtures, and strict TypeScript checks.
 
-See the [documentation index](docs/README.md) for the approach and design.
+| Test                      | Bazel API                | Consumer files                           |
+| ------------------------- | ------------------------ | ---------------------------------------- |
+| Navigation and user flows | `web_e2e_test`           | `*.spec.ts`                              |
+| Component interactions    | `component_browser_test` | `*.browser.spec.tsx` and a gallery       |
+| Screenshot comparison     | `component_visual_test`  | `*.visual.tsx` modules and reviewed PNGs |
 
-See the [OSS browser testing plan](docs/oss-browser-testing-plan.md) for the proposed
-Playwright, web E2E, component browser, and VRT scope.
+Start with the [user guide](docs/getting-started.md), then consult the
+[API reference](docs/api.md). The [documentation index](docs/README.md) includes
+custom servers, remote URLs, rendering stability, and architecture.
 
-## Development
+## Try it
 
-Install [Bazelisk](https://github.com/bazelbuild/bazelisk), Node.js 24+, and
-the pnpm version pinned in `package.json` (Corepack can select it automatically).
+Install Bazelisk and start a local Docker daemon. From this checkout:
 
 ```sh
-pnpm install --frozen-lockfile
-pnpm hooks:install
-pnpm build
-pnpm test
-pnpm test:bcr
+cd examples/react
+bazelisk test //:e2e_test //:component_test //:component_visual_test
 ```
 
-The corresponding Bazel commands are `bazelisk build //...` and
-`bazelisk test //...`. Run `bazelisk test //...` inside `bcr_test/` to test
-the module as a dependency. CI runs both workspaces with Bazel 9.2.0 and
-8.6.0 on Linux and macOS. Local overrides belong in `.bazelrc.user`.
+Bazel installs locked dependencies. Browser targets are manual, local, and
+uncached: invoke them explicitly, including in CI. Screenshot baselines are
+validated on Linux amd64.
 
-Lefthook validates Conventional Commit messages, for example
-`feat: add browser test rule` or `fix: resolve test runfiles`.
-CI also validates pull request titles and commits. Use a conventional title
-for squash merges so Release Please can determine the next version.
-
-## Releases and BCR publishing
-
-Release Please runs on `main` and maintains a release PR containing
-`version.txt`, `CHANGELOG.md`, and `.release-please-manifest.json`.
-Merging that PR creates a `vX.Y.Z` tag. The module release workflow tests
-the repo, produces an attested `rules_web_e2e-vX.Y.Z.tar.gz` archive, publishes
-a GitHub release, and submits the version to BCR through
-`perplexityai/bazel-central-registry`.
-
-`MODULE.bazel` keeps the development version `0.0.0`; the BCR publisher patches
-it to the release version. The archive prefix is `rules_web_e2e-X.Y.Z`, matching
-`.bcr/source.template.json`. BCR builds and tests the separate `bcr_test/`
-consumer on Linux and macOS with Bazel 8 and 9.
-
-Configure the same repository integrations as `gazelle_py` before releasing:
-
-- `GH_RELEASE_TOKEN`: a token with permission to create release PRs and tags.
-  A PAT allows those tags to trigger the module release workflow.
-- `BCR_PUBLISH_TOKEN`: the publishing token required by
-  [publish-to-bcr](https://github.com/bazel-contrib/publish-to-bcr#a-note-on-release-automation).
-- The `perplexityai/bazel-central-registry` fork and the publish-to-bcr GitHub
-  App installation on that fork.
-- `.bcr/config.yml` uses `longlho` as the releaser. The maintainers in
-  `.bcr/metadata.template.json` are `longlho`, `pplx-oss`, and `dan-pplx`.
-
-To prepare an archive locally for an existing tag:
+To intentionally replace the component baselines:
 
 ```sh
-.github/workflows/release_prep.sh v0.1.0 > release_notes.txt
+bazelisk run //:component_visual_test.update
 ```
 
-The `module-release` workflow also accepts an existing tag through manual
-dispatch, allowing a release to be retried. Publishing requires the integrations
-above; creating this scaffold does not publish a release.
+Review the PNG diff before committing. Updates replace the target's owned PNGs
+only after a successful full capture.
 
-Run native Playwright click/navigation specs with `web_e2e_test`; see the
-[E2E guide](docs/e2e.md). The standalone example provides `//:e2e_test` alongside
-its visual target, sharing the same server and browser isolation.
+See [development and releases](docs/development.md) for build checks, commit
+hooks, and BCR publishing.

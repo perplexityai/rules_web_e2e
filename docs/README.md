@@ -1,28 +1,23 @@
-# Browser testing documentation
+# Documentation
 
-`rules_web_e2e` supplies Bazel execution and screenshot lifecycle management;
-consumers supply the application, test cases, styling, and fixtures.
+## User guides
 
-| Document                                                  | Read it for                                                                           |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| [Architecture](architecture.md)                           | Ownership boundaries, TypeScript, runfiles, and browser execution.                    |
-| [Testcontainers and VRT stability](testcontainers-vrt.md) | Reproducible rendering, lifecycle, isolation, and the Testcontainers runtime adapter. |
-| [Visual testing design](visual-testing-design.md)         | Determinism, baseline ownership, artifacts, and reusable visual cases.                |
-| [Component VRT guide](component-vrt.md)                   | Working setup, commands, and supported versions.                                      |
-| [Delivery plan](oss-browser-testing-plan.md)              | Proposed Playwright, web E2E, and component browser APIs.                             |
+| Document                                         | Read it for                                                            |
+| ------------------------------------------------ | ---------------------------------------------------------------------- |
+| [Getting started](getting-started.md)            | Dependencies, Bazel wiring, strict typechecks, and running tests       |
+| [API reference](api.md)                          | Public macros, configuration helpers, visual modules, and server types |
+| [End-to-end tests](e2e.md)                       | Click/navigation specs, filtering, and existing application URLs       |
+| [Component browser tests](component-browser.md)  | Native mounts, prop updates, and browser assertions                    |
+| [Component VRT](component-vrt.md)                | Generated captures, baselines, updates, and artifacts                  |
+| [Custom servers and UI shells](customization.md) | Existing servers, providers, assets, and fixtures                      |
+| [Dependency versions](dependencies.md)           | Pinned versions and compatibility boundaries                           |
 
-See [end-to-end tests](e2e.md) for click/navigation specs.
+## Design and maintenance
 
-See also [custom servers and UI shells](customization.md) and
-[dependency versions](dependencies.md).
-
-## Implementation status
-
-Component VRT is implemented with strict TypeScript, Playwright Test, and
-Playwright Chromium in a pinned Linux container. The [React example](../examples/react)
-is a standalone consumer and runs in a dedicated CI job.
-
-Managed-server and remote-URL E2E use native Playwright specs and the shared
-container runtime. [Component browser tests](component-browser.md) use the 1.63
-native mount fixture with a consumer-owned gallery, also covered by VRT.
-Reusable `.visual.tsx` modules now supply previews, browser mounts, and generated VRT captures.
+| Document                                                  | Read it for                                                   |
+| --------------------------------------------------------- | ------------------------------------------------------------- |
+| [Architecture](architecture.md)                           | Ownership, input staging, and runtime boundaries              |
+| [Testcontainers and VRT stability](testcontainers-vrt.md) | Container lifecycle, reproducibility, and isolation limits    |
+| [Visual testing design](visual-testing-design.md)         | Shared visual modules, capture phases, and baseline ownership |
+| [Scope and roadmap](oss-browser-testing-plan.md)          | Implemented capabilities and possible extensions              |
+| [Development and releases](development.md)                | Repository checks, hooks, and release automation              |

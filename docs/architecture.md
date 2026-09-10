@@ -28,7 +28,7 @@ flowchart TD
   Types --> Test[Compare or update target]
   Bazel --> Test
   Test --> Runner[TypeScript runner]
-  Runner --> Host[Playwright Test and Vite on host]
+  Runner --> Host[Playwright Test and app endpoint]
   Runner --> Container[Pinned Linux container]
   Host <-->|Playwright WebSocket| Container
   Container --> Browser[Chromium]
@@ -40,7 +40,7 @@ flowchart TD
 The host owns the source tree and npm dependency graph. The container supplies
 the browser and OS rendering environment. The runner verifies the declared
 `playwright-core` version and copies that package into the container before
-starting the server. Playwright forwards browser requests to the host Vite
+starting the server. Playwright forwards browser requests to the application
 server; Docker does not need a source-tree bind mount or an npm install.
 
 Each invocation uses Testcontainers to create a browser, control relay, and
@@ -76,12 +76,13 @@ storage, separate from committed baselines.
 
 ## Test layers
 
-| Proposed API                   | Intended boundary                                                                              |
-| ------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `playwright_test`              | Thin wrapper around consumer Playwright specs/config, declared browser artifacts, and reports. |
-| `web_e2e_test` (implemented)   | Adds either managed local-server startup or an explicit deployed URL.                          |
-| Native `mount()` (implemented) | Uses `component_browser_test` and a consumer gallery for real-browser component assertions.    |
-| `web_visual_test`              | Adds the visual capture/update contract to page tests.                                         |
+| Public API               | Boundary                                              |
+| ------------------------ | ----------------------------------------------------- |
+| `web_e2e_test`           | Native specs against a managed server or existing URL |
+| `component_browser_test` | Native mounts through a consumer gallery              |
+| `component_visual_test`  | Generated visual captures and baseline updates        |
+
+See the [API reference](api.md) for attributes and configuration helpers.
 
 Managed-server mode must own startup, readiness, ports, and teardown. Deployed
 mode must explicitly opt into network access and consumer-provided auth setup;

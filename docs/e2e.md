@@ -17,6 +17,9 @@ test('saves a draft', async ({page}) => {
 
 ## Setup
 
+Complete the [consumer setup](getting-started.md) first.
+See the [API reference](api.md) for every attribute.
+
 Load `web_e2e_test` from `@rules_web_e2e//e2e:defs.bzl`. It takes the same
 `playwright_test`, `playwright_core`, `config`, `srcs`, `deps`, `data`, server or remote URL,
 environment, and network options as the visual target. Provide either a compiled
@@ -36,7 +39,7 @@ export default defineConfig(
 )
 ```
 
-The existing Bazel-linked runtime package exports both config helpers; it needs
+The existing Bazel-linked runtime package exports all three config helpers; it needs
 no npm publication. E2E discovers `*.spec.ts` and excludes `*.visual.spec.ts` and
 `*.browser.spec.ts` / `*.browser.spec.tsx`.
 `baseURL` is the ready server URL, also available as `VRT_APP_URL`. Relative URLs
@@ -85,10 +88,6 @@ undeclared outputs. The host test process (including Playwright's `request`
 fixture), custom server code, and setup scripts remain trusted and unsandboxed;
 browser network restrictions do not sandbox Node requests. Remote endpoints are caller-owned; automatic backend provisioning and authentication
 conventions remain consumer responsibilities.
-
-FormatJS exercises the real editor with its custom Vite adapter and UI shell.
-Its E2E specs check editing, search, validation, and saving, while the visual
-target independently checks rendering against reviewed PNGs.
 
 ## Existing application URLs
 

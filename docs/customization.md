@@ -74,11 +74,10 @@ server serves the fixture. The standalone React example demonstrates this.
 - A large monorepo can keep its aliases, CSS pipeline, test providers, and fixture
   registries behind a server adapter and shell. Serve selected fixture routes
   through the existing dev server; migrate tests to native Playwright locators
-  and screenshot assertions. Keep internal providers and service details in the
+  and screenshot assertions. Keep application providers and service details in the
   consumer repository.
-- FormatJS uses a compiled custom adapter around its existing Vite config and
-  deterministic browser fixtures. Its shell supplies language/direction and
-  React Intl providers, with React 19 and the root npm lockfile.
+- A component library can serve a small gallery with theme, language, and
+  direction providers while reusing its existing bundler and npm lockfile.
 
 Both use the same screenshot comparison and update contract. External services
 require explicit `network_origins` opt-ins; prefer declared fixture responses.
