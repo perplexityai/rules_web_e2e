@@ -7,7 +7,7 @@ versions are exact pins; lockfiles pin transitive dependencies.
 | ---------------------------------------- | ----------------------------------------- |
 | Playwright Test / client / browser image | 1.63.0                                    |
 | Testcontainers                           | 12.1.0                                    |
-| Vite / React plugin                      | 8.2.2 / 6.1.1                             |
+| Example build: Vite / React plugin       | 8.2.2 / 6.1.1                             |
 | TypeScript                               | 7.0.2                                     |
 | React / React DOM in standalone example  | 19.2.8                                    |
 | Node / React / React DOM types           | 26.5.0 / 19.2.18 / 19.2.7                 |

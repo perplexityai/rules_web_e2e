@@ -9,13 +9,13 @@ cleanup helper, also uses a pinned Linux amd64 image digest.
 ```mermaid
 flowchart LR
   Bazel[Bazel declared runfiles] --> Stage[Private input tree]
-  Stage --> Vite[Vite fixture server]
+  Stage --> Server[Static shell or custom server]
   Stage --> Test[Playwright Test]
   Test --> Relay[Fixed control socket relay]
   subgraph Internal Docker network
     Relay --> Browser[Playwright browser server]
   end
-  Browser -->|Exact fixture host and port via Playwright tunnel| Vite
+  Browser -->|Exact fixture host and port via Playwright tunnel| Server
 ```
 
 Docker cannot publish ports from an internal-only network. The relay joins that
@@ -37,15 +37,14 @@ container reuse is enabled.
 
 ## Controlling rendering inputs
 
-| Input                               | Control                                                                                                                                  |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Browser, OS libraries, system fonts | Pinned image digest and Linux amd64 platform.                                                                                            |
-| Application and npm packages        | Materialized runfiles manifest; no source or output-tree mounts.                                                                         |
-| Environment                         | Only target `env` and `env_inherit`, with fixed locale/timezone and private home/cache directories.                                      |
-| Vite discovery                      | Built-in adapter: explicit config; dotenv disabled; filesystem serving restricted to staged inputs; implicit PostCSS discovery disabled. |
-| Browser requests                    | Fixture endpoint only; vendor fonts and mock API responses in declared fixtures.                                                         |
-| Screenshot settings                 | Fixed viewport, theme, locale, timezone, reduced motion, and caret behavior.                                                             |
-| Application readiness               | Consumer assertions and font readiness before capture.                                                                                   |
+| Input                               | Control                                                                                             |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Browser, OS libraries, system fonts | Pinned image digest and Linux amd64 platform.                                                       |
+| Built application and npm packages  | Materialized runfiles manifest; no source or output-tree mounts.                                    |
+| Environment                         | Only target `env` and `env_inherit`, with fixed locale/timezone and private home/cache directories. |
+| Browser requests                    | Fixture endpoint only; vendor fonts and mock API responses in declared fixtures.                    |
+| Screenshot settings                 | Fixed viewport, theme, locale, timezone, reduced motion, and caret behavior.                        |
+| Application readiness               | Consumer assertions and font readiness before capture.                                              |
 
 Compare and update use the same input staging and environment policy. Update
 changes snapshot mode and the final destination; it does not inherit additional
@@ -64,5 +63,6 @@ Remote Docker daemons are not supported by the loopback control binding.
 
 Regression tests cover staging and environment isolation, fixture access,
 blocked unrelated host ports, and blocked direct public-network access. The
-standalone example checks committed screenshot baselines. Compare/update probes verify that adjacent `.env.local` files and
-undeclared shell variables cannot affect rendering.
+standalone example checks committed screenshot baselines. The built-in server reads only compiled assets; dotenv loading and source
+transformation are absent during execution. Consumer builds remain responsible
+for their own environment and dependency discovery.

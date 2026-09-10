@@ -24,51 +24,35 @@ before committing. Each VRT target must own a separate baseline directory.
 
 ## Consumer setup
 
-1. Add `rules_web_e2e` to `MODULE.bazel` using the
-   [release archive setup](getting-started.md#connect-a-consumer), or a
-   `local_path_override` for development. Translate the consumer’s npm lockfile
-   with `rules_js`.
-2. Link `@rules_web_e2e//runtime:package` with `npm_link_package` as
-   `node_modules/@rules-web-e2e/vrt`. Provide the consumer `@playwright/test`, `playwright-core`, and Vite
-   npm `/dir` targets.
-3. Define `component_visual_test` with `config`, `srcs`, `deps`, and `data`.
-   Set `playwright_test`, `playwright_core`, and `vite` to those package
-   directories, and `server_config` to the Vite config.
-   Include the fixture HTML, app entrypoint, and `package.json` in `srcs`.
-   List existing PNGs in `baselines` and set `baseline_dir` (default:
-   `__screenshots__`). Config and baselines belong to the consumer repository.
-   Use `js_library` for cross-package source inputs so they enter the Bazel
-   output tree. See [the complete BUILD example](../examples/react/BUILD.bazel).
-4. Import `visualConfig` from `@rules-web-e2e/vrt` in `playwright.config.ts`
-   and pass an absolute `root` derived from the config file. Use
-   `defineConfig` from `@playwright/test` to add consumer options. Keep React
-   plugins, CSS, and aliases in a separate `vite.config.ts`.
-5. Export a `ComponentVisualModule` from each `*.visual.tsx` file. Register the
-   modules with `installVisualGallery` from `@rules-web-e2e/vrt/visual` in the
-   consumer gallery. Point `visualConfig`'s `use.baseURL` at that gallery.
-   The runtime discovers enabled visuals and generates the screenshot tests;
-   consumers do not write screenshot spec files. See [visual modules](visual-testing-design.md#reusable-visual-modules).
+Follow [getting started](getting-started.md) for dependency wiring and built
+input targets. Register `.visual.tsx` modules with `installVisualGallery` in
+your gallery entry point, then build it as a directory of static assets.
 
-The runtime and config helper are compiled from strict TypeScript and export
-declarations. Consumers own React providers, CSS, fixtures, and CI scheduling.
-The example wires its strict `:typecheck` target into the VRT target’s `data`,
-so type errors fail the build before browser execution. Its filegroup requests
-`transitive_typecheck` outputs explicitly from `ts_project`; `no_emit` alone
-does not guarantee those outputs are built. Run `bazel build //:typecheck`
-inside the example to check its config and browser tests independently.
+```starlark
+load("@rules_web_e2e//component:defs.bzl", "browser_shell")
+load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test")
 
-The helper sets a 1280×720 viewport, light theme, reduced motion, en-US locale, UTC timezone, and zero
-allowed mismatched pixels by default; configure `viewport` and `tolerance`
-explicitly when needed. Wait for loaded data and fonts with polling assertions
-before taking a screenshot. Playwright waits for stable consecutive captures
-and compares them with its built-in pixelmatch comparator. The per-pixel color
-threshold is `0.1`; `tolerance` controls the allowed mismatched pixel ratio.
+browser_shell(name = "gallery", assets = ":built_gallery", entry_point = "gallery.html")
+component_visual_test(
+    name = "visual_test",
+    shell = ":gallery",
+    matching = ":matching",
+    baselines = glob(["__screenshots__/*.png"], allow_empty = True),
+)
+```
 
-## Custom servers and shells
+The consumer build owns strict typechecking, transpilation, providers, CSS,
+fonts, and generated assets. The runner does not compile the application.
+See [the complete example](../examples/react/BUILD.bazel).
 
-Pass `server = ":server.js"` instead of `vite`/`server_config` to use a compiled
-consumer `ServerAdapter`. Compose the UI shell in the browser entrypoint. See
-[the interface and integration patterns](customization.md).
+A compiled `matching` module exports `VisualMatching`: configure per-pixel
+`threshold` and either `maxDiffPixels` or `maxDiffPixelRatio`. Defaults use
+Playwright's pixelmatch comparator with threshold 0.1 and zero mismatched pixels.
+Viewport, language, theme, density, and capture hooks remain visual options.
+The gallery waits for loaded fonts; hooks should wait for application readiness.
+
+A custom compiled `server` or existing URL can replace `shell`; see
+[customization](customization.md). Most consumers need no Playwright config.
 
 ## Execution contract
 
@@ -86,8 +70,8 @@ consumer `ServerAdapter`. Compose the UI shell in the browser entrypoint. See
 - Each invocation owns a browser container, control relay, and internal network. Tests run locally, outside
   Bazel’s filesystem sandbox, and disable result caching. Docker/browser tests
   are `manual`; invoke them explicitly in a dedicated CI job.
-- Sources and dependencies are copied from the runfiles manifest into a private
-  tree. Vite dotenv loading is disabled. Compare and update use only declared
+- Built inputs and dependencies are copied from the runfiles manifest into a private
+  tree. Compare and update use only declared
   `env`/`env_inherit` variables and fresh home/cache directories. See
   [the isolation boundaries](testcontainers-vrt.md).
 - Compare mode copies declared baselines to a temporary directory. Missing or

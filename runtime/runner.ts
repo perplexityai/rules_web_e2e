@@ -1,7 +1,9 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import {fileURLToPath} from 'node:url'
+import {fileURLToPath, pathToFileURL} from 'node:url'
+import {createRequire} from 'node:module'
+import {validatePlaywrightVersions} from './versions.js'
 import {spawn, type ChildProcess} from 'node:child_process'
 import {remoteAppUrl, networkTargets} from './network.js'
 import {testArguments} from './arguments.js'
@@ -44,35 +46,81 @@ async function main() {
     process.env.RUNFILES_MANIFEST_FILE || path.join(runfiles, 'MANIFEST'),
     inputs
   )
-  const input = (name: string) => path.join(inputs, required(name))
-  const node = fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
-  const config = input('VRT_CONFIG')
-  if (visual) {
-    const template = fs.readFileSync(
-      new URL('./capture.js', import.meta.url),
-      'utf8'
-    )
-    fs.writeFileSync(
-      path.join(path.dirname(config), '.rules-visual.spec.ts'),
-      template.replace('./visuals.js', './.rules-visual-runtime.js')
-    )
-    fs.copyFileSync(
-      fileURLToPath(new URL('./visuals.js', import.meta.url)),
-      path.join(path.dirname(config), '.rules-visual-runtime.js')
-    )
+  const input = (relative: string) => path.join(inputs, relative)
+  const descriptorPath = input(required('VRT_DESCRIPTOR'))
+  const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8')) as {
+    tests: string[]
+    config: string | null
+    matching: string | null
+    server: string | null
+    shell: {directory: string; entryPoint: string} | null
+    playwright: {test: string; core: string; version: string; image: string}
   }
-  const core = input('VRT_PLAYWRIGHT_CORE')
-  const coreVersion = JSON.parse(
-    fs.readFileSync(path.join(core, 'package.json'), 'utf8')
-  ).version
-  if (coreVersion !== required('VRT_PLAYWRIGHT_VERSION'))
-    throw new Error(
-      `playwright-core ${coreVersion} does not match configured browser version ${process.env.VRT_PLAYWRIGHT_VERSION}`
+  const node = fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
+  const testRoot = path.dirname(descriptorPath)
+  const generated = path.join(testRoot, '.rules-browser')
+  fs.mkdirSync(generated)
+  fs.writeFileSync(path.join(generated, 'package.json'), '{"type":"module"}')
+  for (const name of [
+    'suite-config',
+    'config',
+    'network',
+    'matching',
+    'visuals',
+  ])
+    fs.copyFileSync(
+      fileURLToPath(new URL(`./${name}.js`, import.meta.url)),
+      path.join(generated, `${name}.js`)
+    )
+  const config = path.join(generated, 'suite-config.js')
+  const packageVersion = (directory: string) =>
+    JSON.parse(fs.readFileSync(path.join(directory, 'package.json'), 'utf8'))
+      .version as string
+  const core = input(descriptor.playwright.core)
+  const testPackage = input(descriptor.playwright.test)
+  validatePlaywrightVersions(
+    descriptor.playwright.version,
+    packageVersion(testPackage),
+    packageVersion(core)
+  )
+  // The consumer and rules repository may stage separate copies of the same package.
+  // Playwright requires one test-harness instance, even when both versions match.
+  for (const module of [
+    ...descriptor.tests,
+    ...(descriptor.config ? [descriptor.config] : []),
+  ]) {
+    const consumerRequire = createRequire(pathToFileURL(input(module)))
+    const directory = path.dirname(
+      consumerRequire.resolve('@playwright/test/package.json')
+    )
+    validatePlaywrightVersions(
+      descriptor.playwright.version,
+      packageVersion(directory),
+      packageVersion(core)
+    )
+    if (fs.realpathSync(directory) !== fs.realpathSync(testPackage)) {
+      if (!directory.startsWith(inputs + path.sep))
+        throw new Error('Playwright package escaped staged inputs')
+      fs.rmSync(directory, {recursive: true})
+      fs.symlinkSync(testPackage, directory)
+    }
+  }
+  fs.mkdirSync(path.join(generated, 'node_modules', '@playwright'), {
+    recursive: true,
+  })
+  fs.symlinkSync(
+    testPackage,
+    path.join(generated, 'node_modules', '@playwright', 'test')
+  )
+  if (visual)
+    fs.copyFileSync(
+      fileURLToPath(new URL('./capture.js', import.meta.url)),
+      path.join(generated, '.rules-visual.spec.js')
     )
   const baselineInputs = visual
     ? path.join(
         inputs,
-        required('VRT_CONFIG').split('/')[0],
+        required('VRT_DESCRIPTOR').split('/')[0],
         required('VRT_BASELINE_RELATIVE')
       )
     : undefined
@@ -88,19 +136,25 @@ async function main() {
     ),
     VRT_NETWORK_ORIGINS: required('VRT_NETWORK_ORIGINS'),
     VRT_INPUTS: inputs,
-    ...(remote
-      ? {}
-      : process.env.VRT_CUSTOM_SERVER
-        ? {VRT_CUSTOM_SERVER: input('VRT_CUSTOM_SERVER')}
-        : {
-            VRT_VITE: input('VRT_VITE'),
-            VRT_SERVER_CONFIG: input('VRT_SERVER_CONFIG'),
-          }),
+    VRT_MODE: required('VRT_MODE'),
+    VRT_TEST_ROOT: visual ? testRoot : inputs,
+    VRT_TEST_FILES: JSON.stringify(descriptor.tests.map(input)),
+    ...(descriptor.config
+      ? {VRT_CONFIG_OVERRIDE: input(descriptor.config)}
+      : {}),
+    ...(descriptor.matching ? {VRT_MATCHING: input(descriptor.matching)} : {}),
+    ...(descriptor.server ? {VRT_CUSTOM_SERVER: input(descriptor.server)} : {}),
+    ...(descriptor.shell
+      ? {
+          VRT_SHELL: input(descriptor.shell.directory),
+          VRT_SHELL_ENTRY: descriptor.shell.entryPoint,
+        }
+      : {}),
     VRT_UPDATE: update ? '1' : '0',
     VRT_BASELINES: baselines,
     VRT_OUTPUTS: outputs,
     VRT_VISUAL_CATALOG: path.join(temp, 'visual-catalog.json'),
-    VRT_CACHE: path.join(temp, 'vite-cache'),
+    VRT_CACHE: path.join(temp, 'server-cache'),
   }
   // Docker discovery is deliberately separate from the fixture environment.
   // Set before importing Testcontainers, which reads helper settings at import time.
@@ -143,7 +197,7 @@ async function main() {
         node,
         [fileURLToPath(new URL('./server.js', import.meta.url))],
         {
-          cwd: path.dirname(config),
+          cwd: testRoot,
           env,
           detached: true,
           stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
@@ -169,21 +223,21 @@ async function main() {
         })
       })
     }
-    browser = await startBrowser(required('VRT_IMAGE'), core)
+    browser = await startBrowser(descriptor.playwright.image, core)
     if (interrupted) throw new Error('VRT interrupted')
     const run = (discover: boolean) =>
       new Promise<number>((resolve, reject) => {
         const child = spawn(
           node,
           [
-            path.join(input('VRT_PLAYWRIGHT_TEST'), 'cli.js'),
+            path.join(testPackage, 'cli.js'),
             'test',
             '--config',
             config,
             ...selectors,
           ],
           {
-            cwd: path.dirname(config),
+            cwd: testRoot,
             stdio: 'inherit',
             detached: true,
             env: {

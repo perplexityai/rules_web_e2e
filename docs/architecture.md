@@ -19,16 +19,16 @@ No framework theme, deployment platform, secret provider, telemetry service,
 or CI vendor is required by the test runtime. Consumers explicitly declare
 additional environment variables and dependencies.
 
-## Current component VRT path
+## Execution path
 
 ```mermaid
 flowchart TD
-  Inputs[Consumer specs, config, assets and npm lockfile] --> Bazel[Bazel source staging]
+  Inputs[Compiled specs, shell assets and runtime packages] --> Bazel[Bazel source staging]
   Inputs --> Types[Strict TypeScript checks]
   Types --> Test[Compare or update target]
   Bazel --> Test
   Test --> Runner[TypeScript runner]
-  Runner --> Host[Playwright Test and app endpoint]
+  Runner --> Host[Playwright Test and app server]
   Runner --> Container[Pinned Linux container]
   Host <-->|Playwright WebSocket| Container
   Container --> Browser[Chromium]
@@ -37,7 +37,7 @@ flowchart TD
   Results --> Baselines[Compare inputs or explicit baseline update]
 ```
 
-The host owns the source tree and npm dependency graph. The container supplies
+The consumer build owns source compilation and the npm dependency graph. The container supplies
 the browser and OS rendering environment. The runner verifies the declared
 `playwright-core` version and copies that package into the container before
 starting the server. Playwright forwards browser requests to the application
@@ -56,17 +56,17 @@ environment, and network isolation boundaries.
 
 All maintained runtime code and executable configuration are TypeScript. Bazel
 compiles the runtime to JavaScript and exposes generated declarations through
-`@rules-web-e2e/vrt`. Consumer configs and specs also need strict typechecks;
-transpiling browser code with Vite does not establish type safety.
+`@rules-web-e2e/vrt`. Consumer build targets must typecheck and emit specs before execution;
+shell builds must depend on typechecks as well.
 
 The example's `:typecheck` filegroup requests `transitive_typecheck` outputs from
-`ts_project` and is an input to the VRT target. This makes compiler validation a
+`ts_project` and is an input to the shell build. This makes compiler validation a
 required build action even when `no_emit` produces no default output files.
 
 Stage sources once through `js_library`, then pass them to the browser runner.
 This avoids conflicting copy actions when typechecking and browser execution
 share inputs but have different execution tags. Declare `package.json` alongside
-TypeScript configs when its `type` field controls ESM loading. Declare imported
+compiled ESM modules when its `type` field controls ESM loading. Declare imported
 assets, generated CSS, and cross-package sources as well as npm dependencies.
 
 Resolve executable/config labels through Bazel runfiles, including when the
@@ -105,3 +105,12 @@ runtime owns managed-server readiness and cleanup; remote endpoints remain
 caller-owned. Both supply `VRT_APP_URL` to the config helper and retain exact
 host/port browser tunnel restrictions. [Remote E2E](e2e.md) deliberately depends
 on external application state while retaining the pinned browser environment.
+
+## Built artifact seam
+
+Test call sites accept compiled specs and either a compiled server adapter, a
+built shell, or an existing endpoint. `browser_shell` describes the HTML entry
+point within a built asset directory. The static server never transforms source.
+A reusable `playwright_runtime` groups client packages and the pinned image;
+`matching` separately supplies VRT comparison policy. Application bundlers,
+framework versions, and generated styles stay in the consumer build graph.

@@ -21,15 +21,12 @@ Playwright's native mount protocol. No Storybook integration is involved. Reuse 
 errors, and release the root on unmount. Put providers and callbacks in browser
 stories; pass serializable props from specs. The runtime remains framework-free.
 
-The [typed React gallery](../examples/react/gallery.tsx) uses the existing UI shell
-and Vite adapter. The [component config](../examples/react/component.config.ts)
-uses `componentBrowserConfig({root, gallery: "./gallery.html"})`, which selects
-`*.browser.spec.ts` / `*.browser.spec.tsx` and resolves the gallery on the
-application origin. Empty, cross-origin, credential-bearing, and fragment URLs
-are rejected; the existing browser tunnel allowlist stays intact. It blocks service workers; explicitly override `use.serviceWorkers` to `"allow"`
-if a fixture requires one. Declare visual modules,
-HTML, config, CSS, generated assets, and dependencies in the target's inputs and
-strict typecheck.
+The [typed React gallery](../examples/react/gallery.tsx) uses a consumer-owned
+UI shell. Build its HTML, JavaScript, CSS, and assets before testing and wrap
+the output directory with `browser_shell`. The runner serves it without a
+bundler and selects the compiled `*.browser.spec.js` files from `tests`.
+Service workers are blocked by default; an optional compiled Playwright config
+can set `use.serviceWorkers` to `"allow"` when a fixture needs one.
 
 ```ts
 import {expect, test} from '@playwright/test'
@@ -47,8 +44,7 @@ test('retains state across prop updates', async ({mount}) => {
 })
 ```
 
-VRT consumes the **same visual modules and gallery** through `visualConfig` and
-`component_visual_test`. The runtime generates screenshot tests from each enabled
+VRT consumes the **same visual modules and gallery** through `component_visual_test`. The runtime generates screenshot tests from each enabled
 visual's `vrt` options and capture hooks. There are no separate consumer screenshot
 specs. Independent VRT targets must own separate baseline directories.
 
@@ -67,38 +63,33 @@ bazel run //:component_visual_test.update
 | `component.update(<Widget ... />)`               | `component.update(props)`                              |
 | Node callbacks and JSX children                  | Browser-owned scenario; assert DOM or network effects  |
 | Mount hooks and provider wrappers                | Consumer gallery shell and fixture setup               |
-| `ctViteConfig` and CT-managed server             | Existing server adapter and its normal bundler config  |
+| `ctViteConfig` and CT-managed server             | Built shell or compiled server adapter                 |
 | `*.browser.spec.tsx` with inline JSX             | `*.browser.spec.tsx` and typed `*.visual.tsx`          |
 
 Existing JSX-based specs require migration; this is not a compatibility shim.
 Large repositories can adapt an existing preview registry to the gallery
 contract and retain their aliases, generated styles, auth fixtures, and CI
 reporters internally. Keep both behavioral specs and VRT targets throughout the
-migration. Playwright/browser pins must match at 1.63.0.
+migration. Playwright/browser pins must match; the minimum supported version is 1.63.0.
 
 ## Bazel target
 
 ```starlark
-load("@rules_web_e2e//component:defs.bzl", "component_browser_test")
+load("@rules_web_e2e//component:defs.bzl", "browser_shell", "component_browser_test")
 
+browser_shell(name = "gallery", assets = ":built_gallery", entry_point = "gallery.html")
 component_browser_test(
     name = "component_test",
-    config = "component.config.ts",
-    srcs = ["widget.browser.spec.ts", "widget.visual.tsx", "gallery.tsx", "gallery.html", "package.json"],
-    server = ":server.js",
-    playwright_test = "//:node_modules/@playwright/test/dir",
-    playwright_core = "//:node_modules/playwright-core/dir",
-    deps = [":browser_sources"],
-    data = [":typecheck"],
+    tests = ":compiled_browser_specs",
+    shell = ":gallery",
 )
 ```
 
-Use the same `server`, `vite`/`server_config`, or `base_url`/`base_url_env`
-options as E2E. `componentBrowserConfig` accepts `root`, `gallery`, and optional
-`viewport`; compose native Playwright overrides with `defineConfig`. The target
-has the `component_browser_test` tag and forwards the same selector flags as E2E.
-It does not accept baseline options or create an update target.
+The source producer owns strict typechecking and transpilation; the bundle
+producer owns providers, templates, and assets. For existing app servers, the
+same target also accepts `server`, `base_url`, or `base_url_env` instead of
+`shell`. See the [API reference](api.md).
 
-E2E discovery excludes `*.browser.spec.ts` / `*.browser.spec.tsx`, so sharing a
-source graph does not execute mount specs against the application homepage.
-VRT generates its capture cases from the visual catalog and retains its baseline lifecycle.
+The component target forwards the same selector flags as E2E. It rejects
+baseline options and does not create an update target. Keep the separate VRT
+target for screenshot coverage from the shared visual modules.

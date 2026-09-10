@@ -1,6 +1,7 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//playwright:defs.bzl", "playwright_runtime")
 
 ts_project(
     name = "typecheck",
@@ -30,7 +31,6 @@ ts_project(
         "//:node_modules/@types/node",
         "//:node_modules/playwright",
         "//:node_modules/testcontainers",
-        "//:node_modules/vite",
     ],
 )
 
@@ -40,14 +40,18 @@ js_library(
         "arguments.js",
         "baselines.js",
         "capture.js",
+        "config.js",
         "container.js",
         "isolation.js",
+        "matching.js",
         "network.js",
         "package.json",
         "relay.js",
         "server.js",
+        "static-server.js",
+        "suite-config.js",
+        "versions.js",
         "visuals.js",
-        "vite-server.js",
     ],
     visibility = ["//visibility:public"],
     deps = ["//:node_modules/testcontainers"],
@@ -64,11 +68,15 @@ npm_package(
     srcs = [
         "config.d.ts",
         "config.js",
+        "matching.d.ts",
+        "matching.js",
         "network.d.ts",
         "network.js",
         "package.json",
         "server-types.d.ts",
         "server-types.js",
+        "static-server.d.ts",
+        "static-server.js",
         "visuals.d.ts",
         "visuals.js",
     ],
@@ -144,4 +152,21 @@ js_test(
         ":typecheck",
     ],
     entry_point = "visuals.test.js",
+)
+
+playwright_runtime(
+    name = "playwright",
+    core = "//:node_modules/playwright-core/dir",
+    test = "//:node_modules/@playwright/test/dir",
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "built_inputs_test",
+    size = "small",
+    data = [
+        "package.json",
+        ":typecheck",
+    ],
+    entry_point = "built-inputs.test.js",
 )

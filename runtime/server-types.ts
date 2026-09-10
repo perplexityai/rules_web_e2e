@@ -18,3 +18,5 @@ export interface RunningServer {
 export type ServerAdapter = (
   context: ServerContext
 ) => RunningServer | Promise<RunningServer>
+
+export {serveDirectory} from './static-server.js'

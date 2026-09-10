@@ -17,35 +17,25 @@ test('saves a draft', async ({page}) => {
 
 ## Setup
 
-Complete the [consumer setup](getting-started.md) first.
-See the [API reference](api.md) for every attribute.
+Compile `*.spec.ts` with strict typechecking and declare its runtime dependencies.
+Pass the resulting target and a compiled server adapter to `web_e2e_test`:
 
-Load `web_e2e_test` from `@rules_web_e2e//e2e:defs.bzl`. It takes the same
-`playwright_test`, `playwright_core`, `config`, `srcs`, `deps`, `data`, server or remote URL,
-environment, and network options as the visual target. Provide either a compiled
-`server` adapter or `vite` plus `server_config`; see [customization](customization.md).
-Do not pass baseline options. Wire a strict TypeScript check into `data`.
+```starlark
+load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_test")
 
-In a consumer config, compose the helper with native Playwright configuration:
-
-```ts
-import {defineConfig} from '@playwright/test'
-import {e2eConfig} from '@rules-web-e2e/vrt'
-import {fileURLToPath} from 'node:url'
-
-export default defineConfig(
-  e2eConfig({root: fileURLToPath(new URL('.', import.meta.url))}),
-  {timeout: 45_000}
+web_e2e_test(
+    name = "e2e_test",
+    tests = ":compiled_specs",
+    server = ":app_test_server",
 )
 ```
 
-The existing Bazel-linked runtime package exports all three config helpers; it needs
-no npm publication. E2E discovers `*.spec.ts` and excludes `*.visual.spec.ts` and
-`*.browser.spec.ts` / `*.browser.spec.tsx`.
-`baseURL` is the ready server URL, also available as `VRT_APP_URL`. Relative URLs
-follow normal Playwright URL resolution; use a relative path such as `./` when
-preserving a server's base path. Keep custom fixtures, page objects, auth setup,
-and imported helpers in declared inputs and the consumer typecheck.
+Alternatively supply a built `shell` or an existing URL. See the
+[setup guide](getting-started.md) and [all attributes](api.md).
+The runner selects emitted `*.spec.js`, excluding component/visual specs.
+It supplies `baseURL` and `VRT_APP_URL`; use `page.goto('./')` to preserve a
+server base path. Most consumers need no Playwright config. Pass an optional
+compiled config for custom fixtures, timeouts, global setup, or E2E projects.
 
 ```sh
 # Standalone example
@@ -91,14 +81,14 @@ conventions remain consumer responsibilities.
 
 ## Existing application URLs
 
-Choose exactly one endpoint source: `server`, `vite` + `server_config`,
+Choose exactly one endpoint source: `server`, `shell`,
 `base_url`, or `base_url_env`. For a deployed app, replace the server attributes:
 
 ```starlark
 web_e2e_test(
     name = "deployed_test",
     base_url_env = "TEST_APP_URL",
-    # config, srcs, deps, data and Playwright labels as above
+    tests = ":compiled_specs",
     network_origins = ["https://auth.example.test"],
 )
 ```

@@ -1,9 +1,10 @@
-load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_binary", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_link_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("@rules_web_e2e//component:defs.bzl", "component_browser_test")
+load("@rules_web_e2e//component:defs.bzl", "browser_shell", "component_browser_test")
 load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_test")
+load("@rules_web_e2e//playwright:defs.bzl", "playwright_runtime")
 load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test")
 
 npm_link_all_packages(name = "node_modules")
@@ -23,35 +24,17 @@ VRT_DEPS = [
     ":node_modules/vite",
 ]
 
-component_visual_test(
-    name = "visual_test",
-    srcs = [
-        "app.tsx",
-        "card.visual.tsx",
-        "index.html",
-        "package.json",
-        "shell.tsx",
-    ],
-    baselines = glob(
-        ["__screenshots__/*.png"],
-        allow_empty = True,
-    ),
-    config = "playwright.config.ts",
-    data = [":typecheck"],
-    playwright_core = ":node_modules/playwright-core/dir",
-    playwright_test = ":node_modules/@playwright/test/dir",
-    server_config = "vite.config.ts",
-    vite = ":node_modules/vite/dir",
-    deps = VRT_DEPS,
-)
-
 ts_project(
     name = "typecheck_project",
-    srcs = glob([
-        "*.ts",
-        "*.tsx",
-    ]),
-    no_emit = True,
+    srcs = glob(
+        [
+            "*.ts",
+            "*.tsx",
+        ],
+        exclude = ["remote-harness.ts"],
+    ),
+    declaration = True,
+    transpiler = "tsc",
     tsconfig = "tsconfig.json",
     deps = VRT_DEPS + [
         ":node_modules/@types/node",
@@ -66,76 +49,109 @@ filegroup(
     output_group = "transitive_typecheck",
 )
 
-web_e2e_test(
-    name = "e2e_test",
-    srcs = [
-        "app.tsx",
-        "card.spec.ts",
-        "card.visual.tsx",
-        "index.html",
-        "isolation.spec.ts",
-        "package.json",
-        "shell.tsx",
-    ],
-    config = "e2e.config.ts",
-    data = [":typecheck"],
-    playwright_core = ":node_modules/playwright-core/dir",
-    playwright_test = ":node_modules/@playwright/test/dir",
-    server_config = "vite.config.ts",
-    vite = ":node_modules/vite/dir",
+js_library(
+    name = "bundle_sources",
+    srcs = glob([
+        "*.tsx",
+        "*.html",
+    ]) + ["package.json"],
     deps = VRT_DEPS,
 )
 
-COMPONENT_SRCS = [
-    "counter.visual.tsx",
-    "gallery.html",
-    "gallery.tsx",
-    "package.json",
-    "shell.tsx",
-]
+js_binary(
+    name = "build_shell",
+    data = [
+        ":bundle_sources",
+        ":typecheck",
+        ":typecheck_project",
+    ],
+    entry_point = "build-shell.js",
+)
 
-component_browser_test(
-    name = "component_test",
-    srcs = COMPONENT_SRCS + ["counter.browser.spec.tsx"],
-    config = "component.config.ts",
-    data = [":typecheck"],
-    playwright_core = ":node_modules/playwright-core/dir",
-    playwright_test = ":node_modules/@playwright/test/dir",
-    server_config = "vite.config.ts",
-    vite = ":node_modules/vite/dir",
-    deps = VRT_DEPS,
+js_run_binary(
+    name = "bundle",
+    args = ["assets"],
+    out_dirs = ["assets"],
+    tool = ":build_shell",
+)
+
+browser_shell(
+    name = "app_shell",
+    assets = ":bundle",
+)
+
+browser_shell(
+    name = "component_shell",
+    assets = ":bundle",
+    entry_point = "gallery.html",
+)
+
+playwright_runtime(
+    name = "playwright",
+    core = ":node_modules/playwright-core/dir",
+    test = ":node_modules/@playwright/test/dir",
+)
+
+js_library(
+    name = "e2e_specs",
+    srcs = [
+        "card.spec.js",
+        "isolation.spec.js",
+    ],
+    deps = [":typecheck_project"],
+)
+
+js_library(
+    name = "component_specs",
+    srcs = ["counter.browser.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+js_library(
+    name = "remote_specs",
+    srcs = ["remote.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+component_visual_test(
+    name = "visual_test",
+    baselines = glob(
+        ["__screenshots__/*.png"],
+        allow_empty = True,
+    ),
+    matching = ":matching",
+    shell = ":app_shell",
 )
 
 component_visual_test(
     name = "component_visual_test",
-    srcs = COMPONENT_SRCS,
     baseline_dir = "__component_screenshots__",
     baselines = glob(
         ["__component_screenshots__/*.png"],
         allow_empty = True,
     ),
-    config = "component-visual.config.ts",
-    data = [":typecheck"],
-    playwright_core = ":node_modules/playwright-core/dir",
-    playwright_test = ":node_modules/@playwright/test/dir",
-    server_config = "vite.config.ts",
-    vite = ":node_modules/vite/dir",
-    deps = VRT_DEPS,
+    matching = ":matching",
+    shell = ":component_shell",
+)
+
+component_browser_test(
+    name = "component_test",
+    playwright = ":playwright",
+    shell = ":component_shell",
+    tests = ":component_specs",
+)
+
+web_e2e_test(
+    name = "e2e_test",
+    shell = ":app_shell",
+    tests = ":e2e_specs",
 )
 
 web_e2e_test(
     name = "remote_test",
-    srcs = [
-        "package.json",
-        "remote.spec.ts",
-    ],
     base_url_env = "EXAMPLE_REMOTE_URL",
-    config = "remote.config.ts",
-    data = [":typecheck"],
     env_inherit = ["EXAMPLE_BLOCKED_URL"],
-    playwright_core = ":node_modules/playwright-core/dir",
-    playwright_test = ":node_modules/@playwright/test/dir",
-    deps = VRT_DEPS,
+    tests = ":remote_specs",
 )
 
 ts_project(
@@ -178,4 +194,10 @@ js_test(
         "no-sandbox",
         "requires-network",
     ],
+)
+
+js_library(
+    name = "matching",
+    srcs = ["matching.js"],
+    data = ["package.json"],
 )
