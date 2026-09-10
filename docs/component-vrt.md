@@ -5,7 +5,8 @@ Playwright server in a digest-pinned Linux container. It provides comparison,
 failure artifacts, and an explicit `<name>.update` target. The runtime is consumed
 through Bazel; a separate npm publication is not required. See
 [architecture](architecture.md) and [visual testing design](visual-testing-design.md)
-for the rationale and planned extensions.
+for the rationale. Start with the [user guide](getting-started.md) for dependency wiring
+and the [API reference](api.md) for all supported attributes.
 
 ## Try the standalone example
 
@@ -23,9 +24,10 @@ before committing. Each VRT target must own a separate baseline directory.
 
 ## Consumer setup
 
-1. Add `rules_web_e2e` to `MODULE.bazel`. During development use a
-   `local_path_override` pointing to your checkout; use a published version when
-   available. Translate the consumer’s npm lockfile with `rules_js`.
+1. Add `rules_web_e2e` to `MODULE.bazel` using the
+   [release archive setup](getting-started.md#connect-a-consumer), or a
+   `local_path_override` for development. Translate the consumer’s npm lockfile
+   with `rules_js`.
 2. Link `@rules_web_e2e//runtime:package` with `npm_link_package` as
    `node_modules/@rules-web-e2e/vrt`. Provide the consumer `@playwright/test`, `playwright-core`, and Vite
    npm `/dir` targets.
@@ -70,7 +72,7 @@ consumer `ServerAdapter`. Compose the UI shell in the browser entrypoint. See
 
 ## Execution contract
 
-- Tested versions: Bazel 8.6/9.0/9.2, Playwright Test/core 1.63.0, Vite 8.2.2, React 19.2.8. Initial screenshot support is Linux amd64.
+- Tested versions: Bazel 8.6/9.2, Playwright Test/core 1.63.0, Vite 8.2.2, React 19.2.8. Initial screenshot support is Linux amd64.
   macOS/arm64 screenshot equivalence has not been validated.
 - The image, including fonts and browser binaries, is pinned by digest. Its
   Playwright version must match the consumer’s `playwright-core` package.
@@ -95,6 +97,7 @@ consumer `ServerAdapter`. Compose the UI shell in the browser entrypoint. See
   source directory, removing stale PNGs and retaining other files. It rejects
   empty captures, path traversal, directory symlinks, and CLI filters. Do not
   run concurrent updates against the same baseline directory.
-- `execution_timeout_seconds` bounds runner execution (default: 180 seconds);
-  Bazel’s `timeout` independently bounds the test. Failed updates leave existing
+- `execution_timeout_seconds` bounds each Playwright invocation (default: 180
+  seconds each for discovery and capture). Managed server startup has a separate
+  30-second deadline; Bazel’s `timeout` independently bounds the whole test. Failed updates leave existing
   baselines intact and print the artifact directory.

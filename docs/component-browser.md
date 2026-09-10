@@ -26,8 +26,8 @@ and Vite adapter. The [component config](../examples/react/component.config.ts)
 uses `componentBrowserConfig({root, gallery: "./gallery.html"})`, which selects
 `*.browser.spec.ts` / `*.browser.spec.tsx` and resolves the gallery on the
 application origin. Empty, cross-origin, credential-bearing, and fragment URLs
-are rejected; the existing browser tunnel allowlist stays intact. It blocks service workers; omit that
-setting if a visual intentionally uses a service-worker mock. Declare visual modules,
+are rejected; the existing browser tunnel allowlist stays intact. It blocks service workers; explicitly override `use.serviceWorkers` to `"allow"`
+if a fixture requires one. Declare visual modules,
 HTML, config, CSS, generated assets, and dependencies in the target's inputs and
 strict typecheck.
 
