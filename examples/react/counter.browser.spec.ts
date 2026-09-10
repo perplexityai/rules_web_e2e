@@ -1,5 +1,5 @@
 import {expect, test} from '@playwright/test'
-import type {Counter} from './counter.story'
+import type {Counter} from './counter.fixture'
 
 test('mount, click, update without losing state, and unmount', async ({
   mount,

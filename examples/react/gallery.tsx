@@ -1,6 +1,6 @@
 import {flushSync} from 'react-dom'
 import {createRoot, type Root} from 'react-dom/client'
-import {Counter, Broken} from './counter.story'
+import {Counter, Broken} from './counter.fixture'
 import {TestShell} from './shell'
 
 declare global {

@@ -86,7 +86,7 @@ web_e2e_test(
 )
 
 COMPONENT_SRCS = [
-    "counter.story.tsx",
+    "counter.fixture.tsx",
     "gallery.html",
     "gallery.tsx",
     "package.json",

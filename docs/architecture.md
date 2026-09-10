@@ -87,7 +87,7 @@ Managed-server mode must own startup, readiness, ports, and teardown. Deployed
 mode must explicitly opt into network access and consumer-provided auth setup;
 it must not silently fall back to a local service or ambient credentials.
 
-Native Playwright 1.63 component specs mount named browser stories. The consumer
+Native Playwright 1.63 component specs mount named browser fixtures. The consumer
 owns the gallery, framework rendering, and provider setup. The same gallery
 supports interaction tests and independent screenshot targets. See
 [component browser tests](component-browser.md).
