@@ -1,6 +1,6 @@
 # End-to-end tests
 
-`web_e2e_test` runs ordinary Playwright specs against a managed application server.
+`web_e2e_test` runs ordinary Playwright specs against a managed or existing application server.
 Write clicks, navigation, form interactions, and assertions with `@playwright/test`.
 No screenshot baseline or `.update` target is required.
 
@@ -18,7 +18,7 @@ test('saves a draft', async ({page}) => {
 ## Setup
 
 Load `web_e2e_test` from `@rules_web_e2e//e2e:defs.bzl`. It takes the same
-`playwright_test`, `playwright_core`, `config`, `srcs`, `deps`, `data`, server,
+`playwright_test`, `playwright_core`, `config`, `srcs`, `deps`, `data`, server or remote URL,
 environment, and network options as the visual target. Provide either a compiled
 `server` adapter or `vite` plus `server_config`; see [customization](customization.md).
 Do not pass baseline options. Wire a strict TypeScript check into `data`.
@@ -82,10 +82,48 @@ Server processes and browser resources are cleaned up after completion. Failures
 return a nonzero status and preserve JUnit, screenshots, and traces in Bazel's
 undeclared outputs. The host test process (including Playwright's `request`
 fixture), custom server code, and setup scripts remain trusted and unsandboxed;
-browser network restrictions do not sandbox Node requests. Existing remote
-servers, automatic backend provisioning, and authentication conventions are not
-managed by this initial target.
+browser network restrictions do not sandbox Node requests. Remote endpoints are caller-owned; automatic backend provisioning and authentication
+conventions remain consumer responsibilities.
 
 FormatJS exercises the real editor with its custom Vite adapter and UI shell.
-Its E2E specs check translation editing and test-owned API responses, while the
-visual target independently checks rendering against reviewed PNGs.
+Its E2E specs check editing, search, validation, and saving, while the visual
+target independently checks rendering against reviewed PNGs.
+
+## Existing application URLs
+
+Choose exactly one endpoint source: `server`, `vite` + `server_config`,
+`base_url`, or `base_url_env`. For a deployed app, replace the server attributes:
+
+```starlark
+web_e2e_test(
+    name = "deployed_test",
+    base_url_env = "TEST_APP_URL",
+    # config, srcs, deps, data and Playwright labels as above
+    network_origins = ["https://auth.example.test"],
+)
+```
+
+```sh
+bazel test //path:deployed_test --test_env=TEST_APP_URL=https://preview.example.test/app/
+```
+
+`base_url_env` explicitly inherits that one variable; an unset or empty value
+fails. For a fixed endpoint use `base_url = "https://preview.example.test/app/"`.
+HTTP(S) paths and queries are preserved; credentials, fragments, and wildcard
+hosts are rejected. Use `page.goto('./')` to retain a base path.
+
+The runner starts no app process, performs no provisioning or health-check login,
+and never stops the endpoint. Specs or consumer setup own readiness and auth.
+Browser traffic is tunneled through the runner host, so that host must have the
+required DNS/VPN access. The endpoint's host and port are allowed automatically;
+redirects, API hosts, and identity providers need explicit `network_origins`.
+Supply credentials through declared environment or private generated inputs.
+
+The pinned browser, staged specs, clean environment, and artifacts are unchanged.
+Live data and remote deployments are external inputs, so these tests remain
+uncached and do not promise reproducible application state. The same endpoint
+options work with VRT, whose `.update` remains explicit.
+
+`//:remote_integration_test` in the React example starts an independent fixture
+on a random port and verifies base paths, interactions, blocked undeclared
+origins, and caller-owned server lifetime. CI needs no public test site.

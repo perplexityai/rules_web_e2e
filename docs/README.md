@@ -22,7 +22,7 @@ Component VRT is implemented with strict TypeScript, Playwright Test, and
 Playwright Chromium in a pinned Linux container. The [React example](../examples/react)
 is a standalone consumer and runs in a dedicated CI job.
 
-Managed-server web E2E is implemented with native Playwright specs and the shared
-server/container runtime. Direct component mounting, page VRT conventions, and
-reusable visual-module APIs remain planned. Design descriptions
-for those features are proposals, not currently available entrypoints.
+Managed-server and remote-URL E2E use native Playwright specs and the shared
+container runtime. [Component browser tests](component-browser.md) use the 1.63
+native mount fixture with a consumer-owned gallery, also covered by VRT.
+Reusable visual-module APIs remain planned.

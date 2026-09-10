@@ -14,6 +14,8 @@ def browser_test(
         vite = None,
         server_config = None,
         server = None,
+        base_url = None,
+        base_url_env = None,
         deps = [],
         data = [],
         baselines = [],
@@ -42,6 +44,8 @@ def browser_test(
         vite: Consumer Vite npm /dir target.
         server_config: Consumer Vite config file; required with vite.
         server: Compiled TS module exporting a ServerAdapter; replaces the Vite adapter.
+        base_url: Existing HTTP(S) application URL; no server is started or stopped.
+        base_url_env: Environment variable containing an existing application URL.
         srcs: Browser test sources.
         deps: Runtime npm and library dependencies.
         data: Other declared source files and assets.
@@ -62,16 +66,32 @@ def browser_test(
         fail("baseline_dir must be a nonempty relative directory without dot segments")
     if "@sha256:" not in image:
         fail("image must be pinned by digest")
-    if server:
-        if vite or server_config:
-            fail("server is mutually exclusive with vite/server_config")
-    elif not vite or not server_config:
-        fail("Supply either server or both vite and server_config")
-    server_inputs = [server] if server else [vite, server_config]
-    server_env = {"VRT_CUSTOM_SERVER": "$(rlocationpath %s)" % server} if server else {
-        "VRT_VITE": "$(rlocationpath %s)" % vite,
-        "VRT_SERVER_CONFIG": "$(rlocationpath %s)" % server_config,
-    }
+    modes = [server != None, vite != None or server_config != None, base_url != None, base_url_env != None]
+    if len([mode for mode in modes if mode]) != 1:
+        fail("Supply exactly one of server, vite/server_config, base_url, or base_url_env")
+    server_inputs = []
+    server_env = {}
+    if base_url != None:
+        if not base_url:
+            fail("base_url must not be empty")
+        server_env = {"VRT_BASE_URL": base_url}
+    elif base_url_env != None:
+        if not base_url_env or base_url_env.startswith("VRT_"):
+            fail("base_url_env must be a nonempty consumer environment name")
+        server_env = {"VRT_BASE_URL_ENV": base_url_env}
+        if base_url_env not in env and base_url_env not in env_inherit:
+            env_inherit = env_inherit + [base_url_env]
+    elif server:
+        server_inputs = [server]
+        server_env = {"VRT_CUSTOM_SERVER": "$(rlocationpath %s)" % server}
+    elif vite and server_config:
+        server_inputs = [vite, server_config]
+        server_env = {
+            "VRT_VITE": "$(rlocationpath %s)" % vite,
+            "VRT_SERVER_CONFIG": "$(rlocationpath %s)" % server_config,
+        }
+    else:
+        fail("Supply a nonempty server or both vite and server_config")
     js_library(
         name = name + "_sources",
         srcs = srcs + [config] + ([server_config] if server_config else []) + baselines,
@@ -82,7 +102,11 @@ def browser_test(
         copy_data_to_bin = False,
         entry_point = Label("//runtime:runner_entry"),
         data = server_inputs + [playwright_test, playwright_core, config, ":" + name + "_sources", Label("//runtime:files")],
-        env = env | server_env | {
+        env = env | {
+            "VRT_BASE_URL": "",
+            "VRT_BASE_URL_ENV": "",
+            "VRT_CUSTOM_SERVER": "",
+        } | server_env | {
             "VRT_PLAYWRIGHT_TEST": "$(rlocationpath %s)" % playwright_test,
             "VRT_PLAYWRIGHT_CORE": "$(rlocationpath %s)" % playwright_core,
             "VRT_CONFIG": "$(rlocationpath %s)" % config,

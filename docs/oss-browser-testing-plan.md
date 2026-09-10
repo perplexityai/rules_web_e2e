@@ -80,4 +80,5 @@ flowchart TD
 
 Current delivery: managed-server `web_e2e_test` and `e2eConfig` are implemented
 with standalone and FormatJS interaction specs. See [the E2E guide](e2e.md).
-Remote deployed URLs and direct component mounting remain future work.
+Explicit remote endpoints and native Playwright 1.63 component mounting are
+implemented and exercised in CI. See [component browser tests](component-browser.md).

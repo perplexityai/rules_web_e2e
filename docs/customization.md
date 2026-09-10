@@ -20,7 +20,8 @@ flowchart LR
 
 Use `vite` + `server_config` for the built-in Vite adapter, or supply `server`
 as a Bazel label for a compiled TypeScript module. These options are mutually
-exclusive. Import `ServerAdapter` from `@rules-web-e2e/vrt/server` and export an
+exclusive with each other and with `base_url` / `base_url_env` for an existing
+endpoint (see [remote mode](e2e.md#existing-application-urls)). Import `ServerAdapter` from `@rules-web-e2e/vrt/server` and export an
 implementation as the module's default:
 
 ```ts
@@ -76,9 +77,11 @@ server serves the fixture. The standalone React example demonstrates this.
   and screenshot assertions. Keep internal providers and service details in the
   consumer repository.
 - FormatJS uses a compiled custom adapter around its existing Vite config and
-  deterministic message middleware. Its fixture shell sets language/direction;
-  the editor supplies theme and i18n providers. React 17 stays isolated in the
-  editor lockfile, while the standalone example uses current React.
+  deterministic browser fixtures. Its shell supplies language/direction and
+  React Intl providers, with React 19 and the root npm lockfile.
 
 Both use the same screenshot comparison and update contract. External services
 require explicit `network_origins` opt-ins; prefer declared fixture responses.
+
+Native `mount()` uses the same server and shell through a consumer gallery; see
+[component browser tests](component-browser.md).

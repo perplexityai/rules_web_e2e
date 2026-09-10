@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {spawn, type ChildProcess} from 'node:child_process'
+import {remoteAppUrl, networkTargets} from './network.js'
 import {testArguments} from './arguments.js'
 import {baselineDestination, updateBaselines} from './baselines.js'
 import {stageRunfiles, testEnvironment} from './isolation.js'
@@ -15,6 +16,12 @@ function required(name: string) {
 
 async function main() {
   const visual = required('VRT_MODE') === 'visual'
+  const remote = remoteAppUrl(process.env)
+  // Validate explicit tunnel destinations before allocating resources.
+  networkTargets(
+    remote || 'http://127.0.0.1',
+    JSON.parse(required('VRT_NETWORK_ORIGINS')) as string[]
+  )
   const args = process.argv.slice(2)
   const update = args.includes('--update')
   if (!visual && update) throw new Error('E2E tests do not update baselines')
@@ -67,12 +74,14 @@ async function main() {
     ),
     VRT_NETWORK_ORIGINS: required('VRT_NETWORK_ORIGINS'),
     VRT_INPUTS: inputs,
-    ...(process.env.VRT_CUSTOM_SERVER
-      ? {VRT_CUSTOM_SERVER: input('VRT_CUSTOM_SERVER')}
-      : {
-          VRT_VITE: input('VRT_VITE'),
-          VRT_SERVER_CONFIG: input('VRT_SERVER_CONFIG'),
-        }),
+    ...(remote
+      ? {}
+      : process.env.VRT_CUSTOM_SERVER
+        ? {VRT_CUSTOM_SERVER: input('VRT_CUSTOM_SERVER')}
+        : {
+            VRT_VITE: input('VRT_VITE'),
+            VRT_SERVER_CONFIG: input('VRT_SERVER_CONFIG'),
+          }),
     VRT_UPDATE: update ? '1' : '0',
     VRT_BASELINES: baselines,
     VRT_OUTPUTS: outputs,
@@ -113,35 +122,38 @@ async function main() {
   process.once('SIGTERM', onSignal)
   process.once('SIGINT', onSignal)
   try {
-    const server = spawn(
-      node,
-      [fileURLToPath(new URL('./server.js', import.meta.url))],
-      {
-        cwd: path.dirname(config),
-        env,
-        detached: true,
-        stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
-      }
-    )
-    children.push(server)
-    const appUrl = await new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(new Error('Fixture server startup timed out')),
-        30_000
+    let appUrl = remote
+    if (!appUrl) {
+      const server = spawn(
+        node,
+        [fileURLToPath(new URL('./server.js', import.meta.url))],
+        {
+          cwd: path.dirname(config),
+          env,
+          detached: true,
+          stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+        }
       )
-      server.once('error', error => {
-        clearTimeout(timer)
-        reject(error)
+      children.push(server)
+      appUrl = await new Promise<string>((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error('Fixture server startup timed out')),
+          30_000
+        )
+        server.once('error', error => {
+          clearTimeout(timer)
+          reject(error)
+        })
+        server.once('exit', code => {
+          clearTimeout(timer)
+          reject(new Error(`Fixture server exited: ${code}`))
+        })
+        server.once('message', (message: {url: string}) => {
+          clearTimeout(timer)
+          resolve(message.url)
+        })
       })
-      server.once('exit', code => {
-        clearTimeout(timer)
-        reject(new Error(`Fixture server exited: ${code}`))
-      })
-      server.once('message', (message: {url: string}) => {
-        clearTimeout(timer)
-        resolve(message.url)
-      })
-    })
+    }
     browser = await startBrowser(required('VRT_IMAGE'), core)
     if (interrupted) throw new Error('VRT interrupted')
     const code = await new Promise<number>((resolve, reject) => {

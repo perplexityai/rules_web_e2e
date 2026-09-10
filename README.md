@@ -6,7 +6,9 @@ Bazel Central Registry (BCR), and commit-hook setup follows
 Component VRT is available through `component_visual_test`, with a pinned Linux
 Playwright container and explicit baseline updates. See the
 [component VRT guide](docs/component-vrt.md) and [React example](examples/react).
-The other APIs in the plan are not implemented yet.
+Native Playwright E2E supports managed servers and explicit remote URLs.
+[Component browser tests](docs/component-browser.md) use Playwright 1.63 `mount()`
+with consumer-owned galleries, alongside screenshot coverage.
 
 See the [documentation index](docs/README.md) for the approach and design.
 
