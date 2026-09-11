@@ -52,6 +52,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
     join(temp, 'custom.js'),
     `export default {
     testDir: '/wrong', outputDir: '/wrong', updateSnapshots: 'all',
+    expect: {toHaveScreenshot: {scale: 'device', maxDiffPixels: 999}},
     reporter: [['./reporter.js', {project: 'example'}], ['json', {outputFile: 'extra.json'}]],
     use: {connectOptions: {wsEndpoint: 'ws://wrong'}, viewport: {width: 500, height: 300}}
   }`
@@ -82,6 +83,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
     assert.equal(config.use?.connectOptions?.wsEndpoint, 'ws://127.0.0.1:5678')
     assert.deepEqual(config.use?.viewport, {width: 500, height: 300})
     assert.equal(config.expect?.toHaveScreenshot?.maxDiffPixels, 7)
+    assert.equal(config.expect?.toHaveScreenshot?.scale, 'device')
     assert.equal(config.expect?.toHaveScreenshot?.maxDiffPixelRatio, undefined)
     const reporterPackage = join(temp, 'node_modules', 'consumer-reporter')
     mkdirSync(reporterPackage, {recursive: true})
@@ -103,6 +105,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
         new URL('./suite-config.js?reporter-package', import.meta.url).href
       )
     ).default
+    assert.equal(packageConfig.expect?.toHaveScreenshot?.scale, 'css')
     assert.deepEqual(packageConfig.reporter, [
       ['list'],
       ['junit', {outputFile: join(temp, 'junit.xml')}],

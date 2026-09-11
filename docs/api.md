@@ -132,7 +132,9 @@ module markers and runtime dependencies.
 
 Defaults: Chromium, headless, one worker, no retries, 30-second tests,
 1280×720, en-US, UTC, light theme, reduced motion. Component tests block service
-workers. VRT disables animations, hides the caret, and captures at CSS scale.
+workers. VRT disables animations, hides the caret, and defaults to CSS-scale
+screenshots. Set `expect.toHaveScreenshot.scale = 'device'` in the compiled
+Playwright config to preserve device-pixel baselines at higher pixel densities.
 The runner retains ownership of discovery, browser connection, output paths,
 required list/JUnit reports, and snapshot policy when composing overrides. Visual targets reject
 Playwright projects; use separate targets and baseline directories instead.

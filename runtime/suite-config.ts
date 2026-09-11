@@ -107,7 +107,7 @@ export default defineConfig(merged, {
           toHaveScreenshot: {
             animations: 'disabled',
             caret: 'hide',
-            scale: 'css',
+            scale: custom.expect?.toHaveScreenshot?.scale ?? 'css',
             ...screenshotMatching(matching),
           },
         },
