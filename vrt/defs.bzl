@@ -4,6 +4,13 @@ load("//internal:browser.bzl", "browser_test", _PLAYWRIGHT_IMAGE = "PLAYWRIGHT_I
 
 PLAYWRIGHT_IMAGE = _PLAYWRIGHT_IMAGE
 
+def visual_test(name, tests, **kwargs):
+    """Run compiled native screenshot specs with matching and owned baseline updates."""
+    for key in ["visual", "component"]:
+        if key in kwargs:
+            fail("%s is not a visual test option" % key)
+    browser_test(name = name, tests = tests, visual = True, **kwargs)
+
 def component_visual_test(name, **kwargs):
     """See docs/component-vrt.md for built shell, matching, and baseline arguments."""
     for key in ["visual", "component", "tests"]:

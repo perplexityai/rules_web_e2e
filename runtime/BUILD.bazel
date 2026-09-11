@@ -41,6 +41,7 @@ js_library(
         "baselines.js",
         "capture.js",
         "config.js",
+        "config-url.js",
         "container.js",
         "isolation.js",
         "matching.js",

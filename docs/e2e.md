@@ -30,7 +30,10 @@ web_e2e_test(
 )
 ```
 
-Alternatively supply a built `shell` or an existing URL. See the
+For an existing Playwright setup, pass `config = ":compiled_config"` instead of
+`server`. Set `use.baseURL` and optional `webServer` in that config; Playwright
+starts and stops the declared server. Declare its executable and assets as data.
+A built `shell` or existing URL is also supported. See the
 [setup guide](getting-started.md) and [all attributes](api.md).
 The runner selects emitted `*.spec.js`, excluding component/visual specs.
 It supplies `baseURL` and `VRT_APP_URL`; use `page.goto('./')` to preserve a
@@ -117,3 +120,16 @@ options work with VRT, whose `.update` remains explicit.
 `//:remote_integration_test` in the React example starts an independent fixture
 on a random port and verifies base paths, interactions, blocked undeclared
 origins, and caller-owned server lifetime. CI needs no public test site.
+
+## Interaction-driven visual tests
+
+Use `visual_test` from `@rules_web_e2e//vrt:defs.bzl` for ordinary Playwright specs
+that click around and call `expect(page).toHaveScreenshot('saved.png')`. Pass the
+compiled specs, config (or server/shell/URL), matching policy, and baseline inputs.
+`bazel run //:visual_test.update` replaces baselines only after the full suite succeeds.
+The [native example](../examples/react/native.visual.spec.ts) exercises this path.
+
+If an extra service endpoint changes between environments, declare its variable
+name in `network_origins_env = ["AUTH_ORIGIN"]`. Only named, nonempty variables
+are read, and each must be an exact HTTP(S) origin without paths, credentials,
+or wildcards. Static endpoints remain in `network_origins`.

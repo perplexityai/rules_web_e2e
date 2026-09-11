@@ -49,9 +49,16 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
   writeFileSync(join(temp, 'matching.js'), 'export default {maxDiffPixels: 7}')
   writeFileSync(join(temp, 'reporter.js'), 'export default class Reporter {}')
   writeFileSync(
+    join(temp, 'setup.js'),
+    'export default async function setup() {}'
+  )
+  writeFileSync(
     join(temp, 'custom.js'),
     `export default {
     testDir: '/wrong', outputDir: '/wrong', updateSnapshots: 'all',
+    globalSetup: './setup.js', globalTeardown: ['./setup.js'],
+    webServer: [{command: 'node app.js', port: 8080, reuseExistingServer: true},
+      {command: 'node api.js', port: 8081, cwd: './backend'}],
     expect: {toHaveScreenshot: {scale: 'device', maxDiffPixels: 999}},
     reporter: [['./reporter.js', {project: 'example'}], ['json', {outputFile: 'extra.json'}]],
     use: {connectOptions: {wsEndpoint: 'ws://wrong'}, viewport: {width: 500, height: 300}}
@@ -74,6 +81,24 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
     assert.equal(config.testDir, temp)
     assert.equal(config.outputDir, join(temp, 'artifacts'))
     assert.equal(config.updateSnapshots, 'none')
+    assert.deepEqual(config.webServer, [
+      {
+        command: 'node app.js',
+        port: 8080,
+        cwd: temp,
+        reuseExistingServer: false,
+      },
+      {
+        command: 'node api.js',
+        port: 8081,
+        cwd: join(temp, 'backend'),
+        reuseExistingServer: false,
+      },
+    ])
+    assert.deepEqual(config.globalSetup, [realpathSync(join(temp, 'setup.js'))])
+    assert.deepEqual(config.globalTeardown, [
+      realpathSync(join(temp, 'setup.js')),
+    ])
     assert.deepEqual(config.reporter, [
       ['list'],
       ['junit', {outputFile: join(temp, 'junit.xml')}],

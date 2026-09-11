@@ -1,5 +1,9 @@
 /** Keep selection flags without allowing CLI overrides of managed paths/reporters. */
-export function testArguments(visual: boolean, args: string[]): string[] {
+export function testArguments(
+  visual: boolean,
+  args: string[],
+  files: string[] = []
+): string[] {
   if (visual) {
     if (args.some(arg => arg !== '--update'))
       throw new Error(
@@ -10,6 +14,21 @@ export function testArguments(visual: boolean, args: string[]): string[] {
   const result: string[] = []
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]
+    if (arg === '--pass-with-no-tests') {
+      result.push(arg)
+      continue
+    }
+    if (!arg.startsWith('-')) {
+      const file = arg.replace(/\.spec\.tsx?$/, '.spec.js')
+      if (
+        !files.some(
+          declared => declared === file || declared.endsWith('/' + file)
+        )
+      )
+        throw new Error(`Spec selector is not a declared test input: ${arg}`)
+      result.push(file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$')
+      continue
+    }
     const flag = arg.split('=')[0]
     if (!['--grep', '--grep-invert', '--project', '--shard'].includes(flag))
       throw new Error(

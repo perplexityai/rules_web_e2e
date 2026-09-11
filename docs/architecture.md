@@ -80,11 +80,14 @@ storage, separate from committed baselines.
 | ------------------------ | ----------------------------------------------------- |
 | `web_e2e_test`           | Native specs against a managed server or existing URL |
 | `component_browser_test` | Native mounts through a consumer gallery              |
+| `visual_test`            | Native screenshot specs and baseline updates          |
 | `component_visual_test`  | Generated visual captures and baseline updates        |
 
 See the [API reference](api.md) for attributes and configuration helpers.
 
-Managed-server mode must own startup, readiness, ports, and teardown. Deployed
+Server adapters own readiness and teardown; a config-only target delegates
+its native `webServer` lifecycle to Playwright. Both paths share the same
+runfiles staging, browser container, and exact-origin tunnel. Deployed
 mode must explicitly opt into network access and consumer-provided auth setup;
 it must not silently fall back to a local service or ambient credentials.
 
