@@ -5,9 +5,45 @@ load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@rules_web_e2e//component:defs.bzl", "browser_shell", "component_browser_test")
 load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_test")
 load("@rules_web_e2e//playwright:defs.bzl", "playwright_runtime")
-load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test")
+load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test", "visual_test")
 
 npm_link_all_packages(name = "node_modules")
+
+js_library(
+    name = "native_config",
+    srcs = ["native.config.js"],
+    data = ["package.json"],
+    deps = [":typecheck_project"],
+)
+
+js_library(
+    name = "native_specs",
+    srcs = ["native.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+js_library(
+    name = "native_visual_specs",
+    srcs = ["native.visual.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+web_e2e_test(
+    name = "native_config_test",
+    config = ":native_config",
+    tests = ":native_specs",
+)
+
+visual_test(
+    name = "native_visual_test",
+    baseline_dir = "__native_screenshots__",
+    baselines = glob(
+        ["__native_screenshots__/*.png"],
+        allow_empty = True,
+    ),
+    config = ":native_config",
+    tests = ":native_visual_specs",
+)
 
 npm_link_package(
     name = "node_modules/@rules-web-e2e/vrt",

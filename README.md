@@ -10,12 +10,12 @@ owns typechecking and bundling; the rules own execution and baseline updates.
 ```starlark
 load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_test")
 load("@rules_web_e2e//component:defs.bzl", "browser_shell", "component_browser_test")
-load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test")
+load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test", "visual_test")
 
 web_e2e_test(
     name = "editor_e2e",
     tests = ":compiled_e2e_specs",
-    server = ":editor_test_server",
+    config = ":compiled_playwright_config",  # use.baseURL + optional webServer
 )
 
 browser_shell(
@@ -42,6 +42,7 @@ component_visual_test(
 | Input                       | Contract                                                                                     |
 | --------------------------- | -------------------------------------------------------------------------------------------- |
 | `tests`                     | Built ESM specs and dependencies; source files are typechecked/transpiled by the producer    |
+| `config`                    | Compiled native Playwright config: base URL, optional webServer, fixtures, reporters, and timeouts |
 | `server`                    | Compiled adapter returning a ready URL and cleanup callback                                  |
 | `shell`                     | Built HTML/JS/CSS directory plus its entry point; served without a bundler                   |
 | `base_url` / `base_url_env` | Existing application endpoint, replacing `server` or `shell`                                 |
@@ -56,6 +57,10 @@ import type {VisualMatching} from '@rules-web-e2e/vrt'
 const matching: VisualMatching = {threshold: 0.1, maxDiffPixels: 0}
 export default matching
 ```
+
+Use `visual_test(tests = ":compiled_visual_specs", config = ":compiled_playwright_config", ...)`
+for page screenshots and interaction-driven VRT with native `toHaveScreenshot`.
+It shares `matching`, `baselines`, `baseline_dir`, and `.update` with gallery VRT.
 
 Native component specs mount registered visuals with
 `mount('moduleId/visualId', props)`. The same gallery supplies generated VRT

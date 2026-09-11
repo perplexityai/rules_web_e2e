@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
-import {networkTargets, remoteAppUrl} from './network.js'
+import {networkTargets, remoteAppUrl, environmentOrigins} from './network.js'
 
 test('remote URL selection preserves paths and permits only explicit destinations', () => {
   const url = remoteAppUrl({
@@ -41,4 +41,24 @@ test('remote mode fails closed for missing or malformed endpoints', () => {
     'file:///tmp',
   ])
     assert.throws(() => networkTargets('https://app.example', [origin]))
+})
+
+test('only declared environment endpoints join the exact origin allowlist', () => {
+  const env = {
+    BASELINE_URL: 'https://baseline.example',
+    UNDECLARED: 'https://other.example',
+  }
+  assert.equal(
+    networkTargets(
+      'http://localhost:8080',
+      environmentOrigins(['BASELINE_URL', 'UNSET'], env)
+    ),
+    'localhost:8080,baseline.example:443'
+  )
+  assert.throws(() =>
+    networkTargets(
+      'http://localhost:8080',
+      environmentOrigins(['BASELINE_URL'], {BASELINE_URL: 'https://*.example'})
+    )
+  )
 })

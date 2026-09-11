@@ -54,7 +54,7 @@ jobs:
           repository-cache: true
       - name: Run E2E and visual tests
         working-directory: examples/react
-        run: bazelisk test //:e2e_test //:visual_test //:component_test //:component_visual_test //:remote_integration_test --test_output=errors
+        run: bazelisk test //:e2e_test //:visual_test //:component_test //:component_visual_test //:remote_integration_test //:native_config_test //:native_visual_test --test_output=errors
       - name: Upload visual test artifacts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

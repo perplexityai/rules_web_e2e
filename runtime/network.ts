@@ -1,4 +1,11 @@
 /** Turn explicit HTTP origins into exact Playwright tunnel host:port entries. */
+export function environmentOrigins(
+  names: string[],
+  env: NodeJS.ProcessEnv
+): string[] {
+  return names.flatMap(name => (env[name] ? [env[name]!] : []))
+}
+
 export function networkTargets(fixture: string, origins: string[]): string {
   return [new URL(fixture).origin, ...origins]
     .map(origin => {

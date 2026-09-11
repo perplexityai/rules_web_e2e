@@ -28,7 +28,7 @@ browser_shell = rule(
 def _compiled(target, label):
     if not target:
         return None
-    files = [f for f in target[DefaultInfo].files.to_list() if f.extension == "js"]
+    files = [f for f in target[DefaultInfo].files.to_list() if f.extension in ["js", "mjs"]]
     if len(files) != 1 or files[0].is_source:
         fail(label + " must supply one compiled JavaScript module")
     return runfile(files[0])
@@ -91,13 +91,15 @@ def browser_test(
         env = {},
         env_inherit = [],
         network_origins = [],
+        network_origins_env = [],
         tags = [],
         timeout = "long",
         execution_timeout_seconds = 180,
+        args = [],
         visual = False,
         component = False):
     """Internal common implementation; public wrappers select the test mode."""
-    if any([key.startswith("VRT_") for key in env.keys() + env_inherit]):
+    if any([key.startswith("VRT_") for key in env.keys() + env_inherit + network_origins_env]):
         fail("VRT_* environment names are reserved for the browser runtime")
     if visual and component:
         fail("Visual and component modes are separate targets")
@@ -107,15 +109,17 @@ def browser_test(
         fail("execution_timeout_seconds must be positive")
     if not baseline_dir or baseline_dir.startswith("/") or any([p in ["", ".", ".."] for p in baseline_dir.split("/")]):
         fail("baseline_dir must be a nonempty relative directory without dot segments")
-    if len([v for v in [server, shell, base_url, base_url_env] if v != None]) != 1:
-        fail("Supply exactly one of server, shell, base_url, or base_url_env")
+    sources = len([v for v in [server, shell, base_url, base_url_env] if v != None])
+    if sources > 1 or (sources == 0 and not config):
+        fail("Supply one of server, shell, base_url, base_url_env, or a config with use.baseURL")
     if base_url_env != None and (not base_url_env or base_url_env.startswith("VRT_")):
         fail("base_url_env must be a nonempty consumer environment name")
     if base_url == "":
         fail("base_url must not be empty")
     if base_url_env and base_url_env not in env and base_url_env not in env_inherit:
         env_inherit = env_inherit + [base_url_env]
-    js_library(name = name + "_sources", srcs = baselines, data = data, deps = [tests] if tests else [])
+    env_inherit = env_inherit + [key for key in network_origins_env if key not in env and key not in env_inherit]
+    js_library(name = name + "_sources", srcs = baselines, data = data)
     _inputs(
         name = name + "_inputs",
         tests = tests,
@@ -125,25 +129,27 @@ def browser_test(
         config = config,
         matching = matching,
         sources = ":" + name + "_sources",
-        mode = "visual" if visual else "component" if component else "e2e",
+        mode = "visual-spec" if visual and tests else "visual" if visual else "component" if component else "e2e",
     )
     common = dict(
         copy_data_to_bin = False,
         entry_point = Label("//runtime:runner_entry"),
-        data = [":" + name + "_inputs", Label("//runtime:files")],
+        data = [":" + name + "_inputs", Label("//runtime:files")] + data,
         env = env | {
             "VRT_DESCRIPTOR": "$(rlocationpath :%s_inputs)" % name,
             "VRT_BASE_URL": base_url or "",
             "VRT_BASE_URL_ENV": base_url_env or "",
-            "VRT_MODE": "visual" if visual else "component" if component else "e2e",
+            "VRT_MODE": "visual-spec" if visual and tests else "visual" if visual else "component" if component else "e2e",
             "VRT_BASELINE_RELATIVE": (native.package_name() + "/" if native.package_name() else "") + baseline_dir if visual else "",
             "VRT_NETWORK_ORIGINS": json.encode(network_origins),
+            "VRT_NETWORK_ORIGINS_ENV": json.encode(network_origins_env),
             "VRT_ENV_NAMES": json.encode(env.keys() + env_inherit),
             "VRT_TIMEOUT_MS": str(execution_timeout_seconds * 1000),
         },
     )
     js_test(
         name = name,
+        args = args,
         env_inherit = ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH", "DOCKER_CONFIG"] + env_inherit,
         tags = ["manual", "external", "visual_test" if visual else "component_browser_test" if component else "e2e_test", "requires-network", "no-sandbox", "no-remote", "no-cache"] + tags,
         timeout = timeout,

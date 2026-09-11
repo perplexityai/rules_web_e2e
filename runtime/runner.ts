@@ -5,7 +5,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url'
 import {createRequire} from 'node:module'
 import {validatePlaywrightVersions} from './versions.js'
 import {spawn, type ChildProcess} from 'node:child_process'
-import {remoteAppUrl, networkTargets} from './network.js'
+import {remoteAppUrl, networkTargets, environmentOrigins} from './network.js'
 import {testArguments} from './arguments.js'
 import {baselineDestination, updateBaselines} from './baselines.js'
 import {stageRunfiles, testEnvironment} from './isolation.js'
@@ -17,17 +17,21 @@ function required(name: string) {
 }
 
 async function main() {
-  const visual = required('VRT_MODE') === 'visual'
+  const gallery = required('VRT_MODE') === 'visual'
+  const visual = gallery || required('VRT_MODE') === 'visual-spec'
   const remote = remoteAppUrl(process.env)
+  const origins = [
+    ...(JSON.parse(required('VRT_NETWORK_ORIGINS')) as string[]),
+    ...environmentOrigins(
+      JSON.parse(required('VRT_NETWORK_ORIGINS_ENV')) as string[],
+      process.env
+    ),
+  ]
   // Validate explicit tunnel destinations before allocating resources.
-  networkTargets(
-    remote || 'http://127.0.0.1',
-    JSON.parse(required('VRT_NETWORK_ORIGINS')) as string[]
-  )
+  networkTargets(remote || 'http://127.0.0.1', origins)
   const args = process.argv.slice(2)
   const update = args.includes('--update')
   if (!visual && update) throw new Error('E2E tests do not update baselines')
-  const selectors = testArguments(visual, args)
   const destination = update
     ? baselineDestination(
         required('BUILD_WORKSPACE_DIRECTORY'),
@@ -56,6 +60,7 @@ async function main() {
     shell: {directory: string; entryPoint: string} | null
     playwright: {test: string; core: string; version: string; image: string}
   }
+  const selectors = testArguments(visual, args, descriptor.tests)
   const node = fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
   const testRoot = path.dirname(descriptorPath)
   const generated = path.join(testRoot, '.rules-browser')
@@ -112,7 +117,7 @@ async function main() {
     testPackage,
     path.join(generated, 'node_modules', '@playwright', 'test')
   )
-  if (visual)
+  if (gallery)
     fs.copyFileSync(
       fileURLToPath(new URL('./capture.js', import.meta.url)),
       path.join(generated, '.rules-visual.spec.js')
@@ -134,7 +139,7 @@ async function main() {
       JSON.parse(required('VRT_ENV_NAMES')) as string[],
       temp
     ),
-    VRT_NETWORK_ORIGINS: required('VRT_NETWORK_ORIGINS'),
+    VRT_NETWORK_ORIGINS: JSON.stringify(origins),
     VRT_INPUTS: inputs,
     VRT_MODE: required('VRT_MODE'),
     VRT_TEST_ROOT: visual ? testRoot : inputs,
@@ -155,6 +160,15 @@ async function main() {
     VRT_OUTPUTS: outputs,
     VRT_VISUAL_CATALOG: path.join(temp, 'visual-catalog.json'),
     VRT_CACHE: path.join(temp, 'server-cache'),
+    RUNFILES_DIR: inputs,
+    RUNFILES: inputs,
+    RUNFILES_MANIFEST_FILE: '',
+    TEST_WORKSPACE: required('VRT_DESCRIPTOR').split('/')[0],
+    BAZEL_WORKSPACE: required('VRT_DESCRIPTOR').split('/')[0],
+    BAZEL_BINDIR: '.',
+    TEST_TMPDIR: temp,
+    TEST_UNDECLARED_OUTPUTS_DIR: outputs,
+    PATH: `${path.dirname(node)}:/usr/bin:/bin`,
   }
   // Docker discovery is deliberately separate from the fixture environment.
   // Set before importing Testcontainers, which reads helper settings at import time.
@@ -195,7 +209,16 @@ async function main() {
     if (!appUrl) {
       const server = spawn(
         node,
-        [fileURLToPath(new URL('./server.js', import.meta.url))],
+        [
+          fileURLToPath(
+            new URL(
+              descriptor.server || descriptor.shell
+                ? './server.js'
+                : './config-url.js',
+              import.meta.url
+            )
+          ),
+        ],
         {
           cwd: testRoot,
           env,
@@ -223,6 +246,7 @@ async function main() {
         })
       })
     }
+    networkTargets(appUrl!, origins)
     browser = await startBrowser(descriptor.playwright.image, core)
     if (interrupted) throw new Error('VRT interrupted')
     const run = (discover: boolean) =>
@@ -265,7 +289,7 @@ async function main() {
           resolve(code ?? 1)
         })
       })
-    const discoveryCode = visual ? await run(true) : 0
+    const discoveryCode = gallery ? await run(true) : 0
     const code = discoveryCode === 0 ? await run(false) : discoveryCode
     if (code !== 0) {
       if (visual)
