@@ -26,7 +26,12 @@ export function testArguments(
         )
       )
         throw new Error(`Spec selector is not a declared test input: ${arg}`)
-      result.push(file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$')
+      // Playwright filters both loaded modules and source-mapped test locations.
+      result.push(
+        file
+          .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          .replace(/\\\.js$/, '\\.(?:js|ts|tsx)') + '$'
+      )
       continue
     }
     const flag = arg.split('=')[0]

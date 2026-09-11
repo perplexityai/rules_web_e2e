@@ -32,6 +32,10 @@ test('CI file selection maps source names to declared compiled specs only', () =
     new RegExp(args[0]).test('/staged/_main/app/[route].spec.js'),
     true
   )
+  assert.equal(
+    new RegExp(args[0]).test('/staged/_main/app/[route].spec.ts'),
+    true
+  )
   assert.equal(new RegExp(args[0]).test('/staged/_main/app/r.spec.js'), false)
   assert.equal(args[1], '--pass-with-no-tests')
   assert.throws(() =>
