@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.0 (2026-09-11)
+
+## What's Changed
+* docs: document public APIs and consumer setup by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/8
+* feat: consume built browser specs and shells by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/11
+* feat: support native Playwright configs and visual specs by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/13
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v1.0.0...v2.0.0
+
 ## 1.0.0 (2026-09-10)
 
 ## What's Changed
