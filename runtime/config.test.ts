@@ -39,7 +39,7 @@ test('component gallery resolves base paths without broadening browser access', 
 })
 
 test('compiled suite config preserves runner paths and accepts a pixel-count budget', async () => {
-  const {mkdtempSync, mkdirSync, writeFileSync, rmSync} =
+  const {mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync} =
     await import('node:fs')
   const {tmpdir} = await import('node:os')
   const {join} = await import('node:path')
@@ -77,7 +77,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
     assert.deepEqual(config.reporter, [
       ['list'],
       ['junit', {outputFile: join(temp, 'junit.xml')}],
-      [join(temp, 'reporter.js'), {project: 'example'}],
+      [realpathSync(join(temp, 'reporter.js')), {project: 'example'}],
       ['json', {outputFile: 'extra.json'}],
     ])
     assert.equal(config.use?.connectOptions?.wsEndpoint, 'ws://127.0.0.1:5678')
@@ -109,7 +109,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
     assert.deepEqual(packageConfig.reporter, [
       ['list'],
       ['junit', {outputFile: join(temp, 'junit.xml')}],
-      [join(reporterPackage, 'index.js')],
+      [realpathSync(join(reporterPackage, 'index.js'))],
     ])
   } finally {
     for (const key of Object.keys(process.env))
