@@ -1,0 +1,60 @@
+--- a/build/container-runtime/clients/image/docker-image-client.js
++++ b/build/container-runtime/clients/image/docker-image-client.js
+@@ -124,6 +124,14 @@
+     }
+     async pull(imageName, opts) {
+         try {
++            if (process.env.TESTCONTAINERS_PRELOADED_IMAGES_ONLY === "true") {
++                try {
++                    await this.inspect(imageName);
++                } catch {
++                    throw new Error(`Preload required image ${imageName.string} before running VRT; registry access is disabled`);
++                }
++                return;
++            }
+             if (!opts?.force && (await this.exists(imageName))) {
+                 common_1.log.debug(`Image "${imageName.string}" already exists`);
+                 return;
+--- a/build/reaper/reaper.js
++++ b/build/reaper/reaper.js
+@@ -25,6 +25,7 @@
+ let sessionId;
+ async function getReaper(client) {
+     if (reaper) {
++        await verifyReaperImage(client, reaper.containerId);
+         return reaper;
+     }
+     const userId = (0, os_1.userInfo)().uid;
+@@ -35,6 +36,7 @@
+             return new DisabledReaper(sessionId, "");
+         }
+         for (const reaperContainer of reaperContainers) {
++            await verifyReaperImage(client, reaperContainer.Id);
+             const existingSessionId = reaperContainer.Labels[labels_1.LABEL_TESTCONTAINERS_SESSION_ID] ?? new common_1.RandomUuid().nextUuid();
+             try {
+                 sessionId = existingSessionId;
+@@ -52,6 +54,24 @@
+     });
+     reaper.addSession(sessionId);
+     return reaper;
++}
++// Verify before opening a cleanup connection; never remove a foreign reaper.
++async function verifyReaperImage(client, containerId) {
++    if (process.env.TESTCONTAINERS_PRELOADED_IMAGES_ONLY !== "true") return;
++    const reference = getReaperImage();
++    if (!/@sha256:[a-f0-9]{64}$/.test(reference)) {
++        throw new Error("Ryuk requires a digest-pinned image in preloaded-only mode");
++    }
++    let expected, actual;
++    try {
++        expected = await client.image.inspect(container_runtime_1.ImageName.fromString(reference));
++        actual = await client.container.inspect(client.container.getById(containerId));
++    } catch {
++        throw new Error(`Cannot verify existing Ryuk ${containerId} against ${reference}; preload the image and use a dedicated daemon`);
++    }
++    if (!expected.Id || actual.Image !== expected.Id) {
++        throw new Error(`Existing Ryuk ${containerId} does not match ${reference}; use a dedicated daemon or ask its owner to stop it`);
++    }
+ }
+ async function findReaperContainers(client) {
+     const containers = await client.container.list();

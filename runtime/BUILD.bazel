@@ -237,3 +237,9 @@ js_test(
     data = ["package.json", ":typecheck"],
     entry_point = "host-browser.test.js",
 )
+
+filegroup(
+    name = "preload_lifecycle_entry",
+    srcs = ["preload-lifecycle.test.js"],
+    visibility = ["//visibility:public"],
+)

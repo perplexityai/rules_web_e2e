@@ -88,6 +88,8 @@ jobs:
             fi
           done
           bazelisk test //runtime:preload_browser_test --test_output=errors
+      - name: Verify VRT with only declared tools and Docker
+        run: bash tests/preloaded-vrt.sh
       - name: Verify generated capture bounds and pixels
         run: bazelisk test //runtime:capture_browser_test --test_output=errors
       - name: Run visual tests and container isolation coverage

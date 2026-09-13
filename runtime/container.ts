@@ -2,6 +2,7 @@ import {
   GenericContainer,
   getContainerRuntimeClient,
   getReaper,
+  ImageName,
   LABEL_TESTCONTAINERS_SESSION_ID,
   StartedNetwork,
   Wait,
@@ -25,7 +26,18 @@ export async function startBrowser(
     fs.existsSync(path.join(os.homedir(), '.testcontainers.properties'))
   )
   if (host) process.env.TESTCONTAINERS_HOST_OVERRIDE = host
+  // The pinned Testcontainers patch enforces this before auth, pulls, or reuse.
+  process.env.TESTCONTAINERS_PRELOADED_IMAGES_ONLY = 'true'
   const client = await getContainerRuntimeClient()
+  for (const reference of [image, process.env.RYUK_CONTAINER_IMAGE || '']) {
+    if (!/@sha256:[a-f0-9]{64}$/.test(reference))
+      throw new Error(`VRT requires a digest-pinned image: ${reference}`)
+    try {
+      await client.image.inspect(ImageName.fromString(reference))
+    } catch {
+      throw new Error(`Preload required image ${reference} before running VRT; registry access is disabled`)
+    }
+  }
   const reaper = await getReaper(client)
   const name = `vrt-${randomUUID()}`
   const network = new StartedNetwork(

@@ -6,6 +6,8 @@ control relay per invocation. Both use the same digest-pinned Playwright image
 and explicit `linux/amd64` platform. The runner verifies the browser's platform
 and the declared Playwright package version before running tests. Ryuk, the
 cleanup helper, uses a pinned image digest on the daemon-selected platform.
+All images must be preloaded; execution never pulls images or authenticates to
+registries. Existing Ryuk image identity is verified before reuse.
 
 ```mermaid
 flowchart LR
@@ -58,7 +60,7 @@ state. Pixel tolerance should not hide uncontrolled inputs.
 This is reproducible local browser testing, not a fully sandboxed Bazel action.
 The host Node processes execute trusted consumer config, plugins, and tests;
 those can explicitly read host files or access the network. Docker discovery,
-credentials, daemon/kernel behavior, image availability, and machine resources
+daemon/kernel behavior, preloaded image availability, and machine resources
 remain external inputs. Tests therefore remain manual, local, and uncached.
 Remote Docker daemons are not supported by the loopback control binding.
 
@@ -67,3 +69,23 @@ blocked unrelated host ports, and blocked direct public-network access. The
 standalone example checks committed screenshot baselines. The built-in server reads only compiled assets; dotenv loading and source
 transformation are absent during execution. Consumer builds remain responsible
 for their own environment and dependency discovery.
+
+## Enforced runtime dependency contract
+
+Beyond Bazel and standard OS facilities, Docker is the only additional installed
+VRT prerequisite. Node, Playwright packages, and compiled application inputs come
+from Bazel; Chromium and fonts come from the pinned browser image. Preload both
+browser and Ryuk images using the [manifest](api.md#vrt-image-manifest-and-ci-preloading)
+before testing. Image acquisition remains a caller-owned setup step.
+
+CI runs `tests/preloaded-vrt.sh` in a pinned OS-only Linux container with no
+installed Node, Chromium, Docker CLI, or registry credentials. It executes built
+public compare/update targets using their declared runfiles and a proxy that
+rejects Docker pull/auth requests. Missing-image updates must preserve baselines;
+completed and failed invocations must remove their browser/relay/network resources.
+The envelope uses Linux host networking so Docker's loopback relay is reachable;
+it is a regression environment, not a new consumer execution requirement.
+
+This verifies tool provisioning, not full hermeticity of consumer code. Host-side
+Node code is still trusted and unsandboxed, and application clocks, randomness,
+and opted-in external services remain consumer-controlled inputs.

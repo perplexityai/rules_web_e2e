@@ -123,4 +123,5 @@ AGI can retain its ECR runtime image; FormatJS can supply a custom image with it
 fonts and rendering dependencies. This image is ignored by host interaction
 tests that share the runtime. Ryuk is still a separate helper requirement for
 VRT, exposed by `playwright_images`; constructing a browser image does not remove
-that helper or the documented existing-reaper reuse limitation.
+that helper. Preload all manifest images before execution; existing Ryuk image
+identity must match the pin before reuse.
