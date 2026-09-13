@@ -15,6 +15,8 @@ for (const name of fs.readdirSync(example)) {
 const module = fs.readFileSync(path.join(destination, 'MODULE.bazel'), 'utf8')
 fs.writeFileSync(path.join(destination, 'MODULE.bazel'), module.replace('path = "../.."', `path = ${JSON.stringify(repository)}`))
 fs.copyFileSync(path.join(work, 'runtime.tar'), path.join(destination, 'runtime.tar'))
+for (const name of ['isolation', 'failure'])
+  fs.copyFileSync(new URL(`./${name}.visual.spec.ts`, import.meta.url), path.join(destination, `actiond-${name}.visual.spec.ts`))
 const build = path.join(destination, 'BUILD.bazel')
 fs.writeFileSync(build,
   'load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_archive")\n' +
@@ -44,5 +46,30 @@ component_visual_test(
     matching = ":matching",
     baseline_dir = "__actiond_gallery__",
     baselines = glob(["__actiond_gallery__/*.png"], allow_empty = True),
+)
+js_library(
+    name = "actiond_isolation_specs",
+    srcs = ["actiond-isolation.visual.spec.js"],
+    deps = [":typecheck_project"],
+)
+js_library(
+    name = "actiond_failure_specs",
+    srcs = ["actiond-failure.visual.spec.js"],
+    deps = [":typecheck_project"],
+)
+visual_test(
+    name = "actiond_isolation_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_isolation_specs",
+    baseline_dir = "__actiond_isolation__",
+)
+visual_test(
+    name = "actiond_failure_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_failure_specs",
+    baseline_dir = "__actiond_failed__",
+    baselines = glob(["__actiond_failed__/*.png"], allow_empty = True),
 )
 `)

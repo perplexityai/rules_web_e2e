@@ -68,6 +68,11 @@ mark the goal complete based solely on the standalone prototype passing.
 - Failed and empty captures preserve source baselines; downloaded failure
   reports survive through the local test wrapper. Filesystem and subprocess
   regression tests pass.
+- Public-rule isolation and deliberate post-capture failure jobs pass under the
+  actiond process runner: Node gets `ENETUNREACH`, the browser cannot access the
+  external address, and failed captures retain diagnostic PNGs without exposing
+  eligible baseline outputs. CI also checks empty captures and mismatched
+  reference PNGs through the real local commands; VM results remain pending.
 - The separate actiond `input-rootfs`/`input-rootfs-env` patch passes actiond's
   full build and unit tests. The production VM workflow is still validating it.
   The hand-staged VM diagnostic hit an undeclared npm file beneath a nested
