@@ -14,3 +14,16 @@ py_test(
     srcs = ["unpack_runtime.py", "unpack_runtime_test.py"],
     main = "unpack_runtime_test.py",
 )
+
+py_binary(
+    name = "unpack_oci",
+    srcs = ["unpack_oci.py", "unpack_runtime.py"],
+    main = "unpack_oci.py",
+)
+
+py_test(
+    name = "unpack_oci_test",
+    size = "small",
+    srcs = ["unpack_oci.py", "unpack_runtime.py", "unpack_oci_test.py"],
+    main = "unpack_oci_test.py",
+)

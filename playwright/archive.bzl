@@ -20,3 +20,27 @@ browser_runtime_archive = rule(
         "_unpack": attr.label(default = Label("//playwright:unpack_runtime"), executable = True, cfg = "exec"),
     },
 )
+
+def _oci_impl(ctx):
+    if not ctx.file.image.is_directory:
+        fail("image must provide a declared OCI image layout directory")
+    root = ctx.actions.declare_directory(ctx.label.name)
+    ctx.actions.run(
+        executable = ctx.executable._unpack,
+        arguments = [ctx.file.image.path, root.path, ctx.attr.directory, "amd64"],
+        inputs = [ctx.file.image],
+        tools = [ctx.attr._unpack[DefaultInfo].files_to_run],
+        outputs = [root],
+        mnemonic = "BrowserRuntimeOci",
+    )
+    return [DefaultInfo(files = depset([root]), runfiles = ctx.runfiles(files = [root]))]
+
+browser_runtime_oci = rule(
+    implementation = _oci_impl,
+    doc = "Apply a caller-owned Linux amd64 OCI image's declared layers and materialize its runtime directory.",
+    attrs = {
+        "image": attr.label(mandatory = True, allow_single_file = True),
+        "directory": attr.string(default = "."),
+        "_unpack": attr.label(default = Label("//playwright:unpack_oci"), executable = True, cfg = "exec"),
+    },
+)

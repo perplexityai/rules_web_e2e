@@ -80,9 +80,12 @@ mark the goal complete based solely on the standalone prototype passing.
 - `browser_runtime_archive` unpacks a caller-produced flattened runtime tar
   through a declared Python toolchain. It normalizes image-root links, preserves
   executables, and rejects dangling links and unflattened OCI whiteouts.
+- `browser_runtime_oci` verifies and applies declared OCI layers offline, then
+  materializes the selected runtime subtree. Layer/whiteout/hardlink tests pass,
+  and the real OCI-built runtime matches the archive-built browser, Node, and
+  fixture font. The CI example now constructs and passes an OCI image target.
 
-Next: verify the full public-rule workflow in the VM, provide OCI-to-runtime
-packaging, migrate concrete AGI/FormatJS callsites, and remove the legacy backend.
-Archive support alone does not implement OCI layer application or complete the
-migration. Baseline application, failures, cancellation, and isolation still need
-end-to-end VM coverage through the public rules.
+Next: verify the full public-rule workflow in the VM, migrate concrete
+AGI/FormatJS callsites, and remove the legacy backend. Baseline application,
+failures, cancellation, and isolation still need end-to-end VM coverage through
+the public rules. OCI support itself does not complete the migration.

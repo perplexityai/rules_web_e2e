@@ -47,9 +47,31 @@ link targets are errors, so runtime packaging cannot silently borrow host files.
 Font configuration should use image paths or paths relative to the configuration
 file, rather than a build-machine path.
 
-An OCI image tar produced by `docker save` or `oci_load` is not a flattened
-filesystem tar. OCI layer application, including whiteouts, must happen before
-this rule. Direct OCI-layout support is still migration work in progress.
+For a caller-owned OCI image layout directory, use `browser_runtime_oci` instead:
+
+```starlark
+load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_oci")
+
+browser_runtime_oci(
+    name = "runtime_files",
+    image = ":caller_image",
+    directory = "runtime",
+)
+```
+
+`image` supplies one declared OCI layout directory, such as an `oci_image`
+output. `directory` selects the runtime subtree after applying layers; use `.`
+when the whole image is a closed browser runtime. Keep the `browser_runtime`
+paths relative to that selected subtree. OCI extraction verifies SHA-256 blob
+digests and sizes, selects one Linux amd64 image, applies layers in order, and
+handles whiteouts before same-layer additions. It supports uncompressed and
+gzip layers; unsupported layer media types fail explicitly. It never fetches
+missing blobs, executes image commands, or contacts a registry.
+
+An image tar produced by `docker save` or `oci_load` is neither a flattened
+filesystem archive nor a layout directory. Pass the image layout target directly.
+The runtime subtree must include every link target it needs within the declared
+image, and must not rely on Docker injecting files such as `/etc/hosts`.
 
 Execution currently requires a patched actiond Linux amd64 worker. The remote
 actions produce comparison/capture results; the local test command reports their
