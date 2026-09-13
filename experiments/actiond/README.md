@@ -52,14 +52,30 @@ not the proposed deployment architecture.
 - Bazel aquery resolves Linux amd64 and lists the loader, browser, libraries,
   fonts, and Playwright files as inputs, with PNGs in a declared TreeArtifact.
 
-The separate prototype workflow is prepared to test the released actiond
-`v0.0.6` VM on a KVM-capable GitHub runner. The local host has no `/dev/kvm`.
+## VM kernel finding
+
+The released actiond `v0.0.6` VM boots and accepts the Bazel action, but Node aborts
+in V8's `DiscardSystemPages`. The minimal `kernel-probe.c` action independently
+returns `madvise(MADV_DONTNEED): errno=38 (Function not implemented)`.
+[Failing VM run](https://github.com/perplexityai/rules_web_e2e/actions/runs/34775725126).
+
+Both actiond kernel configs use `allnoconfig` and omit `CONFIG_ADVISE_SYSCALLS`.
+`actiond-advice.patch` enables it for ARM64 and amd64. The prototype workflow
+rebuilds the exact `v0.0.6` kernel source with this patch and passes it to the
+released worker through `--kernel`. It performs all compilation locally on the
+GitHub runner; no BuildBuddy upload or remote build service is used.
+
+The patched main-branch kernel also builds locally. The patched release kernel
+passed the syscall probe and screenshot action through real Bazel REAPI execution
+with local fallback disabled. Both downloaded PNGs match the local hash above.
+[Passing VM run](https://github.com/perplexityai/rules_web_e2e/actions/runs/34775967325).
+The local host has no `/dev/kvm`; KVM validation ran on GitHub's Ubuntu runner.
 
 ## Decision
 
-The process-level proof requires **no actiond source changes**. Before adding OCI
-runtime support or relaxing seccomp, validate the real VM/CAS path and then an
-existing editor fixture. Production integration still needs an optional executor
+The process-level proof requires **no actiond userspace changes**. The VM proof
+requires the memory-advice kernel fix above. Before adding OCI runtime support
+or relaxing seccomp, validate an existing editor fixture on the patched VM. Production integration still needs an optional executor
 backend, reviewed baseline-update handling, amd64 worker selection on Apple
 Silicon, and cleanup/isolation coverage. One stable fixture is not evidence of
 cross-architecture pixel equivalence or full Chromium compatibility.

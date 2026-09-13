@@ -3,8 +3,9 @@
 Source review on 2026-09-13 at upstream commit
 [`8a42c3d`](https://github.com/hermeticbuild/actiond/tree/8a42c3d481df3a1bf1b80e95a9bb991a207fc035).
 The initial review below is followed by a [runnable prototype](../experiments/actiond/README.md).
-The prototype subsequently rendered under actiond's unmodified process runner;
-this local environment has no `/dev/kvm`, so that result excludes the VM/CAS path.
+The prototype subsequently rendered under actiond's unmodified process runner.
+Full VM/REAPI execution also passed on a GitHub KVM runner after enabling
+`CONFIG_ADVISE_SYSCALLS` in the guest kernel; see the prototype's linked CI evidence.
 
 ## Assessment
 
@@ -58,7 +59,10 @@ benefits, not a tested Chromium integration.
 The prototype supplies its own ELF loader alongside Chromium and its libraries,
 so no embedded glibc selection or OCI runtime support is needed for the smoke
 action. It renders with the existing seccomp filter and no `/dev/shm` changes,
-using `chromiumSandbox: false` and `--no-zygote`. See its README for exact limits.
+using `chromiumSandbox: false` and `--no-zygote`. The real VM initially failed
+because `madvise` was absent (`ENOSYS`). Enabling `CONFIG_ADVISE_SYSCALLS=y`
+resolved the syscall probe and screenshot failure; downloaded VM PNGs matched
+the local result byte-for-byte. See its README for exact limits.
 
 ## Next experiment
 
