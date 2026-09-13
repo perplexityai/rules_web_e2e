@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -14,8 +15,16 @@ expected = Path("__actiond_native__/saved.png").read_bytes()
 baseline.write_bytes(expected)
 log = Path("../results/cancellation.log")
 log.parent.mkdir(exist_ok=True)
+bazel = sys.argv[1]
+if Path(bazel).name == "bazelisk":
+    # Bazelisk prepends the selected binary's directory to PATH. Use that
+    # binary directly: older Bazelisk versions ignore client-only signals.
+    environment = subprocess.check_output([bazel, "--print_env"], text=True)
+    search_path = next(line.removeprefix("PATH=") for line in environment.splitlines() if line.startswith("PATH="))
+    bazel = shutil.which("bazel", path=search_path)
+    assert bazel is not None, "Bazelisk did not expose its selected Bazel binary"
 command = [
-    *sys.argv[1:3], "run", "//:actiond_cancel_test.update", *sys.argv[3:],
+    bazel, sys.argv[2], "run", "//:actiond_cancel_test.update", *sys.argv[3:],
     "--progress_report_interval=1", "--curses=no", "--color=no",
 ]
 with log.open("w") as output:
@@ -34,8 +43,8 @@ with log.open("w") as output:
         # time for this deliberately 90-second suite to enter the worker.
         time.sleep(5)
         assert process.poll() is None, log.read_text()
-        # Bazelisk forwards signals to its Bazel child. Signalling the whole
-        # group delivers the interrupt twice and can crash Bazel's shutdown.
+        # Let the client cancel its server request without also signalling
+        # other processes in the invocation's process group.
         process.send_signal(signal.SIGINT)
         code = process.wait(timeout=20)
         assert code in (8, 130, -signal.SIGINT), (code, log.read_text())
