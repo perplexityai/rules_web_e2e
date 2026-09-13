@@ -11,6 +11,7 @@ collect() {
 }
 trap collect EXIT
 flags=(
+  --jobs=2
   --remote_executor="$endpoint" --remote_cache="$endpoint"
   --spawn_strategy=sandboxed,local --strategy=VrtCapture=remote --strategy=VrtCompare=remote
   --remote_local_fallback=false --remote_upload_local_results=false

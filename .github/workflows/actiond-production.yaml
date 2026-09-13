@@ -57,7 +57,7 @@ jobs:
           ACTIOND_BAZEL: bazelisk
         run: |
           work="$RUNNER_TEMP/actiond-production"
-          "$work/actiond-worker" serve-vm --root="$work/vm" --listen=127.0.0.1:8980 --memory-mib=3072 --cpus=2 --cas-image-size-mib=4096 > "$work/vm.log" 2>&1 &
+          "$work/actiond-worker" serve-vm --root="$work/vm" --listen=127.0.0.1:8980 --memory-mib=6144 --cpus=2 --cas-image-size-mib=4096 > "$work/vm.log" 2>&1 &
           worker_pid=$!
           trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
           ready=false
