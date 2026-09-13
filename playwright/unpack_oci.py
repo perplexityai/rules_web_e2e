@@ -105,7 +105,7 @@ def unpack_oci(layout, output, directory=".", architecture="amd64"):
         raise ValueError("Unsupported OCI image layout version")
     manifest = select_manifest(layout, architecture)
     with tempfile.TemporaryDirectory(prefix="oci-runtime-") as temporary:
-        root = Path(temporary)
+        root = Path(temporary).resolve()
         for layer in manifest["layers"]:
             if layer["mediaType"] not in (
                 "application/vnd.oci.image.layer.v1.tar",

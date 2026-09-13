@@ -3,6 +3,7 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from playwright.unpack_runtime import unpack
 
@@ -34,7 +35,10 @@ class UnpackRuntimeTest(unittest.TestCase):
                 ("lib64/ld-linux-x86-64.so.2", "/usr/lib/loader", "link"),
             ])
             result = root / "result"
-            unpack(archive, result)
+            alias = root / "temporary-alias"
+            alias.symlink_to(root.resolve(), target_is_directory=True)
+            with patch.object(tempfile, "tempdir", str(alias)):
+                unpack(archive, result)
             self.assertEqual((result / "bin/node").read_text(), "declared node")
             self.assertEqual((result / "lib64/ld-linux-x86-64.so.2").read_text(), "declared loader")
             self.assertEqual((result / "bin/node").stat().st_mode & 0o777, 0o755)

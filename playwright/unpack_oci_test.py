@@ -5,6 +5,7 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from playwright.unpack_oci import unpack_oci
 
@@ -57,7 +58,10 @@ class OciRuntimeTest(unittest.TestCase):
                  ("runtime/link", "replacement", "file")],
             ])
             output = root / "output"
-            unpack_oci(layout, output, "runtime")
+            alias = root / "temporary-alias"
+            alias.symlink_to(root.resolve(), target_is_directory=True)
+            with patch.object(tempfile, "tempdir", str(alias)):
+                unpack_oci(layout, output, "runtime")
             self.assertEqual((output / "bin/node").read_text(), "new")
             self.assertEqual((output / "bin/alias").read_text(), "old")
             self.assertEqual((output / "link").read_text(), "replacement")

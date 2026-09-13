@@ -48,7 +48,7 @@ def materialize(root, source, target, parents=frozenset()):
 
 def unpack(archive, output):
     with tempfile.TemporaryDirectory(prefix="runtime-unpack-") as temporary:
-        root = Path(temporary)
+        root = Path(temporary).resolve()
         with tarfile.open(archive, "r:*") as source:
             source.extractall(root, filter=image_filter)
         materialize(root, root, Path(output))
