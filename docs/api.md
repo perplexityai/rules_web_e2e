@@ -254,3 +254,62 @@ For an adapter serving a built app, `serveDirectory(directory, entryPoint?)`
 returns `Promise<RunningServer>` using the same static server as built shells.
 The optional entry point defaults to `index.html`.
 See [custom servers](customization.md) and [remote endpoints](e2e.md#existing-application-urls).
+
+## Runtime image manifest and CI preloading
+
+```starlark
+load("@rules_web_e2e//playwright:defs.bzl", "playwright_images", "playwright_runtime")
+
+playwright_runtime(
+    name = "browser_runtime",
+    test = ":node_modules/@playwright/test/dir",
+    core = ":node_modules/playwright-core/dir",
+)
+playwright_images(name = "browser_images", playwright = ":browser_runtime")
+web_e2e_test(name = "app_test", tests = ":compiled_specs", shell = ":app_shell",
+             playwright = ":browser_runtime")
+```
+
+`bazel build //path:browser_images` writes `browser_images.json` without accessing
+Docker or registry credentials. The default runtime's manifest is also available
+as `@rules_web_e2e//runtime:images`. Schema version 1 contains `images`, each with:
+
+- `image`: the full digest-pinned reference, following runtime browser overrides.
+- `platform`: `linux/amd64` for browser/control relay; `null` means daemon-selected
+  for the reaper. Preload the daemon's native platform in that case.
+- `roles`: `browser`, `control-relay`, or `reaper`. Browser and relay share one entry.
+
+The runner consumes the same image definitions. CI owns authentication, mirrors,
+and daemon preparation. For example, in an authenticated setup step:
+
+```sh
+bazel build //path:browser_images
+manifest="$(bazel info bazel-bin)/path/browser_images.json"
+jq -r '.images[] | [.image, (.platform // "")] | @tsv' "$manifest" |
+while IFS="$(printf '\t')" read -r image platform; do
+  if [ -n "$platform" ]; then
+    docker pull --platform "$platform" "$image"
+  else
+    docker pull "$image"
+  fi
+done
+```
+
+Then run the test using the **same daemon**, exact image references, and correct
+platforms, with an empty `DOCKER_CONFIG` and registry credentials unavailable.
+Testcontainers uses already-present images before attempting registry authentication.
+The manifest is not an image archive; transfer/load workflows must preserve the
+exact digest references. Missing images may still trigger a pull and fail.
+
+Supported discovery is a host runner's normal Docker discovery, or a containerized
+runner with an explicit TCP/HTTP(S) `DOCKER_HOST` (and optional TLS settings).
+Containerized runners reject socket discovery and `.testcontainers.properties`;
+these can select Testcontainers' conditional unpinned Alpine gateway helper.
+The runner explicitly supplies the remote hostname to avoid that helper, including
+on socket fallback. No additional gateway image is required in the supported path.
+The daemon's published browser-control ports must already be reachable from the
+runner; this API does not provision remote connectivity.
+
+Preloading is an explicit CI step, not a cacheable Bazel build action or a test
+whose side effects another test depends on. The manifest covers rules-managed
+browser infrastructure, not images launched by consumer fixtures or servers.
