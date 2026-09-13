@@ -10,7 +10,7 @@ export function hostBrowserEnvironment(
     directory && directory !== '0' ? path.resolve(root, directory) : undefined
   if (!resolved || !fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory())
     throw new Error(
-      'Host browser tests require PLAYWRIGHT_BROWSERS_PATH pointing to a provisioned browser directory (absolute or relative to Bazel runfiles). ' +
+      'Browser tests require PLAYWRIGHT_BROWSERS_PATH pointing to a provisioned browser directory (absolute or relative to Bazel runfiles). ' +
         'Install Chromium with the selected Playwright version before running Bazel tests.'
     )
   return {

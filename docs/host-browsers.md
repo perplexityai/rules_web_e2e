@@ -1,15 +1,9 @@
-# Host browsers and VRT-only containers
+# Browser execution and consumer migration
 
-| Target | Browser | Network behavior |
-| --- | --- | --- |
-| `web_e2e_test` | Version-matched host Chromium | Host network |
-| `component_browser_test` | Version-matched host Chromium | Host network |
-| `visual_test` | Pinned Linux amd64 container | Declared-origin tunnel |
-| `component_visual_test` | Pinned Linux amd64 container | Declared-origin tunnel |
-
-Only VRT initializes Testcontainers, Ryuk, or the control relay, inherits Docker
-settings automatically, or consumes image requirements. Existing VRT image pins,
-matching policy, baseline directories, and `.update` commands remain in place.
+Every target launches Chromium locally in the environment running Bazel.
+For VRT, run the entire suite inside a caller-owned, digest-pinned Linux amd64
+OCI image. Both comparison and `.update` must use that same image. Running
+Bazel directly on macOS renders macOS screenshots.
 
 ## Provision once, then test
 
@@ -38,89 +32,87 @@ introduce another browser downloader or repository format.
 
 Tests remain local and uncached. A host cache is an explicit environmental input;
 Bazel-provisioned browser artifacts additionally make the browser files declared
-inputs. Neither choice provides VRT's controlled OS/fonts rendering environment.
+inputs. For stable VRT, also control the OS and fonts with the execution image described below.
+
+## Caller-owned VRT image
+
+Build an image containing Bazel/Bazelisk, the selected Playwright version's
+Chromium/headless shell and FFmpeg, OS libraries, and application fonts.
+Set `PLAYWRIGHT_BROWSERS_PATH` to its browser installation (for example,
+`/ms-playwright`). The consumer's lockfile still supplies Playwright's npm
+packages. Pin both image digest and CPU architecture.
+
+Pass the image to your CI job or local container command, outside the Bazel rule:
+
+```sh
+# VRT_IMAGE is your published image including Bazel and matching browsers.
+# Run from the consumer workspace on a local Docker daemon.
+docker run --rm --init --platform linux/amd64 --ipc=host \
+  --mount "type=bind,source=$(pwd),target=/work" --workdir /work \
+  --env PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+  "$VRT_IMAGE" bazel test //path:visual_test
+
+# Same image, writable workspace: PNG updates persist for review.
+docker run --rm --init --platform linux/amd64 --ipc=host \
+  --mount "type=bind,source=$(pwd),target=/work" --workdir /work \
+  --env PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+  "$VRT_IMAGE" bazel run //path:visual_test.update
+```
+
+Use a suitable image user to keep output files writable by your developer user.
+A remote Docker daemon cannot bind-mount your local checkout; stage the workspace
+there through the caller's tooling instead. No Docker socket is needed inside
+the image. The app server and browser share loopback networking.
+
+The [CI workflow](../.github/workflows/ci.yaml) runs the entire VRT job in a
+pinned Playwright image, with Bazel installed by the job's setup step.
+See [Playwright's image requirements](https://playwright.dev/docs/docker) and
+[GitHub's job container configuration](https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/run-jobs-in-a-container).
 
 ## AGI migration
 
-The inspected Playwright 1.63 migration checkout already has
+The inspected Playwright 1.63 migration checkout already declares
 `PLAYWRIGHT_PROCESS_DATA` and `PLAYWRIGHT_PROCESS_ENV` in
-`tools/rules/frontend/playwright/process_runtime.bzl`. Its data supplies
-`@playwright//:chromium`, `:chromium-headless-shell`, and `:ffmpeg`, and its cache
-path is `$(rootpath @playwright//:chromium)/../`. Reuse those artifacts rather than
-introducing a second host cache.
-
-Update the two common wrappers in `tools/rules/frontend/playwright/defs.bzl`:
+`tools/rules/frontend/playwright/process_runtime.bzl`. Reuse its
+`@playwright//:chromium`, `:chromium-headless-shell`, and `:ffmpeg` artifacts
+for interaction tests:
 
 ```starlark
-# Arguments to web_e2e_test / component_browser_test inside AGI's wrappers:
+# Inside existing wrappers; preserve their other data and environment entries.
 data = _unique(PLAYWRIGHT_PROCESS_DATA + data),
 env = {
     "PLAYWRIGHT_BROWSERS_PATH": PLAYWRIGHT_PROCESS_ENV["PLAYWRIGHT_BROWSERS_PATH"],
 } | env,
 ```
 
-Preserve each wrapper's existing data/dependency aggregation and environment
-(e.g. `_DEFAULT_ENV` for E2E). Do not copy its HOME override: this runner owns
-fixture HOME isolation. Add other process-runtime environment entries only where
-AGI intentionally needs them, such as an existing host-requirements policy.
+The runfiles-relative `$(rootpath @playwright//:chromium)/../` path remains
+supported. Keep the runner's isolated HOME instead of copying the process
+runtime's HOME override.
 
-Remove E2E `network_origins` / `network_origins_env` forwarding, including the
-CDN/API list passed by `tools/rules/frontend/e2e/defs.bzl`. Host tests do not enforce
-that restriction. Retain those settings on `tools/rules/frontend/vrt/defs.bzl`
-targets. Keep AGI's ECR image override for VRT; host suites ignore it. Keep existing
-suite tags/names and deployed/local selection; CI can separate Docker preparation
-by `visual_test` versus `component_browser_test` / `e2e_test` tags.
-
-This is a migration recipe for the inspected checkout, not a claim that AGI's
-consumer changes have already landed or its full suite has been validated here.
+Move the ECR image selection from `playwright_runtime(image=...)` to the CI
+worker/job running VRT. Prepare Bazel and matching browsers in that image or
+supply the existing Linux Bazel browser artifacts. Run local baseline updates
+through the same image. Remove `network_origins` and `network_origins_env`
+forwarding from both Playwright/E2E and VRT wrappers; configure any required
+network restrictions in the worker environment. Preserve suite names, tags,
+compiled config/server inputs, and deployed/local selection.
 
 ## FormatJS migration
 
-The inspected `packages/editor/vrt/BUILD.bazel` already splits `e2e_test`,
-`component_test`, and `visual_test`, sharing one `:playwright` runtime. Keep those
-target declarations and the existing compiled server/gallery inputs.
+The inspected `packages/editor/vrt/BUILD.bazel` already separates `e2e_test`,
+`component_test`, and `visual_test` with a shared `:playwright` runtime. Keep
+those targets and their compiled server/gallery inputs. Provision interaction
+browsers from FormatJS's locked package. Run `visual_test` and its `.update`
+inside the same consumer image with matching browsers and fonts.
 
-Provision host Chromium using FormatJS's locked Playwright package and export
-`PLAYWRIGHT_BROWSERS_PATH` before running the two interaction targets. Keep Docker
-setup for `visual_test` and its update target. CI may run host interaction tests on
-Linux/macOS while retaining Linux amd64 for screenshot baselines. The FormatJS
-consumer suite has not been executed by this repository's checks.
+These are migration recipes; the full AGI and FormatJS suites have not been
+executed by this repository's checks.
 
-## Compatibility changes
+## Removed container API
 
-- E2E/component execution uses the host OS and network; diagnostic screenshots
-  can vary across OSes. Pixel baseline tests belong in VRT targets.
-- `network_origins` and `network_origins_env` fail at analysis time on host targets.
-- Consumer `use.connectOptions`, including project overrides, is rejected on
-  host targets because Playwright Test launches the browser directly.
-- Custom runtime versions need a matching host browser. A Docker image is only
-  mandatory when that runtime is used by VRT or `playwright_images`.
-
-
-## Consumer-built OCI images for VRT
-
-Image construction stays in the consuming repository. Pass a digest-pinned image
-reference through the shared runtime's `image` attribute:
-
-```starlark
-playwright_runtime(
-    name = "playwright",
-    test = ":node_modules/@playwright/test/dir",
-    core = ":node_modules/playwright-core/dir",
-    version = "1.63.0",
-    image = "registry.example/team/vrt@sha256:<image-digest>",
-)
-```
-
-The image must support Linux amd64 and contain Node, the matching Playwright
-Chromium installation under `/ms-playwright`, and the OS libraries/fonts needed
-by the application. The rules copy the selected `playwright-core` into the image
-at execution time and launch its browser server. The same image runs the control
-relay. Build or extend the image in the consumer's OCI pipeline; there is no
-image-building action in these rules. The bundled default remains a convenience.
-
-AGI can retain its ECR runtime image; FormatJS can supply a custom image with its
-fonts and rendering dependencies. This image is ignored by host interaction
-tests that share the runtime. Ryuk is still a separate helper requirement for
-VRT, exposed by `playwright_images`; constructing a browser image does not remove
-that helper or the documented existing-reaper reuse limitation.
+`playwright_runtime.image`, `PLAYWRIGHT_IMAGE`, `playwright_images`, and the
+default image-manifest target are removed. Image authentication, construction,
+preloading, and lifecycle belong to the caller. Nonempty `network_origins` or
+`network_origins_env` fail with a migration error instead of silently losing
+restrictions. Consumer `use.connectOptions` is rejected for every test mode,
+including project overrides: Playwright Test launches the local browser.

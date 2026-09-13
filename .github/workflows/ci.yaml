@@ -69,30 +69,23 @@ jobs:
     name: VRT tests (Linux amd64)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7
+      options: --init --platform linux/amd64 --ipc=host
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      DOCKER_HOST: tcp://127.0.0.1:1
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
         with:
           bazelisk-cache: true
           repository-cache: true
-      - name: Preload declared images and verify credential-free browser startup
-        run: |
-          bazelisk build //runtime:images
-          manifest="$(bazelisk info bazel-bin)/runtime/images.json"
-          jq -r '.images[] | [.image, (.platform // "")] | @tsv' "$manifest" |
-          while IFS="$(printf '\t')" read -r image platform; do
-            if [ -n "$platform" ]; then
-              docker pull --platform "$platform" "$image"
-            else
-              docker pull "$image"
-            fi
-          done
-          bazelisk test //runtime:preload_browser_test --test_output=errors
       - name: Verify generated capture bounds and pixels
         run: bazelisk test //runtime:capture_browser_test --test_output=errors
-      - name: Run visual tests and container isolation coverage
+      - name: Run visual tests
         working-directory: examples/react
-        run: bazelisk test //:visual_test //:component_visual_test //:native_visual_test //:network_isolation_test --test_output=errors
+        run: bazelisk test //:visual_test //:component_visual_test //:native_visual_test --test_output=errors
       - name: Upload visual test artifacts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

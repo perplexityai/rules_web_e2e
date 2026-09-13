@@ -58,15 +58,14 @@ const additionalReporters: ReporterDescription[] = reporters.map(
     ] as ReporterDescription
 )
 if (
-  !visual &&
-  (custom.use?.connectOptions ||
-    custom.projects?.some(project => project.use?.connectOptions))
+  custom.use?.connectOptions ||
+  custom.projects?.some(project => project.use?.connectOptions)
 )
   throw new Error(
-    'E2E and component tests launch host browsers; connectOptions is managed only for VRT'
+    'Browser tests launch locally in the supplied environment; connectOptions is not supported'
   )
 
-// Keep browser connections, baseline updates, and required reports managed.
+// Keep browser launch, baseline updates, and required reports managed.
 const merged = defineConfig(defaults, custom)
 const configDirectory = process.env.VRT_CONFIG_OVERRIDE
   ? path.dirname(process.env.VRT_CONFIG_OVERRIDE)
@@ -98,7 +97,6 @@ const testMatch =
       )
 const managedUse = {
   ...merged.use,
-  connectOptions: defaults.use!.connectOptions,
   browserName: 'chromium' as const,
 }
 export default defineConfig(
@@ -135,7 +133,6 @@ export default defineConfig(
             use: {
               ...managedUse,
               ...project.use,
-              connectOptions: defaults.use!.connectOptions,
               browserName: 'chromium' as const,
             },
           })),

@@ -1,7 +1,7 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
-load("//playwright:defs.bzl", "playwright_images", "playwright_runtime")
+load("//playwright:defs.bzl", "playwright_runtime")
 
 ts_project(
     name = "typecheck",
@@ -30,7 +30,6 @@ ts_project(
         "//:node_modules/@playwright/test",
         "//:node_modules/@types/node",
         "//:node_modules/playwright",
-        "//:node_modules/testcontainers",
     ],
 )
 
@@ -53,13 +52,6 @@ js_library(
         "versions.js",
         "visuals.js",
     ],
-    visibility = ["//visibility:public"],
-)
-
-js_library(
-    name = "container_files",
-    srcs = ["container.js", "container-host.js", "relay.js", "package.json"],
-    deps = ["//:node_modules/testcontainers"],
     visibility = ["//visibility:public"],
 )
 
@@ -178,55 +170,13 @@ js_test(
 )
 
 
-playwright_images(
-    name = "images",
-    playwright = ":playwright",
-    visibility = ["//visibility:public"],
-)
-
-playwright_runtime(
-    name = "manifest_override_runtime",
-    core = "//:node_modules/playwright-core/dir",
-    test = "//:node_modules/@playwright/test/dir",
-    image = "registry.example/browser@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    testonly = True,
-)
-
-playwright_images(
-    name = "manifest_override_images",
-    playwright = ":manifest_override_runtime",
-    testonly = True,
-)
-
-js_test(
-    name = "images_test",
-    size = "small",
-    data = ["package.json", ":typecheck", ":images", ":manifest_override_images"],
-    entry_point = "images.test.js",
-    args = ["$(rootpath :images)", "$(rootpath :manifest_override_images)"],
-)
-
-
-js_test(
-    name = "preload_browser_test",
-    size = "large",
-    copy_data_to_bin = False,
-    data = ["package.json", ":typecheck", ":images"],
-    entry_point = "preload-browser.test.js",
-    args = ["$(rootpath :images)"],
-    env_inherit = ["DOCKER_HOST"],
-    tags = ["manual", "no-sandbox", "no-remote", "no-cache"],
-)
-
-
 js_test(
     name = "capture_browser_test",
     copy_data_to_bin = False,
     size = "large",
-    data = ["package.json", ":typecheck", ":images"],
+    data = ["package.json", ":typecheck"],
     entry_point = "capture-browser.test.js",
-    args = ["$(rootpath :images)"],
-    env_inherit = ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_CONFIG", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH", "CAPTURE_CHROMIUM_EXECUTABLE"],
+    env_inherit = ["PLAYWRIGHT_BROWSERS_PATH"],
     tags = ["manual", "no-sandbox", "no-remote", "no-cache"],
 )
 

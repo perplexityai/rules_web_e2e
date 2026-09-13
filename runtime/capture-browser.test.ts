@@ -9,7 +9,9 @@ import {once} from 'node:events'
 import {spawn} from 'node:child_process'
 import {chromium} from 'playwright'
 import {testEnvironment} from './isolation.js'
+import {hostBrowserEnvironment} from './host-browser.js'
 
+const browserEnv = hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
 const require = createRequire(import.meta.url)
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'capture-browser-'))
 const visuals = fs.readFileSync(new URL('./visuals.js', import.meta.url), 'utf8')
@@ -41,33 +43,7 @@ server.listen(0, '127.0.0.1')
 await once(server, 'listening')
 const address = server.address()
 assert(address && typeof address !== 'string')
-let stopBrowser: (() => Promise<unknown>) | undefined
 try {
-  const executable = process.env.CAPTURE_CHROMIUM_EXECUTABLE
-  let endpoint: string
-  if (executable) {
-    const browser = await chromium.launchServer({executablePath: executable})
-    endpoint = browser.wsEndpoint()
-    stopBrowser = () => browser.close()
-  } else {
-    const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8')) as {
-      images: {image: string; platform: string | null; roles: string[]}[]
-    }
-    const browserImage = manifest.images.find(image => image.roles.includes('browser'))!
-    const reaperImage = manifest.images.find(image => image.roles.includes('reaper'))!
-    // Match the runner: configure the shared helper pin before importing Testcontainers.
-    for (const key of Object.keys(process.env))
-      if (key.startsWith('TESTCONTAINERS_') || key.startsWith('RYUK_')) delete process.env[key]
-    process.env.RYUK_CONTAINER_IMAGE = reaperImage.image
-    const {startBrowser} = await import('./container.js')
-    const browser = await startBrowser(
-      browserImage.image,
-      path.dirname(createRequire(require.resolve('playwright/package.json')).resolve('playwright-core/package.json')),
-      browserImage.platform!
-    )
-    endpoint = browser.endpoint
-    stopBrowser = browser.stop
-  }
   fs.writeFileSync(path.join(temp, 'package.json'), '{"type":"module"}')
   fs.mkdirSync(path.join(temp, 'node_modules', '@playwright'), {recursive:true})
   fs.symlinkSync(path.dirname(fs.realpathSync(require.resolve('@playwright/test/package.json'))),
@@ -76,23 +52,22 @@ try {
     fs.copyFileSync(new URL(`./${name}.js`, import.meta.url), path.join(temp, `${name}.js`))
   const catalog = path.join(temp, 'catalog.json')
   const baseURL = `http://127.0.0.1:${address.port}`
-  const connectOptions = {wsEndpoint: endpoint, exposeNetwork: '<loopback>'}
   const run = async (discover: boolean, scale: string) => {
     fs.writeFileSync(path.join(temp, 'config.js'), `export default ${JSON.stringify({
       testDir: temp, testMatch: 'capture.js', workers: 1, timeout: 10000,
       snapshotPathTemplate: path.join(temp, scale, '{arg}{ext}'),
       updateSnapshots: 'all', reporter: 'list',
-      use: {baseURL, connectOptions}, expect: {toHaveScreenshot: {scale}},
+      use: {baseURL}, expect: {toHaveScreenshot: {scale}},
     })}`)
     const child = spawn(fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath), [fs.realpathSync(require.resolve('@playwright/test/cli')),
       'test', '--config', path.join(temp, 'config.js')], {
-      stdio:'inherit', env:{...testEnvironment(process.env, [], temp), VRT_DISCOVER: discover ? '1' : '0', VRT_VISUAL_CATALOG:catalog},
+      stdio:'inherit', env:{...testEnvironment(process.env, [], temp), ...browserEnv, VRT_DISCOVER: discover ? '1' : '0', VRT_VISUAL_CATALOG:catalog},
     })
     const [code] = await once(child, 'exit')
     assert.equal(code, 0, 'generated capture suite failed')
   }
   await run(true, 'css')
-  const browser = await chromium.connect(endpoint)
+  const browser = await chromium.launch()
   try {
     const page = await browser.newPage()
     for (const scale of ['css', 'device']) {
@@ -126,7 +101,6 @@ try {
     await browser.close()
   }
 } finally {
-  await stopBrowser?.()
   server.closeAllConnections()
   server.close()
   fs.rmSync(temp, {recursive:true, force:true})

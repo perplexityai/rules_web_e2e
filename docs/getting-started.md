@@ -12,14 +12,14 @@ flowchart LR
   Specs --> Tests[Bazel browser targets]
   Shell --> Tests
   Server[Consumer server or existing URL] --> Tests
-  Tests --> Browser[Host Playwright; Testcontainers for VRT]
+  Tests --> Browser[Local Playwright in caller environment]
   Browser --> Results[Reports, traces and screenshot diffs]
 ```
 
 ## Run the example
 
 Install Bazelisk and [provision host Chromium](host-browsers.md) for E2E/component
-tests. Start Docker only for VRT; Linux amd64 is the validated screenshot platform.
+tests. Run VRT comparisons and updates inside your pinned Linux amd64 image.
 
 ```sh
 cd examples/react
@@ -86,7 +86,7 @@ a successful capture. Do not share baseline directories or run concurrent update
 ## CI and troubleshooting
 
 Browser targets are `manual`: `bazel test //...` does not select them. List them
-explicitly in host-browser and Docker-enabled VRT jobs and upload `bazel-testlogs/` on failure.
+explicitly in interaction and Linux-image VRT jobs and upload `bazel-testlogs/` on failure.
 The [CI workflow](../.github/workflows/ci.yaml) is a working example.
 
 | Symptom                     | Check                                                                             |
@@ -94,10 +94,8 @@ The [CI workflow](../.github/workflows/ci.yaml) is a working example.
 | Rejected source inputs      | Pass emitted `.js` specs or a compiled server/config/matching module              |
 | Missing shell entry         | Check the built directory contains the declared HTML and all referenced assets    |
 | Playwright version mismatch | Align compiler dependencies, runtime packages, and pinned browser image           |
-| Docker startup failure (VRT) | Start a local daemon and check its connection settings and image access           |
 | Missing imports             | Declare helpers, npm links, module markers, and generated outputs in the producer |
 | Empty visual catalog        | Register a module with at least one visual that does not set `vrt: false`         |
-| Blocked browser request (VRT) | Vendor/mock the resource or add its exact origin to `network_origins`             |
 | Screenshot mismatch         | Inspect expected/actual/diff attachments and approve only intentional changes     |
 
 ## Migrating from 1.0.0
@@ -106,7 +104,7 @@ The [CI workflow](../.github/workflows/ci.yaml) is a working example.
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `srcs`, `deps`, typecheck in `data`                                 | A built `tests` target and built shell; producer owns compilation/typechecking |
 | `vite`, `server_config`                                             | Consumer build action producing a directory, wrapped in `browser_shell`        |
-| `playwright_test`, `playwright_core`, `image`, `playwright_version` | One reusable `playwright_runtime`, selected with `playwright`                  |
+| `playwright_test`, `playwright_core`, `playwright_version` | One reusable `playwright_runtime`, selected with `playwright`                  |
 | Required Playwright config                                          | Generated defaults; optional compiled config for advanced fixtures/timeouts    |
 | `visualConfig({tolerance})`                                         | Compiled `VisualMatching` module selected with `matching`                      |
 

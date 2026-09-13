@@ -61,8 +61,8 @@ flowchart LR
   Inputs --> Runtime[Shared browser runtime]
   Runtime --> Server[Consumer server adapter]
   Runtime --> Tests[Native Playwright Test]
-  Tests --> Browser[Pinned Testcontainers browser]
-  Browser -->|Allowed fixture endpoint| Server
+  Tests --> Browser[Provisioned local Chromium]
+  Browser -->|Application endpoint| Server
   Tests --> Results[JUnit, failure screenshots and traces]
 ```
 
@@ -72,7 +72,7 @@ route registries, and framework conventions remain in the consuming repository.
 Page objects and `test.extend` fixtures work normally. Prefer `page.route` or local
 fixture APIs for deterministic data; declare any authentication state files in
 `data`. Keep credentials in explicitly declared environment variables rather
-than checked-in state. Host browsers use host networking; `network_origins` is reserved for VRT.
+than checked-in state. Browsers use the supplied environment’s networking.
 
 E2E is manual, local, and uncached. It requires a provisioned host browser, not
 Docker; see [host setup](host-browsers.md).
@@ -129,7 +129,4 @@ compiled specs, config (or server/shell/URL), matching policy, and baseline inpu
 `bazel run //:visual_test.update` replaces baselines only after the full suite succeeds.
 The [native example](../examples/react/native.visual.spec.ts) exercises this path.
 
-For VRT, if an extra service endpoint changes between environments, declare its variable
-name in `network_origins_env = ["AUTH_ORIGIN"]`. Only named, nonempty variables
-are read, and each must be an exact HTTP(S) origin without paths, credentials,
-or wildcards. Static endpoints remain in `network_origins`.
+For stable VRT, run comparisons and updates in the same [caller-owned Linux image](host-browsers.md).

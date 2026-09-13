@@ -1,7 +1,7 @@
 # Component visual regression tests
 
 `component_visual_test` generates Playwright Test captures from consumer `.visual.tsx` modules against a
-Playwright server in a digest-pinned Linux container. It provides comparison,
+local browser in the caller-owned execution environment. It provides comparison,
 failure artifacts, and an explicit `<name>.update` target. The runtime is consumed
 through Bazel; a separate npm publication is not required. See
 [architecture](architecture.md) and [visual testing design](visual-testing-design.md)
@@ -10,7 +10,7 @@ and the [API reference](api.md) for all supported attributes.
 
 ## Try the standalone example
 
-Install Bazelisk and Docker, start a local Docker daemon, then:
+Inside your [provisioned Linux VRT image](host-browsers.md), run:
 
 ```sh
 cd examples/react
@@ -58,22 +58,14 @@ A custom compiled `server` or existing URL can replace `shell`; see
 
 - Tested versions: Bazel 8.6/9.2, Playwright Test/core 1.63.0, Vite 8.2.2, React 19.2.8. Initial screenshot support is Linux amd64.
   macOS/arm64 screenshot equivalence has not been validated.
-- The image, including fonts and browser binaries, is pinned by digest. Its
-  Playwright version must match the consumer’s `playwright-core` package.
-  The runner copies that declared package into the container; it does not run
-  npm installs or mount source paths inside Docker.
-- A local Docker daemon must be reachable by Testcontainers. Docker connection
-  variables are inherited explicitly. The browser tunnel exposes only the
-  fixture server’s exact host and port by default. Prefer declared fixtures;
-  `network_origins = ["https://fixtures.example"]` explicitly permits an
-  additional host/port and introduces an external dependency.
-- Each invocation owns a browser container, control relay, and internal network. Tests run locally, outside
-  Bazel’s filesystem sandbox, and disable result caching. Docker/browser tests
-  are `manual`; invoke them explicitly in a dedicated CI job.
+- The caller pins the Linux image, architecture, fonts, and matching browser binaries
+  and runs Bazel inside it. Compare and `.update` use the same image.
+- Playwright launches Chromium locally. Networking is owned by the execution
+  environment. Tests are manual, local, unsandboxed, and uncached.
 - Built inputs and dependencies are copied from the runfiles manifest into a private
   tree. Compare and update use only declared
   `env`/`env_inherit` variables and fresh home/cache directories. See
-  [the isolation boundaries](testcontainers-vrt.md).
+  [the isolation boundaries](vrt-environment.md).
 - Compare mode copies declared baselines to a temporary directory. Missing or
   changed screenshots fail without modifying source baselines. Playwright writes
   JUnit and image attachments under `TEST_UNDECLARED_OUTPUTS_DIR`.

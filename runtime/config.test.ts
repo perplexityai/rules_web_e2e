@@ -7,8 +7,6 @@ test('component gallery resolves base paths for host browser launch', () => {
   Object.assign(process.env, {
     VRT_APP_URL: 'https://preview.example/app/',
     VRT_OUTPUTS: '/tmp/results',
-    VRT_WS_ENDPOINT: 'ws://127.0.0.1:1234',
-    VRT_NETWORK_ORIGINS: '["https://auth.example"]',
   })
   try {
     const config = componentBrowserConfig({
@@ -58,7 +56,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
       {command: 'node api.js', port: 8081, cwd: './backend'}],
     expect: {toHaveScreenshot: {scale: 'device', maxDiffPixels: 999}},
     reporter: [['./reporter.js', {project: 'example'}], ['json', {outputFile: 'extra.json'}]],
-    use: {connectOptions: {wsEndpoint: 'ws://wrong'}, viewport: {width: 500, height: 300}}
+    use: {viewport: {width: 500, height: 300}}
   }`
   )
   Object.assign(process.env, {
@@ -66,8 +64,6 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
     VRT_APP_URL: 'http://127.0.0.1:1234/',
     VRT_OUTPUTS: temp,
     VRT_BASELINES: join(temp, 'baselines'),
-    VRT_WS_ENDPOINT: 'ws://127.0.0.1:5678',
-    VRT_NETWORK_ORIGINS: '[]',
     VRT_TEST_ROOT: temp,
     VRT_CONFIG_OVERRIDE: join(temp, 'custom.js'),
     VRT_MATCHING: join(temp, 'matching.js'),
@@ -102,7 +98,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
       [realpathSync(join(temp, 'reporter.js')), {project: 'example'}],
       ['json', {outputFile: 'extra.json'}],
     ])
-    assert.equal(config.use?.connectOptions?.wsEndpoint, 'ws://127.0.0.1:5678')
+    assert.equal(config.use?.connectOptions, undefined)
     assert.deepEqual(config.use?.viewport, {width: 500, height: 300})
     assert.equal(config.expect?.toHaveScreenshot?.maxDiffPixels, 7)
     assert.equal(config.expect?.toHaveScreenshot?.scale, 'device')
@@ -148,8 +144,6 @@ test('compiled component suite preserves remote gallery paths and literal spec f
     VRT_MODE: 'component',
     VRT_APP_URL: 'https://preview.example/app/gallery.html?fixture=1',
     VRT_OUTPUTS: '/outputs',
-    VRT_WS_ENDPOINT: 'ws://127.0.0.1:5678',
-    VRT_NETWORK_ORIGINS: '[]',
     VRT_TEST_ROOT: '/compiled',
     VRT_TEST_FILES: JSON.stringify([file]),
   })
@@ -173,7 +167,7 @@ test('compiled component suite preserves remote gallery paths and literal spec f
 })
 
 
-test('host suites reject remote connection overrides at config and project scope', async () => {
+test('all suites reject remote connection overrides', async () => {
   const {mkdtempSync, writeFileSync, rmSync} = await import('node:fs')
   const {tmpdir} = await import('node:os')
   const {join} = await import('node:path')
@@ -183,17 +177,20 @@ test('host suites reject remote connection overrides at config and project scope
     VRT_MODE: 'e2e', VRT_APP_URL: 'http://localhost:1234', VRT_OUTPUTS: temp,
     VRT_TEST_ROOT: temp, VRT_TEST_FILES: JSON.stringify([join(temp, 'app.spec.js')]),
   })
-  delete process.env.VRT_WS_ENDPOINT
   delete process.env.VRT_MATCHING
   try {
     writeFileSync(join(temp, 'package.json'), '{"type":"module"}')
-    for (const [index, custom] of [
-      {use: {connectOptions: {wsEndpoint: 'ws://elsewhere'}}},
-      {projects: [{name: 'remote', use: {connectOptions: {wsEndpoint: 'ws://elsewhere'}}}]},
-    ].entries()) {
-      process.env.VRT_CONFIG_OVERRIDE = join(temp, `config-${index}.js`)
-      writeFileSync(process.env.VRT_CONFIG_OVERRIDE, `export default ${JSON.stringify(custom)}`)
-      await assert.rejects(import(new URL(`./suite-config.js?host-${index}`, import.meta.url).href), /launch host browsers/)
+    for (const mode of ['e2e', 'component', 'visual', 'visual-spec']) {
+      process.env.VRT_MODE = mode
+      process.env.VRT_BASELINES = join(temp, 'baselines')
+      for (const [index, custom] of [
+        {use: {connectOptions: {wsEndpoint: 'ws://elsewhere'}}},
+        {projects: [{name: 'remote', use: {connectOptions: {wsEndpoint: 'ws://elsewhere'}}}]},
+      ].entries()) {
+        process.env.VRT_CONFIG_OVERRIDE = join(temp, `config-${index}.js`)
+        writeFileSync(process.env.VRT_CONFIG_OVERRIDE, `export default ${JSON.stringify(custom)}`)
+        await assert.rejects(import(new URL(`./suite-config.js?local-${mode}-${index}`, import.meta.url).href), /launch locally|separate visual targets/)
+      }
     }
     delete process.env.VRT_CONFIG_OVERRIDE
     const config = (await import(new URL('./suite-config.js?host-default', import.meta.url).href)).default

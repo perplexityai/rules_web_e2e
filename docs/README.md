@@ -17,10 +17,10 @@
 | Document                                                  | Read it for                                                   |
 | --------------------------------------------------------- | ------------------------------------------------------------- |
 | [Architecture](architecture.md)                           | Ownership, input staging, and runtime boundaries              |
-| [Testcontainers and VRT stability](testcontainers-vrt.md) | Container lifecycle, reproducibility, and isolation limits    |
+| [VRT execution environments](vrt-environment.md) | Caller-owned images, reproducibility, and isolation limits    |
 | [Visual testing design](visual-testing-design.md)         | Shared visual modules, capture phases, and baseline ownership |
 | [Scope and roadmap](oss-browser-testing-plan.md)          | Implemented capabilities and possible extensions              |
 | [Development and releases](development.md)                | Repository checks, hooks, and release automation              |
 
 See [host browser provisioning and AGI/FormatJS migration](host-browsers.md) for
-the VRT-only Testcontainers execution model.
+the caller-owned VRT execution environment.

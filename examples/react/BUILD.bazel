@@ -232,18 +232,3 @@ js_library(
     srcs = ["matching.js"],
     data = ["package.json"],
 )
-
-
-js_library(
-    name = "isolation_specs",
-    srcs = ["isolation.spec.js"],
-    deps = [":typecheck_project"],
-)
-
-# Network isolation is a property of the VRT container, not host-browser tests.
-visual_test(
-    name = "network_isolation_test",
-    tests = ":isolation_specs",
-    shell = ":app_shell",
-    baseline_dir = "__isolation_screenshots__",
-)

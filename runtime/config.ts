@@ -1,5 +1,4 @@
 import path from 'node:path'
-import {networkTargets} from './network.js'
 import type {PlaywrightTestConfig} from '@playwright/test'
 
 export interface BrowserConfigOptions {
@@ -68,16 +67,6 @@ export function visualConfig({
   const defaults = e2eConfig({root, viewport})
   return {
     ...defaults,
-    use: {
-      ...defaults.use,
-      connectOptions: {
-        wsEndpoint: required('VRT_WS_ENDPOINT'),
-        exposeNetwork: networkTargets(
-          required('VRT_APP_URL'),
-          JSON.parse(required('VRT_NETWORK_ORIGINS')) as string[]
-        ),
-      },
-    },
     testMatch: '**/.rules-visual.spec.ts',
     testIgnore: [],
     updateSnapshots: process.env.VRT_UPDATE === '1' ? 'all' : 'none',
