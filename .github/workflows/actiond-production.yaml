@@ -27,6 +27,7 @@ jobs:
         with:
           bazelisk-cache: true
           repository-cache: true
+          disk-cache: actiond-linux-amd64
       - name: Prepare production suites and caller runtime
         run: |
           corepack enable pnpm

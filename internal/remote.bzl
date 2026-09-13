@@ -3,8 +3,8 @@
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "runfile")
 
-def _linux_impl(_settings, _attr):
-    return {"//command_line_option:platforms": [str(Label("//internal:linux_amd64"))]}
+def _linux_impl(_settings, attr):
+    return {"//command_line_option:platforms": [str(attr.target_platform)]}
 
 _linux = transition(
     implementation = _linux_impl,
@@ -72,6 +72,7 @@ _remote = rule(
         "inputs": attr.label(mandatory = True, allow_single_file = True, cfg = _linux),
         "browser": attr.label(mandatory = True, providers = [BrowserRuntimeInfo], allow_single_file = True, cfg = _linux),
         "data": attr.label_list(allow_files = True, cfg = _linux),
+        "target_platform": attr.label(mandatory = True),
         "env": attr.string_dict(),
         "args": attr.string_list(),
         "capture": attr.bool(),
@@ -82,7 +83,7 @@ _remote = rule(
     },
 )
 
-def remote_browser_test(name, browser, env, args, tags, timeout, data):
+def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform):
     """Build comparisons/captures remotely, then consume their downloaded results."""
     for capture in [False, True]:
         action = name + ("_capture" if capture else "_compare")
@@ -94,6 +95,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data):
             args = args,
             capture = capture,
             data = data,
+            target_platform = target_platform,
             exec_properties = {"input-rootfs-env": "VRT_RUNTIME_ROOT"},
             exec_compatible_with = [Label("@platforms//os:linux"), Label("@platforms//cpu:x86_64")],
             tags = ["manual"],

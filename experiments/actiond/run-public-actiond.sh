@@ -12,7 +12,7 @@ collect() {
 trap collect EXIT
 flags=(
   --remote_executor="$endpoint" --remote_cache="$endpoint"
-  --spawn_strategy=local --strategy=VrtCapture=remote --strategy=VrtCompare=remote
+  --spawn_strategy=sandboxed,local --strategy=VrtCapture=remote --strategy=VrtCompare=remote
   --remote_local_fallback=false --remote_upload_local_results=false
   --noremote_cache_compression --remote_download_outputs=all
 )
@@ -53,6 +53,22 @@ python3 - <<'PY'
 import json
 from pathlib import Path
 result = json.loads(Path('bazel-bin/actiond_failure_test_capture.results/result.json').read_text())
+assert result['mode'] == 'capture' and result['exitCode'] != 0, result
+PY
+
+# The rule deadline terminates a stuck suite and preserves its partial capture.
+mkdir -p __actiond_timeout__
+cp __actiond_native__/saved.png __actiond_timeout__/keep.png
+if "${bazel_cmd[@]}" run //:actiond_timeout_test.update "${flags[@]}"; then
+  echo 'Expected the stuck suite to time out' >&2
+  exit 1
+fi
+cmp __actiond_native__/saved.png __actiond_timeout__/keep.png
+test -s bazel-bin/actiond_timeout_test_capture.results/artifacts/reference/partial.png
+python3 - <<'PY'
+import json
+from pathlib import Path
+result = json.loads(Path('bazel-bin/actiond_timeout_test_capture.results/result.json').read_text())
 assert result['mode'] == 'capture' and result['exitCode'] != 0, result
 PY
 

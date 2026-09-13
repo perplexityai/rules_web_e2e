@@ -76,5 +76,12 @@ image, and must not rely on Docker injecting files such as `/etc/hosts`.
 Execution currently requires a patched actiond Linux amd64 worker. The remote
 actions produce comparison/capture results; the local test command reports their
 status and `.update` applies successful captures. Host E2E/component-browser
-targets continue to use their existing browser setup. Full VM validation of the
-public rule path remains a release gate.
+targets continue to use their existing browser setup. Native and component
+capture/comparison through the public rules passed the Linux VM workflow.
+
+VRT inputs are configured for Linux amd64 even when the Bazel client runs on
+macOS. A caller with additional native toolchain constraints can set
+`target_platform = "//platforms:linux_x86_64_gnu"` on its visual target. That
+platform must still target Linux amd64 and match the runtime's ABI. `data` and
+`$(rootpath ...)` expressions in `env` are evaluated in this configuration,
+including expressions nested inside JSON strings used by fixture servers.

@@ -76,4 +76,13 @@ visual_test(
     baseline_dir = "__actiond_failed__",
     baselines = glob(["__actiond_failed__/*.png"], allow_empty = True),
 )
+visual_test(
+    name = "actiond_timeout_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_failure_specs",
+    baseline_dir = "__actiond_timeout__",
+    env = {"ACTIOND_HANG": "1"},
+    execution_timeout_seconds = 8,
+)
 `)

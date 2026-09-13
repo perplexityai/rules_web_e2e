@@ -90,6 +90,7 @@ def browser_test(
         base_url_env = None,
         playwright = Label("//runtime:playwright"),
         browser = None,
+        target_platform = Label("//internal:linux_amd64"),
         config = None,
         matching = None,
         baselines = [],
@@ -171,7 +172,7 @@ def browser_test(
         if key not in env and key not in env_inherit
     ]
     if browser:
-        remote_browser_test(name, browser, common["env"], args, tags, timeout, data)
+        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform)
         return
     js_test(
         name = name,

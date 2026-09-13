@@ -298,8 +298,10 @@ async function main() {
           }
         )
         children.push(child)
+        let timedOut = false
         const timer = setTimeout(
           () => {
+            timedOut = true
             console.error('VRT exceeded its execution timeout')
             killChildren()
           },
@@ -311,7 +313,7 @@ async function main() {
         })
         child.once('exit', code => {
           clearTimeout(timer)
-          resolve(code ?? 1)
+          resolve(timedOut || interrupted ? 1 : code ?? 1)
         })
       })
     const discoveryCode = gallery ? await run(true) : 0
