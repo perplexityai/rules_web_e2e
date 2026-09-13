@@ -10,6 +10,15 @@ Remove their `network_origins`, `network_origins_env`, and `use.connectOptions`;
 host browsers use host networking. Only VRT retains Testcontainers and image
 requirements. See [migration guidance for AGI and FormatJS](docs/host-browsers.md).
 
+### Breaking compatibility: Playwright suite selection
+
+Before upgrading, remove explicit `testDir`, `testMatch`, and `testIgnore` from
+consumer Playwright configs **and every project**. These settings now fail with
+an error instead of being silently overwritten, including empty filter arrays.
+Select compiled specs through the Bazel target's `tests` attribute. Use separate
+Bazel targets for independent suites and suite-owned fixtures for setup; see
+[the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
+
 ## 2.0.0 (2026-09-11)
 
 ## What's Changed

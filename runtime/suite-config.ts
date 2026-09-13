@@ -22,6 +22,22 @@ const custom = process.env.VRT_CONFIG_OVERRIDE
   ? ((await import(pathToFileURL(process.env.VRT_CONFIG_OVERRIDE).href))
       .default as PlaywrightTestConfig)
   : {}
+// Bazel declares the suite. Native projects may vary execution settings, but
+// cannot silently repartition those inputs with a second discovery policy.
+for (const [scope, selection] of [
+  ['config', custom],
+  ...(custom.projects ?? []).map((project, index) => [
+    `project ${project.name ?? index}`,
+    project,
+  ] as const),
+] as const) {
+  for (const key of ['testMatch', 'testIgnore', 'testDir'] as const)
+    if (selection[key] !== undefined)
+      throw new Error(
+        `${scope}.${key} is unsupported: select compiled specs with the Bazel tests attribute; ` +
+          'use separate targets for independent suites and fixtures for setup'
+      )
+}
 if (visual && custom.projects)
   throw new Error(
     'Use separate visual targets and baseline directories instead of Playwright projects'
