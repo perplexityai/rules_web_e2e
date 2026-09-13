@@ -53,13 +53,6 @@ export function e2eConfig({
       colorScheme: 'light',
       trace: 'retain-on-failure',
       screenshot: 'only-on-failure',
-      connectOptions: {
-        wsEndpoint: required('VRT_WS_ENDPOINT'),
-        exposeNetwork: networkTargets(
-          required('VRT_APP_URL'),
-          JSON.parse(required('VRT_NETWORK_ORIGINS')) as string[]
-        ),
-      },
     },
   }
 }
@@ -72,8 +65,19 @@ export function visualConfig({
 }: VisualConfigOptions): PlaywrightTestConfig {
   if (!Number.isFinite(tolerance) || tolerance < 0 || tolerance > 1)
     throw new Error('tolerance must be a pixel mismatch ratio between 0 and 1')
+  const defaults = e2eConfig({root, viewport})
   return {
-    ...e2eConfig({root, viewport}),
+    ...defaults,
+    use: {
+      ...defaults.use,
+      connectOptions: {
+        wsEndpoint: required('VRT_WS_ENDPOINT'),
+        exposeNetwork: networkTargets(
+          required('VRT_APP_URL'),
+          JSON.parse(required('VRT_NETWORK_ORIGINS')) as string[]
+        ),
+      },
+    },
     testMatch: '**/.rules-visual.spec.ts',
     testIgnore: [],
     updateSnapshots: process.env.VRT_UPDATE === '1' ? 'all' : 'none',

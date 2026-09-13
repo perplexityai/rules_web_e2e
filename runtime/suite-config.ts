@@ -57,6 +57,15 @@ const additionalReporters: ReporterDescription[] = reporters.map(
       ...options,
     ] as ReporterDescription
 )
+if (
+  !visual &&
+  (custom.use?.connectOptions ||
+    custom.projects?.some(project => project.use?.connectOptions))
+)
+  throw new Error(
+    'E2E and component tests launch host browsers; connectOptions is managed only for VRT'
+  )
+
 // Keep browser connections, baseline updates, and required reports managed.
 const merged = defineConfig(defaults, custom)
 const configDirectory = process.env.VRT_CONFIG_OVERRIDE

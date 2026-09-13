@@ -132,7 +132,6 @@ js_library(
     name = "e2e_specs",
     srcs = [
         "card.spec.js",
-        "isolation.spec.js",
     ],
     deps = [":typecheck_project"],
 )
@@ -216,11 +215,7 @@ js_test(
     entry_point = "remote-harness.js",
     env = {"REMOTE_TEST": "$(rlocationpath :remote_test)"},
     env_inherit = [
-        "DOCKER_HOST",
-        "DOCKER_CONTEXT",
-        "DOCKER_TLS_VERIFY",
-        "DOCKER_CERT_PATH",
-        "DOCKER_CONFIG",
+        "PLAYWRIGHT_BROWSERS_PATH",
     ],
     tags = [
         "external",
@@ -236,4 +231,19 @@ js_library(
     name = "matching",
     srcs = ["matching.js"],
     data = ["package.json"],
+)
+
+
+js_library(
+    name = "isolation_specs",
+    srcs = ["isolation.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+# Network isolation is a property of the VRT container, not host-browser tests.
+visual_test(
+    name = "network_isolation_test",
+    tests = ":isolation_specs",
+    shell = ":app_shell",
+    baseline_dir = "__isolation_screenshots__",
 )

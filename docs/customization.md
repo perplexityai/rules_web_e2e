@@ -1,7 +1,7 @@
 # Custom servers and UI shells
 
 Server startup and component rendering are independent. The runtime owns input
-staging, environment isolation, browser containers, artifacts, and teardown.
+staging, environment isolation, host browser setup (VRT containers), artifacts, and teardown.
 Consumers own the server implementation and the React/UI shell.
 
 ```mermaid
@@ -9,7 +9,7 @@ flowchart LR
   Target[Bazel target] --> Runtime[VRT runtime]
   Runtime --> Adapter[Consumer server adapter]
   Adapter --> Server[Existing dev server or fixture server]
-  Runtime --> Browser[Container browser]
+  Runtime --> Browser[Host browser; container for VRT]
   Browser --> Server
   Server --> Entry[Consumer fixture entrypoint]
   Entry --> Shell[Theme, routing, i18n and mock providers]
@@ -80,7 +80,7 @@ server serves the fixture. The standalone React example demonstrates this.
 - A component library can serve a small gallery with theme, language, and
   direction providers while reusing its existing bundler and npm lockfile.
 
-Both use the same screenshot comparison and update contract. External services
+Both use the same screenshot comparison and update contract. External services in VRT
 require explicit `network_origins` opt-ins; prefer declared fixture responses.
 
 Native `mount()` uses the same server and shell through a consumer gallery; see

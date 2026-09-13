@@ -23,15 +23,15 @@ def _runtime_impl(ctx):
     if (int(parts[0]), int(parts[1]), int(parts[2])) < (1, 63, 0):
         fail("Playwright >= 1.63.0 is required")
     image = ctx.attr.image or (PLAYWRIGHT_IMAGE if ctx.attr.version == "1.63.0" else "")
-    if "@sha256:" not in image:
-        fail("A version override requires a matching digest-pinned browser image")
+    if image and "@sha256:" not in image:
+        fail("Browser images must be digest-pinned")
     files = ctx.files.test + ctx.files.core
     runfiles = ctx.runfiles(files = files)
     for target in [ctx.attr.test, ctx.attr.core]:
         runfiles = runfiles.merge(target[DefaultInfo].default_runfiles)
     return [
         DefaultInfo(files = depset(files), runfiles = runfiles),
-        PlaywrightInfo(test = runfile(ctx.file.test), core = runfile(ctx.file.core), version = ctx.attr.version, image = image, images = _images(image)),
+        PlaywrightInfo(test = runfile(ctx.file.test), core = runfile(ctx.file.core), version = ctx.attr.version, image = image, images = _images(image) if image else []),
     ]
 
 playwright_runtime = rule(
@@ -45,6 +45,8 @@ playwright_runtime = rule(
 )
 
 def _images_impl(ctx):
+    if not ctx.attr.playwright[PlaywrightInfo].images:
+        fail("Image manifests require a matching digest-pinned VRT browser image")
     manifest = ctx.actions.declare_file(ctx.label.name + ".json")
     ctx.actions.write(manifest, json.encode({
         "schemaVersion": 1,

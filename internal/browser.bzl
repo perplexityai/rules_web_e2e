@@ -42,6 +42,9 @@ def _inputs_impl(ctx):
     if ctx.attr.mode != "visual" and (not tests or any([f.is_source for f in tests])):
         fail("tests must supply compiled JavaScript specs")
     runtime = ctx.attr.playwright[PlaywrightInfo]
+    visual = ctx.attr.mode in ["visual", "visual-spec"]
+    if visual and not runtime.images:
+        fail("VRT requires a matching digest-pinned browser image on playwright_runtime")
     shell = ctx.attr.shell[ShellInfo] if ctx.attr.shell else None
     result = ctx.actions.declare_file(ctx.label.name + ".json")
     ctx.actions.write(result, json.encode({
@@ -50,7 +53,7 @@ def _inputs_impl(ctx):
         "matching": _compiled(ctx.attr.matching, "matching"),
         "server": _compiled(ctx.attr.server, "server"),
         "shell": {"directory": shell.directory, "entryPoint": shell.entry_point} if shell else None,
-        "playwright": {"test": runtime.test, "core": runtime.core, "version": runtime.version, "images": runtime.images},
+        "playwright": {"test": runtime.test, "core": runtime.core, "version": runtime.version, "images": runtime.images if visual else []},
     }))
     inputs = ctx.runfiles(files = [result])
     for target in [ctx.attr.tests, ctx.attr.config, ctx.attr.matching, ctx.attr.server, ctx.attr.shell, ctx.attr.playwright, ctx.attr.sources]:
@@ -103,6 +106,8 @@ def browser_test(
         fail("VRT_* environment names are reserved for the browser runtime")
     if visual and component:
         fail("Visual and component modes are separate targets")
+    if not visual and (network_origins or network_origins_env):
+        fail("network_origins and network_origins_env are VRT-only; host browsers use the host network")
     if not visual and matching:
         fail("matching is only supported by visual targets")
     if execution_timeout_seconds <= 0:
@@ -134,7 +139,7 @@ def browser_test(
     common = dict(
         copy_data_to_bin = False,
         entry_point = Label("//runtime:runner_entry"),
-        data = [":" + name + "_inputs", Label("//runtime:files")] + data,
+        data = [":" + name + "_inputs", Label("//runtime:files")] + ([Label("//runtime:container_files")] if visual else []) + data,
         env = env | {
             "VRT_DESCRIPTOR": "$(rlocationpath :%s_inputs)" % name,
             "VRT_BASE_URL": base_url or "",
@@ -147,10 +152,15 @@ def browser_test(
             "VRT_TIMEOUT_MS": str(execution_timeout_seconds * 1000),
         },
     )
+    browser_env_inherit = ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH", "DOCKER_CONFIG"] if visual else [
+        key
+        for key in ["PLAYWRIGHT_BROWSERS_PATH"]
+        if key not in env and key not in env_inherit
+    ]
     js_test(
         name = name,
         args = args,
-        env_inherit = ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH", "DOCKER_CONFIG"] + env_inherit,
+        env_inherit = browser_env_inherit + env_inherit,
         tags = ["manual", "external", "visual_test" if visual else "component_browser_test" if component else "e2e_test", "requires-network", "no-sandbox", "no-remote", "no-cache"] + tags,
         timeout = timeout,
         **common

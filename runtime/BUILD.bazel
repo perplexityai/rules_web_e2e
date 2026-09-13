@@ -42,13 +42,11 @@ js_library(
         "capture.js",
         "config.js",
         "config-url.js",
-        "container.js",
-        "container-host.js",
         "isolation.js",
+        "host-browser.js",
         "matching.js",
         "network.js",
         "package.json",
-        "relay.js",
         "server.js",
         "static-server.js",
         "suite-config.js",
@@ -56,7 +54,13 @@ js_library(
         "visuals.js",
     ],
     visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "container_files",
+    srcs = ["container.js", "container-host.js", "relay.js", "package.json"],
     deps = ["//:node_modules/testcontainers"],
+    visibility = ["//visibility:public"],
 )
 
 filegroup(
@@ -224,4 +228,12 @@ js_test(
     args = ["$(rootpath :images)"],
     env_inherit = ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_CONFIG", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH", "CAPTURE_CHROMIUM_EXECUTABLE"],
     tags = ["manual", "no-sandbox", "no-remote", "no-cache"],
+)
+
+
+js_test(
+    name = "host_browser_test",
+    size = "small",
+    data = ["package.json", ":typecheck"],
+    entry_point = "host-browser.test.js",
 )
