@@ -10,7 +10,8 @@ and the [API reference](api.md) for all supported attributes.
 
 ## Try the standalone example
 
-Install Bazelisk and Docker, start a local Docker daemon, then:
+Install Bazelisk and Docker, start a local Docker daemon, and
+[preload the pinned images](api.md#vrt-image-manifest-and-ci-preloading), then:
 
 ```sh
 cd examples/react

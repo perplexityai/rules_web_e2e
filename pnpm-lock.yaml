@@ -105,6 +105,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  testcontainers@12.1.0: e2b4c82137307780e2455c242a21ffc05fa282e1ec0b13c2bd63b8d39fdec30e
+
 importers:
 
   .:
@@ -132,7 +135,7 @@ importers:
         version: 1.63.0
       testcontainers:
         specifier: 12.1.0
-        version: 12.1.0
+        version: 12.1.0(patch_hash=e2b4c82137307780e2455c242a21ffc05fa282e1ec0b13c2bd63b8d39fdec30e)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -2523,7 +2526,7 @@ snapshots:
       - bare-abort-controller
       - react-native-b4a
 
-  testcontainers@12.1.0:
+  testcontainers@12.1.0(patch_hash=e2b4c82137307780e2455c242a21ffc05fa282e1ec0b13c2bd63b8d39fdec30e):
     dependencies:
       '@balena/dockerignore': 1.0.2
       '@types/dockerode': 4.0.1

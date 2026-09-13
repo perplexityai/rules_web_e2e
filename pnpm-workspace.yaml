@@ -10,3 +10,6 @@ minimumReleaseAgeExclude:
   - "playwright@1.63.0"
   - "playwright-core@1.63.0"
   - "@types/node@26.5.0"
+
+patchedDependencies:
+  testcontainers@12.1.0: patches/testcontainers-12.1.0.patch

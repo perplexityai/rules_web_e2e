@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Breaking compatibility: preload VRT images
+
+VRT no longer pulls images or authenticates to registries during execution.
+Preload every image in the runtime manifest before testing or updating baselines.
+Existing Ryuk containers must match the pinned image; unverifiable or mismatched
+reapers fail without being stopped. See [setup](docs/api.md#vrt-image-manifest-and-ci-preloading).
+
 ### Breaking compatibility: host browser execution
 
 `web_e2e_test` and `component_browser_test` now launch on the host. Provision a

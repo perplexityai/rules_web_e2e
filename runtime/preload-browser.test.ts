@@ -1,109 +1,89 @@
-// An API proxy forbids pulls/auth and hides existing reapers: cached containers
-// cannot mask a missing helper image in this real-daemon regression.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import http from 'node:http'
+import {spawn, type ChildProcess} from 'node:child_process'
 import {once} from 'node:events'
-import {createRequire} from 'node:module'
-import {chromium} from 'playwright'
-import {startBrowser} from './container.js'
+import {fileURLToPath} from 'node:url'
+import {dockerProxy, alternateReaper} from './fixtures/docker-proxy.js'
+import {testEnvironment} from './isolation.js'
 
-const require = createRequire(import.meta.url)
-const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8')) as {
-  images: {image: string; platform: string | null; roles: string[]}[]
-}
-const browserImage = manifest.images.find(image => image.roles.includes('browser'))!
-const reaperImage = manifest.images.find(image => image.roles.includes('reaper'))!
-const daemon = process.env.DOCKER_HOST
-const daemonUrl = daemon && !daemon.startsWith('unix:')
-  ? new URL(daemon.replace(/^tcp:/, 'http:')) : undefined
-if (daemonUrl) assert.equal(daemonUrl.protocol, 'http:', 'test proxy supports TCP or Unix daemons')
-const upstream = daemonUrl
-  ? {hostname: daemonUrl.hostname, port: daemonUrl.port}
-  : {socketPath: daemon?.replace(/^unix:\/\//, '') || '/var/run/docker.sock'}
-let forbidden = 0
-const createdImages: string[] = []
-const proxy = http.createServer((request, response) => {
-  const route = request.url!
-  if (/\/(images\/create|auth)(\?|$)/.test(route)) {
-    forbidden++
-    response.writeHead(403).end('Registry access forbidden by preload regression')
-    return
-  }
-  const forward = http.request({...upstream, path: route, method: request.method, headers: request.headers}, result => {
-    response.on('close', () => { result.destroy(); forward.destroy() })
-    if (/\/containers\/json(\?|$)/.test(route)) {
-      const chunks: Buffer[] = []
-      result.on('data', chunk => chunks.push(chunk))
-      result.on('end', () => {
-        const containers = JSON.parse(Buffer.concat(chunks).toString()) as {Labels: Record<string, string>}[]
-        response.setHeader('Content-Type', 'application/json')
-        response.end(JSON.stringify(containers.filter(container =>
-          container.Labels?.['org.testcontainers.ryuk'] !== 'true')))
-      })
-    } else {
-      response.writeHead(result.statusCode!, result.headers)
-      result.pipe(response)
-    }
-  })
-  forward.on('error', error => response.destroy(error))
-  if (/\/containers\/create(\?|$)/.test(route)) {
-    const chunks: Buffer[] = []
-    request.on('data', chunk => chunks.push(chunk))
-    request.on('end', () => {
-      const body = Buffer.concat(chunks)
-      createdImages.push(JSON.parse(body.toString()).Image)
-      forward.end(body)
-    })
-  } else request.pipe(forward)
-})
-proxy.on('upgrade', (request, socket, head) => {
-  const forward = http.request({...upstream, path: request.url, method: request.method, headers: request.headers})
-  forward.on('upgrade', (response, remote, remoteHead) => {
-    socket.write(`HTTP/1.1 ${response.statusCode} ${response.statusMessage}\r\n` +
-      Object.entries(response.headers).map(([key, value]) => `${key}: ${value}`).join('\r\n') + '\r\n\r\n')
-    if (head.length) remote.write(head)
-    if (remoteHead.length) socket.write(remoteHead)
-    socket.pipe(remote).pipe(socket)
-    socket.on('error', () => remote.destroy())
-    remote.on('error', () => socket.destroy())
-  })
-  forward.on('error', () => socket.destroy())
-  forward.end()
-})
-proxy.listen(0, '127.0.0.1')
-await once(proxy, 'listening')
-const address = proxy.address()
-assert(address && typeof address !== 'string')
+const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
+const browserImage = manifest.images.find((item: any) => item.roles.includes('browser')).image as string
+const reaperImage = manifest.images.find((item: any) => item.roles.includes('reaper')).image as string
+const proxy = await dockerProxy()
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'preload-browser-'))
-// No registry credentials or credential helpers in the test process.
-process.env.DOCKER_CONFIG = temp
 fs.writeFileSync(path.join(temp, 'config.json'), '{}')
-process.env.DOCKER_HOST = `tcp://127.0.0.1:${address.port}`
-for (const key of Object.keys(process.env))
-  if (key.startsWith('TESTCONTAINERS_') || key.startsWith('RYUK_')) delete process.env[key]
-process.env.RYUK_CONTAINER_IMAGE = reaperImage.image
-let stop: (() => Promise<void>) | undefined
+const workers: ChildProcess[] = []
+const run = async (expected?: RegExp, directImage?: string) => {
+  const child = spawn(fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath),
+    [fileURLToPath(new URL('./fixtures/preload-worker.js', import.meta.url))], {
+      env: {...testEnvironment({}, [], temp), PATH: '/usr/bin:/bin',
+        DOCKER_CONFIG: temp, DOCKER_HOST: proxy.host,
+        BROWSER_IMAGE: browserImage, RYUK_CONTAINER_IMAGE: reaperImage, DIRECT_IMAGE: directImage},
+      stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+    })
+  workers.push(child)
+  const [message] = await Promise.race([
+    once(child, 'message'),
+    once(child, 'exit').then(([code]) => { throw new Error(`Worker exited before result: ${code}`) }),
+  ])
+  if (expected) {
+    assert.match(message.error, expected)
+    const [code] = await once(child, 'exit')
+    assert.equal(code, 1)
+  } else assert.equal(message.ready, true, message.error)
+  return child
+}
+const absent = async (route: string) => assert.rejects(proxy.api(route), /Docker 404/)
+let alternate: string | undefined
+let alternateImage: string | undefined
 try {
-  const container = await startBrowser(browserImage.image,
-    path.dirname(createRequire(require.resolve('playwright/package.json')).resolve('playwright-core/package.json')),
-    browserImage.platform!)
-  stop = container.stop
-  const browser = await chromium.connect(container.endpoint)
-  try {
-    const page = await browser.newPage()
-    await page.setContent('<h1>Preloaded browser</h1>')
-    assert.equal(await page.locator('h1').textContent(), 'Preloaded browser')
-  } finally {
-    await browser.close()
+  // Every declared image is required before any resource is created.
+  for (const image of [browserImage, reaperImage]) {
+    proxy.missingImages.add(image)
+    await run(/Preload required image/)
+    // Exercise the patched pull path too, independently of runner preflight.
+    await run(/TESTCONTAINERS_PULL_POLICY=never/, image)
+    assert.equal(proxy.containers.length, 0)
+    assert.equal(proxy.networks.length, 0)
+    proxy.missingImages.clear()
   }
-  assert.equal(forbidden, 0, 'no image pull or registry auth may be attempted')
-  assert.deepEqual(createdImages.sort(), [reaperImage.image, browserImage.image, browserImage.image].sort())
+  await run()
+  const original = proxy.containers.find(item => item.image === reaperImage)!.id
+  proxy.reapers.add(original)
+  await run()
+  assert.equal(proxy.containers.filter(item => item.image === reaperImage).length, 1, 'must reuse the real matching reaper')
+  for (const {id, image} of proxy.containers)
+    if (image === browserImage) await absent(`/containers/${id}/json`)
+  for (const id of proxy.networks) await absent(`/networks/${id}`)
+
+  const created = proxy.containers.length
+  proxy.unverifiableContainers.add(original)
+  await run(/Cannot verify existing Ryuk/)
+  proxy.unverifiableContainers.clear()
+  assert.equal(proxy.containers.length, created)
+  assert.equal((await proxy.api(`/containers/${original}/json`)).State.Running, true)
+
+  // Commit a different image of the actual Ryuk executable, not a label-only fake.
+  const modified = await alternateReaper(proxy, original)
+  alternate = modified.id
+  alternateImage = modified.image
+  proxy.reapers.clear()
+  proxy.reapers.add(alternate!)
+  await run(/Existing Ryuk .* does not match/)
+  assert.equal(proxy.containers.length, created)
+  assert.equal((await proxy.api(`/containers/${alternate}/json`)).State.Running, true)
+  assert.equal((await proxy.api(`/containers/${original}/json`)).State.Running, true)
+  assert.equal(proxy.forbidden, 0, 'no pull/auth attempt, including all failure cases')
 } finally {
-  await stop?.()
-  proxy.closeAllConnections()
+  for (const child of workers) if (child.connected) child.send('stop')
+  await Promise.all(workers.map(child => child.exitCode === null ? once(child, 'exit') : undefined))
+  // Only this test's resources; never remove an unrelated daemon's reaper.
+  for (const id of [...proxy.containers.map(item => item.id), ...(alternate ? [alternate] : [])])
+    await proxy.api(`/containers/${id}?force=true&v=true`, 'DELETE').catch(() => {})
+  for (const id of proxy.networks) await proxy.api(`/networks/${id}`, 'DELETE').catch(() => {})
+  if (alternateImage) await proxy.api(`/images/${alternateImage}`, 'DELETE').catch(() => {})
   proxy.close()
   fs.rmSync(temp, {recursive: true, force: true})
 }

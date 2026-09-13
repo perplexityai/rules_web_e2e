@@ -303,9 +303,9 @@ done
 
 Then run the test using the **same daemon**, exact image references, and correct
 platforms, with an empty `DOCKER_CONFIG` and registry credentials unavailable.
-Testcontainers uses already-present images before attempting registry authentication.
+The runtime requires locally available images and never attempts registry authentication or pulls.
 The manifest is not an image archive; transfer/load workflows must preserve the
-exact digest references. Missing images may still trigger a pull and fail.
+exact digest references. Missing or uninspectable images fail with a preload error before resource creation.
 
 Supported discovery is a host runner's normal Docker discovery, or a containerized
 runner with an explicit TCP/HTTP(S) `DOCKER_HOST` (and optional TLS settings).
@@ -322,15 +322,16 @@ browser infrastructure, not images launched by consumer fixtures or servers.
 
 ### Existing reapers on shared daemons
 
-Testcontainers may reuse an already-running Ryuk container without checking its
-image digest against this manifest. The pinned requirement governs **fresh reaper
-creation**, not the identity of every reused reaper. The preload regression hides
-existing reapers and therefore verifies fresh startup only.
+Before connecting to an existing Ryuk, the runtime verifies that its actual
+container image ID matches the locally resolved pinned Ryuk image. Labels and
+requested image names are not sufficient. Mismatched or unverifiable identities
+fail with an actionable error; the runtime never stops another invocation's
+reaper. Use a dedicated daemon or coordinate cleanup with that reaper's owner.
 
-For strict image identity today, use a dedicated fresh daemon with the manifest's
-images preloaded and no running reaper from another invocation. Digest-checked
-reuse or rejection of mismatched reapers on shared daemons is tracked in
-[#20](https://github.com/perplexityai/rules_web_e2e/issues/20).
+A pinned [dependency patch](../patches/README.md) enforces verification before
+reuse and disables pulls/auth inside Testcontainers itself, including after
+preflight. Tests cover real fresh and reused reapers, a different Ryuk image,
+unverifiable identity, missing images, and public comparison/update failures.
 
 
 ## Host browser execution

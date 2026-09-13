@@ -19,7 +19,7 @@ flowchart LR
 ## Run the example
 
 Install Bazelisk and [provision host Chromium](host-browsers.md) for E2E/component
-tests. Start Docker only for VRT; Linux amd64 is the validated screenshot platform.
+tests. Start Docker and [preload images](api.md#vrt-image-manifest-and-ci-preloading) for VRT; Linux amd64 is the validated screenshot platform.
 
 ```sh
 cd examples/react

@@ -75,7 +75,8 @@ attributes; see [migration](docs/getting-started.md#migrating-from-100).
 ## Try it
 
 Install Bazelisk and provision host Chromium first (with the locked Playwright version).
-Start Docker only for VRT. From this checkout:
+Start Docker and [preload the pinned images](docs/api.md#vrt-image-manifest-and-ci-preloading)
+for VRT. From this checkout:
 
 ```sh
 export PLAYWRIGHT_BROWSERS_PATH="$(pwd)/.playwright-browsers"

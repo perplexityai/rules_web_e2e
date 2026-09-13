@@ -247,3 +247,26 @@ visual_test(
     shell = ":app_shell",
     baseline_dir = "__isolation_screenshots__",
 )
+
+js_test(
+    name = "preloaded_vrt_test",
+    copy_data_to_bin = False,
+    data = [
+        "package.json",
+        ":native_visual_test",
+        ":native_visual_test.update",
+        "__native_screenshots__/saved.png",
+        "@rules_web_e2e//runtime:typecheck",
+        "@rules_web_e2e//runtime:images",
+    ],
+    entry_point = "@rules_web_e2e//runtime:preload_lifecycle_entry",
+    env = {
+        "PRELOAD_COMPARE": "$(rlocationpath :native_visual_test)",
+        "PRELOAD_UPDATE": "$(rlocationpath :native_visual_test.update)",
+        "PRELOAD_BASELINE": "$(rlocationpath __native_screenshots__/saved.png)",
+        "PRELOAD_IMAGES": "$(rlocationpath @rules_web_e2e//runtime:images)",
+    },
+    env_inherit = ["DOCKER_HOST"],
+    tags = ["manual", "external", "no-sandbox", "no-remote", "no-cache"],
+    timeout = "long",
+)
