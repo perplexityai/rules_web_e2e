@@ -1,4 +1,4 @@
-load(":capture.bzl", "capture")
+load(":capture.bzl", "capture", "kernel_probe")
 
 platform(
     name = "linux_amd64",
@@ -11,4 +11,9 @@ capture(
     script = "capture.mjs",
     runtime = ["ld.so"] + glob(["runtime/**"]),
     playwright = glob(["playwright-core/**"]),
+)
+
+kernel_probe(
+    name = "kernel_probe",
+    binary = "kernel-probe",
 )

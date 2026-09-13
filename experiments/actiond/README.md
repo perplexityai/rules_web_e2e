@@ -53,8 +53,7 @@ not the proposed deployment architecture.
   fonts, and Playwright files as inputs, with PNGs in a declared TreeArtifact.
 
 The separate prototype workflow is prepared to test the released actiond
-`v0.0.6` VM on a KVM-capable GitHub runner. It has not run: publication requires
-user approval. The local host has no `/dev/kvm`.
+`v0.0.6` VM on a KVM-capable GitHub runner. The local host has no `/dev/kvm`.
 
 ## Decision
 

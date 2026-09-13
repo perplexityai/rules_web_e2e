@@ -4,7 +4,7 @@ set -euo pipefail
 work=${1:?usage: run-actiond.sh ABSOLUTE_WORK_DIRECTORY GRPC_ENDPOINT}
 endpoint=${2:?supply the actiond GRPC endpoint}
 cd "$work/workspace"
-"${ACTIOND_BAZEL:-bazel}" --output_base="$work/bazel-output" build //:capture \
+"${ACTIOND_BAZEL:-bazel}" --output_base="$work/bazel-output" build //:kernel_probe //:capture --keep_going \
   --host_platform=//:linux_amd64 --platforms=//:linux_amd64 \
   --remote_executor="$endpoint" --remote_cache="$endpoint" \
   --spawn_strategy=remote --remote_local_fallback=false \

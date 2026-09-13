@@ -29,3 +29,18 @@ capture = rule(
         "playwright": attr.label_list(allow_files = True),
     },
 )
+
+def _kernel_probe_impl(ctx):
+    out = ctx.actions.declare_file("kernel-probe.txt")
+    ctx.actions.run(
+        executable = ctx.file.binary,
+        arguments = [out.path],
+        outputs = [out],
+        mnemonic = "ActiondKernelProbe",
+    )
+    return [DefaultInfo(files = depset([out]))]
+
+kernel_probe = rule(
+    implementation = _kernel_probe_impl,
+    attrs = {"binary": attr.label(allow_single_file = True)},
+)
