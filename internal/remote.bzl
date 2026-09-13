@@ -51,7 +51,10 @@ def _remote_impl(ctx):
         execution_requirements = {"no-local": "1"},
         mnemonic = "VrtCapture" if ctx.attr.capture else "VrtCompare",
     )
-    return [DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output]))]
+    return [
+        DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output])),
+        OutputGroupInfo(inputs = depset(files + [root, job, ctx.file._bootstrap])),
+    ]
 
 _remote = rule(
     implementation = _remote_impl,

@@ -34,9 +34,7 @@ jobs:
           docker pull --platform linux/amd64 mcr.microsoft.com/playwright:v1.63.0-noble@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7
           work="$RUNNER_TEMP/actiond-production"
           bash experiments/actiond/prepare.sh "$work"
-          (cd examples/react && bazelisk build //:native_visual_test //:component_visual_test)
-          node experiments/actiond/prepare-production.mjs "$work" examples/react/bazel-bin
-          bash experiments/actiond/prepare-input-rootfs.sh "$work"
+          node experiments/actiond/prepare-public.mjs "$work"
       - name: Build patched actiond
         run: |
           work="$RUNNER_TEMP/actiond-production"
@@ -68,7 +66,7 @@ jobs:
             sleep 1
           done
           "$ready"
-          bash experiments/actiond/run-production-actiond.sh "$work" grpc://127.0.0.1:8980
+          bash experiments/actiond/run-public-actiond.sh "$work" grpc://127.0.0.1:8980
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
