@@ -1,4 +1,4 @@
-"""Cancel an executing remote capture and verify the local updater never runs."""
+"""Cancel a dispatched remote capture and verify the local updater never runs."""
 
 import os
 from pathlib import Path
@@ -22,12 +22,18 @@ with log.open("w") as output:
     process = subprocess.Popen(command, stdout=output, stderr=output, start_new_session=True)
     try:
         deadline = time.monotonic() + 90
-        while not re.search(r"VrtCapture actiond_cancel_test_capture.results;[^\n]*remote", log.read_text()):
+        # actiond currently emits only the final Execute operation, so Bazel
+        # displays [Sched] even while the worker is executing the suite.
+        while not re.search(r"VrtCapture actiond_cancel_test_capture.results", log.read_text()):
             if process.poll() is not None:
                 raise AssertionError(f"Capture exited before cancellation: {log.read_text()}")
             if time.monotonic() >= deadline:
-                raise AssertionError(f"Capture did not start remotely: {log.read_text()}")
+                raise AssertionError(f"Capture was not dispatched: {log.read_text()}")
             time.sleep(0.2)
+        # Inputs are already built and uploaded by the preceding cases. Leave
+        # time for this deliberately 90-second suite to enter the worker.
+        time.sleep(5)
+        assert process.poll() is None, log.read_text()
         os.killpg(process.pid, signal.SIGINT)
         code = process.wait(timeout=20)
         assert code in (8, 130, -signal.SIGINT), (code, log.read_text())

@@ -1,6 +1,7 @@
-# actiond Chromium prototype
+# actiond validation and patches
 
-Throwaway experiment, not a replacement for the production VRT backend.
+The production backend is documented in [VRT on actiond](../../docs/actiond.md).
+This directory keeps its worker patches, CI fixtures, and earlier diagnostics.
 
 The action runs a Node HTTP fixture, Chromium, and screenshot comparison together.
 Node, Playwright, Chromium, shared libraries, fonts, and even the ELF loader are
@@ -71,65 +72,42 @@ with local fallback disabled. Both downloaded PNGs match the local hash above.
 [Passing VM run](https://github.com/perplexityai/rules_web_e2e/actions/runs/34775967325).
 The local host has no `/dev/kvm`; KVM validation ran on GitHub's Ubuntu runner.
 
-## Decision
+## Production validation
 
-The process-level proof requires **no actiond userspace changes**. The VM proof
-requires the memory-advice kernel fix above. Before adding OCI runtime support
-or relaxing seccomp, validate an existing editor fixture on the patched VM. Production integration still needs an optional executor
-backend, reviewed baseline-update handling, amd64 worker selection on Apple
-Silicon, and cleanup/isolation coverage. One stable fixture is not evidence of
-cross-architecture pixel equivalence or full Chromium compatibility.
+The production workflow builds actiond at `8a42c3d` with both patches below,
+starts a Linux amd64 VM, and runs `prepare-public.mjs` / `run-public-actiond.sh`.
+The fixture constructs a caller-owned OCI layout through Bazel and extracts its
+runtime with `browser_runtime_oci`. Public `.update` and test targets execute
+capture/comparison actions remotely and consume downloaded results locally.
+Only the temporary example checkout receives baseline updates.
 
-## Production runner diagnostic
+[Run 34781995883](https://github.com/perplexityai/rules_web_e2e/actions/runs/34781995883)
+passes native/component capture and comparison, network isolation, failed/empty
+captures, screenshot diffs, and execution deadlines. The replacement workflow
+also checks cancellation and a Bazel `js_binary` fixture server. See the current
+PR checks for the exact tested revision.
 
-The `codex/actiond-vrt-runtime` migration adds a diagnostic using the real native
-screenshot and component gallery runners. After building `//:native_visual_test`
-and `//:component_visual_test` in `examples/react`, run:
+A 3 GiB guest ran out of memory with three simultaneous suites. CI uses 6 GiB
+and at most two actions; size workers for input staging and application memory.
+The real FormatJS editor gallery also captures, locally applies references, and
+compares all eight screenshots in the actiond process sandbox. That validation
+is separate from the VM fixtures and does not establish a full consumer CI migration.
 
-```sh
-node experiments/actiond/prepare-production.mjs /tmp/actiond-prototype examples/react/bazel-bin
-bash experiments/actiond/run-sandbox.sh /tmp/actiond-prototype --production
-```
+## Local actiond patches
 
-Both suites successfully capture baseline PNGs, then compare against those
-captures; JUnit reports are produced for capture and comparison. Results are
-downloaded under `results/{native_visual_test,component_visual_test}`. This
-diagnostic does not modify source baselines. It exercises the production
-`runner.ts`, direct declared Chromium launch, and output-only baseline capture.
+- `actiond-advice.patch`: enables memory-advice syscalls in both kernel configs;
+  submitted as [upstream PR #48](https://github.com/hermeticbuild/actiond/pull/48).
+- `actiond-input-rootfs.patch`: exposes selected directories from a declared
+  runtime input tree at normal Linux paths, preserving executor-owned devices,
+  `/proc`, temporary storage, and network isolation. `input-rootfs-env` resolves
+  its path from a declared command variable, which supports Bazel output paths.
+  Maintained separately in local actiond commits `66e2dca` and `f713bca` for
+  upstreaming. The full actiond build and both unit-test targets pass.
 
-Native Playwright `webServer` commands also require `/bin/sh`. This diagnostic
-supplies Bash from the caller image, with the same declared ELF loader and
-libraries. The VM integration still needs a declared runtime filesystem layout
-for the shell and loader. These new production-runner results are process
-sandbox results, not VM/REAPI validation; the earlier VM result above remains
-the standalone screenshot fixture.
+The native macOS VM backend has not been exercised here. ARM64 clients must
+select an amd64 worker for these baseline inputs.
 
-## Declared runtime root patch
-
-`actiond-input-rootfs.patch` is a separate local actiond change based on
-`8a42c3d` (local commit `66e2dca`). It adds the `input-rootfs` execution property:
-runtime directories from that declared input subtree appear at normal Linux
-paths. It replaces injected runtime files for that action and preserves the
-executor's device, process, temporary-directory, and network isolation.
-actiond's full build and both unit-test targets pass with the patch. macOS VM
-execution has not been run.
-
-`prepare-input-rootfs.sh` restores the image's original Node and Chromium
-executables and supplies the loader and shell layout. The production VM workflow
-builds actiond with this patch and the separate memory-advice patch, then runs
-`run-production-actiond.sh` with local execution fallback disabled. This workflow
-is the validation gate for the new rootfs support; local unit tests alone do not
-establish VM compatibility.
-
-The production workflow now uses `prepare-public.mjs` and
-`run-public-actiond.sh`: it copies the actual React example, declares the runtime
-archive with `browser_runtime_archive`, and runs each public `.update` target
-followed by both public test targets. Source baselines are modified only in that
-temporary example copy. The native and gallery capture jobs generated by these
-public rules both pass under actiond's process isolation.
-
-The earlier hand-staged VM diagnostic failed because its `glob` omitted an npm
-file beneath a nested `BUILD.bazel` package boundary. That failure is not evidence
-against the runtime-root patch. The public rules collect the actual declared
-runfiles and tree artifacts; their end-to-end VM result remains the validation
-gate. The old scripts remain available for reproducing the diagnostic.
+Earlier `prepare-production.mjs` / `run-production-actiond.sh` scripts are
+historical diagnostics. Their hand-staged glob omitted an npm file beneath a
+nested Bazel package; public rules collect actual runfiles and tree artifacts.
+Use the production workflow above for the supported execution path.
