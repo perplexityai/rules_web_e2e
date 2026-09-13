@@ -74,7 +74,6 @@ jobs:
       options: --init --platform linux/amd64 --ipc=host
     env:
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
-      DOCKER_HOST: tcp://127.0.0.1:1
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
@@ -82,10 +81,10 @@ jobs:
           bazelisk-cache: true
           repository-cache: true
       - name: Verify generated capture bounds and pixels
-        run: bazelisk test //runtime:capture_browser_test --test_output=errors
+        run: DOCKER_HOST=tcp://127.0.0.1:1 bazelisk test //runtime:capture_browser_test --test_output=errors
       - name: Run visual tests
         working-directory: examples/react
-        run: bazelisk test //:visual_test //:component_visual_test //:native_visual_test --test_output=errors
+        run: DOCKER_HOST=tcp://127.0.0.1:1 bazelisk test //:visual_test //:component_visual_test //:native_visual_test --test_output=errors
       - name: Upload visual test artifacts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
