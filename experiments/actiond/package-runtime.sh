@@ -2,10 +2,12 @@
 # Setup-only prototype: run inside the pinned Playwright image.
 set -euo pipefail
 out=${1:-/output}
-mkdir -p "$out"/{bin,lib,lib64,chromium,etc/fonts,fonts}
+mkdir -p "$out"/{bin,usr/bin,lib,lib64,chromium,etc/fonts,fonts}
 cp /usr/bin/node /bin/bash "$out/bin/"
+cp /usr/bin/env "$out/usr/bin/"
+cp /usr/bin/{dirname,uname,readlink} "$out/bin/"
 cp -a /ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/. "$out/chromium/"
-for binary in /usr/bin/node /bin/bash /ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell; do
+for binary in /usr/bin/node /bin/bash /usr/bin/{env,dirname,uname,readlink} /ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell; do
   ldd "$binary" | awk '/=> \// {print $3} /^\s*\/lib/ {print $1}' | while read -r lib; do
     cp -L "$lib" "$out/lib/"
   done

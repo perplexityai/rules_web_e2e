@@ -24,6 +24,11 @@ fs.writeFileSync(build,
   'load("@rules_web_e2e//playwright:defs.bzl", "browser_runtime")\n' +
   fs.readFileSync(build, 'utf8') + `
 runtime_image(name = "actiond_image", archive = "runtime.tar")
+js_binary(
+    name = "actiond_fixture_server",
+    entry_point = "native-server.js",
+    data = [":typecheck_project", "package.json"],
+)
 browser_runtime_oci(name = "actiond_runtime_files", image = ":actiond_image")
 browser_runtime(
     name = "actiond_browser",
@@ -38,6 +43,8 @@ visual_test(
     browser = ":actiond_browser",
     config = ":native_config",
     tests = ":native_visual_specs",
+    data = [":actiond_fixture_server"],
+    env = {"EXAMPLE_SERVER_COMMAND": "$(rootpath :actiond_fixture_server)"},
     baseline_dir = "__actiond_native__",
     baselines = glob(["__actiond_native__/*.png"], allow_empty = True),
 )

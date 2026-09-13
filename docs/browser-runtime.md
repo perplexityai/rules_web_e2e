@@ -3,7 +3,9 @@
 The actiond migration accepts caller-owned Linux runtime files through
 `browser_runtime`. The runtime must contain Chromium, Node, their ELF loader and
 shared libraries, and the fonts/fontconfig used for screenshots. Native
-Playwright `webServer` commands also need `/bin/sh`.
+Playwright `webServer` commands also need `/bin/sh`. Bazel `js_binary` fixture
+launchers additionally need `/usr/bin/env`, Bash, and their shell utilities
+(including `dirname`, `uname`, and `readlink`) in the declared runtime.
 
 A caller can produce a flattened filesystem tar and unpack it during the Bazel
 build:
