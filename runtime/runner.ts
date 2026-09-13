@@ -58,7 +58,12 @@ async function main() {
     matching: string | null
     server: string | null
     shell: {directory: string; entryPoint: string} | null
-    playwright: {test: string; core: string; version: string; image: string}
+    playwright: {
+      test: string
+      core: string
+      version: string
+      images: {image: string; platform: string | null; roles: string[]}[]
+    }
   }
   const selectors = testArguments(visual, args, descriptor.tests)
   const node = fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
@@ -175,8 +180,13 @@ async function main() {
   for (const key of Object.keys(process.env))
     if (key.startsWith('TESTCONTAINERS_') || key.startsWith('RYUK_'))
       delete process.env[key]
-  process.env.RYUK_CONTAINER_IMAGE =
-    'testcontainers/ryuk:0.14.0@sha256:f0456560ea5b4acdbed0da0efc33b5f9dd6bc1e59f2337106826dcb5b0b0e981'
+  const browserImage = descriptor.playwright.images.find(image =>
+    image.roles.includes('browser')
+  )!
+  const reaperImage = descriptor.playwright.images.find(image =>
+    image.roles.includes('reaper')
+  )!
+  process.env.RYUK_CONTAINER_IMAGE = reaperImage.image
   const {startBrowser} = await import('./container.js')
   let browser: Awaited<ReturnType<typeof startBrowser>> | undefined
   const children: ChildProcess[] = []
@@ -247,7 +257,7 @@ async function main() {
       })
     }
     networkTargets(appUrl!, origins)
-    browser = await startBrowser(descriptor.playwright.image, core)
+    browser = await startBrowser(browserImage.image, core, browserImage.platform!)
     if (interrupted) throw new Error('VRT interrupted')
     const run = (discover: boolean) =>
       new Promise<number>((resolve, reject) => {
