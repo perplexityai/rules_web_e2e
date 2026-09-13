@@ -1,3 +1,4 @@
+diff --git a/build/container-runtime/clients/image/docker-image-client.js b/build/container-runtime/clients/image/docker-image-client.js
 --- a/build/container-runtime/clients/image/docker-image-client.js
 +++ b/build/container-runtime/clients/image/docker-image-client.js
 @@ -124,6 +124,14 @@
@@ -15,6 +16,7 @@
              if (!opts?.force && (await this.exists(imageName))) {
                  common_1.log.debug(`Image "${imageName.string}" already exists`);
                  return;
+diff --git a/build/reaper/reaper.js b/build/reaper/reaper.js
 --- a/build/reaper/reaper.js
 +++ b/build/reaper/reaper.js
 @@ -25,6 +25,7 @@
