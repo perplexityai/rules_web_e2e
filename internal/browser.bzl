@@ -171,7 +171,7 @@ def browser_test(
         if key not in env and key not in env_inherit
     ]
     if browser:
-        remote_browser_test(name, browser, common["env"], args, tags, timeout)
+        remote_browser_test(name, browser, common["env"], args, tags, timeout, data)
         return
     js_test(
         name = name,

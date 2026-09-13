@@ -65,6 +65,8 @@ visual_test(
     config = ":native_config",
     tests = ":actiond_isolation_specs",
     baseline_dir = "__actiond_isolation__",
+    data = ["package.json"],
+    env = {"ACTIOND_FIXTURE": json.encode({"package": "$(rootpath package.json)"})},
 )
 visual_test(
     name = "actiond_failure_test",

@@ -6,6 +6,8 @@ test('the whole VRT action is offline and can still serve its fixture', async ({
   expect(process.platform).toBe('linux')
   expect(process.arch).toBe('x64')
   expect(fs.existsSync('/var/run/docker.sock')).toBe(false)
+  const fixture = JSON.parse(process.env.ACTIOND_FIXTURE!)
+  expect(JSON.parse(fs.readFileSync(fixture.package, 'utf8')).name).toBeTruthy()
   const error = await new Promise<NodeJS.ErrnoException>(resolve => {
     const socket = net.connect({host: '1.1.1.1', port: 443})
     socket.once('connect', () => {
