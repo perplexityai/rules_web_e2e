@@ -39,6 +39,7 @@ js_library(
     srcs = [
         "arguments.js",
         "baselines.js",
+        "browser-runtime.js",
         "capture.js",
         "config.js",
         "config-url.js",
@@ -148,6 +149,13 @@ js_test(
         ":typecheck",
     ],
     entry_point = "config.test.js",
+)
+
+js_test(
+    name = "browser_runtime_test",
+    size = "small",
+    data = ["package.json", ":typecheck"],
+    entry_point = "browser-runtime.test.js",
 )
 
 js_test(

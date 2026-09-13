@@ -79,3 +79,27 @@ or relaxing seccomp, validate an existing editor fixture on the patched VM. Prod
 backend, reviewed baseline-update handling, amd64 worker selection on Apple
 Silicon, and cleanup/isolation coverage. One stable fixture is not evidence of
 cross-architecture pixel equivalence or full Chromium compatibility.
+
+## Production runner diagnostic
+
+The `codex/actiond-vrt-runtime` migration adds a diagnostic using the real native
+screenshot and component gallery runners. After building `//:native_visual_test`
+and `//:component_visual_test` in `examples/react`, run:
+
+```sh
+node experiments/actiond/prepare-production.mjs /tmp/actiond-prototype examples/react/bazel-bin
+bash experiments/actiond/run-sandbox.sh /tmp/actiond-prototype --production
+```
+
+Both suites successfully capture baseline PNGs, then compare against those
+captures; JUnit reports are produced for capture and comparison. Results are
+downloaded under `results/{native_visual_test,component_visual_test}`. This
+diagnostic does not modify source baselines. It exercises the production
+`runner.ts`, direct declared Chromium launch, and output-only baseline capture.
+
+Native Playwright `webServer` commands also require `/bin/sh`. This diagnostic
+supplies Bash from the caller image, with the same declared ELF loader and
+libraries. The VM integration still needs a declared runtime filesystem layout
+for the shell and loader. These new production-runner results are process
+sandbox results, not VM/REAPI validation; the earlier VM result above remains
+the standalone screenshot fixture.

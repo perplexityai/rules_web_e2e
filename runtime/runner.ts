@@ -10,6 +10,7 @@ import {testArguments} from './arguments.js'
 import {baselineDestination, updateBaselines} from './baselines.js'
 import {stageRunfiles, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
+import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
 
 function required(name: string) {
   const value = process.env[name]
@@ -38,7 +39,8 @@ async function main() {
   const args = process.argv.slice(2)
   const update = args.includes('--update')
   if (!visual && update) throw new Error('E2E tests do not update baselines')
-  const destination = update
+  const captureOutput = update ? process.env.VRT_CAPTURE_OUTPUT : undefined
+  const destination = update && !captureOutput
     ? baselineDestination(
         required('BUILD_WORKSPACE_DIRECTORY'),
         required('VRT_BASELINE_RELATIVE')
@@ -64,6 +66,7 @@ async function main() {
     matching: string | null
     server: string | null
     shell: {directory: string; entryPoint: string} | null
+    browser?: BrowserRuntime | null
     playwright: {
       test: string
       core: string
@@ -72,7 +75,10 @@ async function main() {
     }
   }
   const selectors = testArguments(visual, args, descriptor.tests)
-  const node = fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
+  const declaredBrowser = descriptor.browser
+    ? browserRuntime(inputs, descriptor.browser)
+    : undefined
+  const node = declaredBrowser?.node || fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
   const testRoot = path.dirname(descriptorPath)
   const generated = path.join(testRoot, '.rules-browser')
   fs.mkdirSync(generated)
@@ -151,6 +157,7 @@ async function main() {
       temp
     ),
     ...hostEnv,
+    ...declaredBrowser?.env,
     VRT_NETWORK_ORIGINS: JSON.stringify(origins),
     VRT_INPUTS: inputs,
     VRT_MODE: required('VRT_MODE'),
@@ -250,7 +257,7 @@ async function main() {
         })
       })
     }
-    if (visual) {
+    if (visual && !declaredBrowser) {
       networkTargets(appUrl!, origins)
       // Docker settings and helper images apply only to VRT.
       for (const key of Object.keys(process.env))
@@ -319,6 +326,10 @@ async function main() {
     if (destination) {
       updateBaselines(baselines, destination)
       console.log(`Updated baselines: ${destination}`)
+    }
+    if (captureOutput) {
+      updateBaselines(baselines, captureOutput)
+      console.log(`Captured baselines: ${captureOutput}`)
     }
     succeeded = true
   } finally {

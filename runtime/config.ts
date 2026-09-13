@@ -70,13 +70,23 @@ export function visualConfig({
     ...defaults,
     use: {
       ...defaults.use,
-      connectOptions: {
-        wsEndpoint: required('VRT_WS_ENDPOINT'),
-        exposeNetwork: networkTargets(
-          required('VRT_APP_URL'),
-          JSON.parse(required('VRT_NETWORK_ORIGINS')) as string[]
-        ),
-      },
+      ...(process.env.VRT_CHROMIUM_EXECUTABLE
+        ? {
+            launchOptions: {
+              executablePath: process.env.VRT_CHROMIUM_EXECUTABLE,
+              chromiumSandbox: false,
+              args: ['--no-zygote'],
+            },
+          }
+        : {
+            connectOptions: {
+              wsEndpoint: required('VRT_WS_ENDPOINT'),
+              exposeNetwork: networkTargets(
+                required('VRT_APP_URL'),
+                JSON.parse(required('VRT_NETWORK_ORIGINS')) as string[]
+              ),
+            },
+          }),
     },
     testMatch: '**/.rules-visual.spec.ts',
     testIgnore: [],
