@@ -138,8 +138,8 @@ against the compiled config. Existing servers are never reused. Include server
 executables, assets, and setup modules in the config's runfiles or `data`.
 The runner inspects the config in a separate process before allocating a browser,
 then Playwright loads it normally: keep top-level config evaluation declarative.
-Projects must share the same origin; additional service origins still require an
-explicit network allowlist. Compiled `.js` and `.mjs` config outputs are accepted.
+Projects must share the same origin; additional services use the caller environment’s
+network policy. Compiled `.js` and `.mjs` config outputs are accepted.
 
 Most built-shell and adapter call sites need no config. To add fixtures, global setup, timeouts, or E2E
 projects, supply a compiled module exporting `PlaywrightTestConfig` from
