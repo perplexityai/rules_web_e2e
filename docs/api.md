@@ -313,3 +313,15 @@ runner; this API does not provision remote connectivity.
 Preloading is an explicit CI step, not a cacheable Bazel build action or a test
 whose side effects another test depends on. The manifest covers rules-managed
 browser infrastructure, not images launched by consumer fixtures or servers.
+
+### Existing reapers on shared daemons
+
+Testcontainers may reuse an already-running Ryuk container without checking its
+image digest against this manifest. The pinned requirement governs **fresh reaper
+creation**, not the identity of every reused reaper. The preload regression hides
+existing reapers and therefore verifies fresh startup only.
+
+For strict image identity today, use a dedicated fresh daemon with the manifest's
+images preloaded and no running reaper from another invocation. Digest-checked
+reuse or rejection of mismatched reapers on shared daemons is tracked in
+[#20](https://github.com/perplexityai/rules_web_e2e/issues/20).
