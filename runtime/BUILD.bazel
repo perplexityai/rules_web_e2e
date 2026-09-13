@@ -70,6 +70,25 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
+js_library(
+    name = "remote_result_files",
+    srcs = ["remote-result.js", "baselines.js", "package.json"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "remote_result_entry",
+    srcs = ["remote-result-entry.js"],
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "remote_result_test",
+    size = "small",
+    data = ["package.json", ":typecheck"],
+    entry_point = "remote-result.test.js",
+)
+
 npm_package(
     name = "package",
     srcs = [

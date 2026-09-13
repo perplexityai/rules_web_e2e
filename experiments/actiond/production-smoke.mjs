@@ -10,9 +10,10 @@ for (const [target, mode, baselines] of [
   const runfiles = `/tmp/${target}`
   fs.cpSync(`/workspace/${target}`, runfiles, {recursive: true})
   const output = path.join(path.resolve(process.env.OUTPUT_DIR || '/workspace/outputs'), target)
-  const captured = `${output}/captured`
+  const captured = `${output}/update/baselines`
   for (const update of [true, false]) {
-    const artifacts = `${output}/${update ? 'update' : 'compare'}`
+    const resultDirectory = `${output}/${update ? 'update' : 'compare'}`
+    const artifacts = `${resultDirectory}/artifacts`
     fs.mkdirSync(artifacts, {recursive: true})
     const result = spawnSync('/workspace/runtime/bin/node', [
       `${runfiles}/rules_web_e2e+/runtime/runner.js`, ...(update ? ['--update'] : []),
@@ -32,6 +33,11 @@ for (const [target, mode, baselines] of [
         TEST_UNDECLARED_OUTPUTS_DIR: artifacts,
       },
     })
+    fs.writeFileSync(`${resultDirectory}/result.json`, JSON.stringify({
+      schemaVersion: 1,
+      mode: update ? 'capture' : 'compare',
+      exitCode: result.status ?? 1,
+    }))
     assert.ifError(result.error)
     assert.equal(result.status, 0, `${target} ${update ? 'capture' : 'compare'} failed`)
     assert.ok(fs.existsSync(`${artifacts}/junit.xml`))
