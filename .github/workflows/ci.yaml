@@ -65,6 +65,8 @@ jobs:
             fi
           done
           bazelisk test //runtime:preload_browser_test --test_output=errors
+      - name: Verify generated capture bounds and pixels
+        run: bazelisk test //runtime:capture_browser_test --test_output=errors
       - name: Run E2E and visual tests
         working-directory: examples/react
         run: bazelisk test //:e2e_test //:visual_test //:component_test //:component_visual_test //:remote_integration_test //:native_config_test //:native_visual_test --test_output=errors
