@@ -44,7 +44,7 @@ try {
     proxy.missingImages.add(image)
     await run(/Preload required image/)
     // Exercise the patched pull path too, independently of runner preflight.
-    await run(/Preload required image/, image)
+    await run(/TESTCONTAINERS_PULL_POLICY=never/, image)
     assert.equal(proxy.containers.length, 0)
     assert.equal(proxy.networks.length, 0)
     proxy.missingImages.clear()

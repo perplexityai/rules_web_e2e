@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url)
 let stop: (() => Promise<void>) | undefined
 try {
   if (process.env.DIRECT_IMAGE) {
+    process.env.TESTCONTAINERS_PULL_POLICY = 'never'
     process.env.TESTCONTAINERS_PRELOADED_IMAGES_ONLY = 'true'
     await new GenericContainer(process.env.DIRECT_IMAGE).start()
     throw new Error('A missing image unexpectedly started')

@@ -27,6 +27,7 @@ export async function startBrowser(
   )
   if (host) process.env.TESTCONTAINERS_HOST_OVERRIDE = host
   // The pinned Testcontainers patch enforces this before auth, pulls, or reuse.
+  process.env.TESTCONTAINERS_PULL_POLICY = 'never'
   process.env.TESTCONTAINERS_PRELOADED_IMAGES_ONLY = 'true'
   const client = await getContainerRuntimeClient()
   for (const reference of [image, process.env.RYUK_CONTAINER_IMAGE || '']) {
