@@ -52,7 +52,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
   writeFileSync(
     join(temp, 'custom.js'),
     `export default {
-    testDir: '/wrong', outputDir: '/wrong', updateSnapshots: 'all',
+    outputDir: '/wrong', updateSnapshots: 'all',
     globalSetup: './setup.js', globalTeardown: ['./setup.js'],
     webServer: [{command: 'node app.js', port: 8080, reuseExistingServer: true},
       {command: 'node api.js', port: 8081, cwd: './backend'}],
@@ -201,6 +201,55 @@ test('host suites reject remote connection overrides at config and project scope
     assert.equal(config.use.browserName, 'chromium')
   } finally {
     for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key]
+    Object.assign(process.env, previous)
+    rmSync(temp, {recursive: true, force: true})
+  }
+})
+
+test('suite config rejects explicit native discovery instead of broadening selection', async () => {
+  const {mkdtempSync, writeFileSync, rmSync} = await import('node:fs')
+  const {tmpdir} = await import('node:os')
+  const {join} = await import('node:path')
+  const temp = mkdtempSync(join(tmpdir(), 'selection-config-'))
+  const previous = {...process.env}
+  writeFileSync(join(temp, 'package.json'), '{"type":"module"}')
+  Object.assign(process.env, {
+    VRT_MODE: 'e2e', VRT_APP_URL: 'http://localhost:1234',
+    VRT_OUTPUTS: temp, VRT_WS_ENDPOINT: 'ws://localhost:5678',
+    VRT_NETWORK_ORIGINS: '[]', VRT_TEST_ROOT: temp,
+    VRT_TEST_FILES: JSON.stringify([join(temp, 'auth.spec.js'), join(temp, 'app.spec.js')]),
+  })
+  delete process.env.VRT_MATCHING
+  try {
+    const cases = [
+      {testMatch: '*.spec.ts'},
+      {testIgnore: []},
+      {testDir: '.'},
+      {projects: [{name: 'setup', testMatch: '*.spec.js'}, {name: 'app', dependencies: ['setup']}]},
+      {projects: [{name: 'app', testIgnore: '*.spec.js'}]},
+      {projects: [{name: 'app', testDir: './app'}]},
+    ]
+    for (const [index, custom] of cases.entries()) {
+      process.env.VRT_CONFIG_OVERRIDE = join(temp, `config-${index}.js`)
+      writeFileSync(process.env.VRT_CONFIG_OVERRIDE, `export default ${JSON.stringify(custom)}`)
+      await assert.rejects(
+        import(new URL(`./suite-config.js?selection-${index}`, import.meta.url).href),
+        /unsupported: select compiled specs with the Bazel tests attribute/
+      )
+    }
+    process.env.VRT_CONFIG_OVERRIDE = join(temp, 'allowed.js')
+    writeFileSync(process.env.VRT_CONFIG_OVERRIDE,
+      "export default {projects: [{name: 'desktop'}, {name: 'mobile', use: {viewport: {width: 390, height: 844}}}]}")
+    const {default: config} = await import(new URL('./suite-config.js?selection-allowed', import.meta.url).href)
+    for (const project of config.projects) {
+      const selected = ['auth', 'app', 'undeclared'].filter(name =>
+        project.testMatch.some((pattern: RegExp) => pattern.test(join(temp, `${name}.spec.js`))))
+      assert.deepEqual(selected, ['auth', 'app'])
+    }
+    assert.deepEqual(config.projects[1].use.viewport, {width: 390, height: 844})
+  } finally {
+    for (const key of Object.keys(process.env))
+      if (!(key in previous)) delete process.env[key]
     Object.assign(process.env, previous)
     rmSync(temp, {recursive: true, force: true})
   }

@@ -158,6 +158,9 @@ Playwright config to preserve device-pixel baselines at higher pixel densities.
 The runner retains ownership of discovery, browser connection, output paths,
 required list/JUnit reports, and snapshot policy when composing overrides. Visual targets reject
 Playwright projects; use separate targets and baseline directories instead.
+Explicit `testMatch`, `testIgnore`, and `testDir` are rejected in consumer configs
+and projects: the Bazel `tests` attribute owns suite selection. See
+[suite restructuring](e2e.md#suite-selection-belongs-to-bazel).
 
 Custom reporters use the standard Playwright `reporter` field and run alongside
 required list/JUnit reports in E2E, component, and VRT targets:

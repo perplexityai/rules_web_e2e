@@ -133,3 +133,19 @@ For VRT, if an extra service endpoint changes between environments, declare its 
 name in `network_origins_env = ["AUTH_ORIGIN"]`. Only named, nonempty variables
 are read, and each must be an exact HTTP(S) origin without paths, credentials,
 or wildcards. Static endpoints remain in `network_origins`.
+
+## Suite selection belongs to Bazel
+
+Explicit `testMatch`, `testIgnore`, and `testDir` settings are rejected at the
+config and project level. Declare preselected compiled specs through `tests`.
+Projects can vary execution settings (such as viewport) over that same suite.
+For independent suites, use separate targets and configs without discovery filters:
+
+```starlark
+web_e2e_test(name = "auth_test", tests = ":compiled_auth_specs", config = ":config")
+web_e2e_test(name = "app_test", tests = ":compiled_app_specs", config = ":config")
+```
+
+If authentication is setup rather than a test suite, put it in an app-suite
+fixture. Bazel tests do not order other tests or consume their mutable outputs.
+Declare hermetically generated static fixture files through `data` instead.
