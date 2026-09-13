@@ -77,3 +77,16 @@ PR #28's production VM workflow is validating the complete runtime. The local
 remote-result handler preserves failure artifacts, propagates test exit status,
 and refuses failed or empty baseline updates. Its focused filesystem tests pass.
 The public remote action and `.update` rules still need to use this handler.
+
+The declared-browser branch of both public rules now creates remote comparison
+and capture actions, with local test/update consumers. Analysis verifies Linux
+amd64 execution constraints, `no-local`, and the declared runtime input path.
+The actiond patch also accepts that path through a declared command environment
+variable (`input-rootfs-env`), since generated artifact paths are determined
+during rule analysis. This updated patch passes full build and unit tests.
+The bootstrap's real-subprocess test proves that a failed consumer test produces
+downloadable artifacts and a failing local result.
+
+The first production VM CI attempt built actiond successfully, then failed while
+copying a two-file Bazel output list as one filename. The executable query is
+fixed. Full VM execution and public-rule end-to-end validation remain pending.

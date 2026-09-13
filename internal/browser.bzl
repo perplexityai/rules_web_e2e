@@ -2,6 +2,7 @@
 
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo", "runfile", _PLAYWRIGHT_IMAGE = "PLAYWRIGHT_IMAGE")
+load(":remote.bzl", "remote_browser_test")
 
 PLAYWRIGHT_IMAGE = _PLAYWRIGHT_IMAGE
 ShellInfo = provider(fields = ["directory", "entry_point"])
@@ -113,6 +114,10 @@ def browser_test(
         fail("browser is only supported for VRT; other browser tests use host browsers")
     if browser and (network_origins or network_origins_env):
         fail("Declared browser actions have loopback-only networking; supply local fixture servers")
+    if browser and env_inherit:
+        fail("Remote VRT requires explicit env values instead of env_inherit")
+    if browser and base_url_env and base_url_env not in env:
+        fail("Remote VRT base_url_env must have an explicit env value")
     if not visual and (network_origins or network_origins_env):
         fail("network_origins and network_origins_env are VRT-only; host browsers use the host network")
     if not visual and matching:
@@ -165,6 +170,9 @@ def browser_test(
         for key in ["PLAYWRIGHT_BROWSERS_PATH"]
         if key not in env and key not in env_inherit
     ]
+    if browser:
+        remote_browser_test(name, browser, common["env"], args, tags, timeout)
+        return
     js_test(
         name = name,
         args = args,

@@ -1,69 +1,8 @@
-diff --git a/MODULE.bazel.lock b/MODULE.bazel.lock
-index 3b6063e..2f153f7 100644
---- a/MODULE.bazel.lock
-+++ b/MODULE.bazel.lock
-@@ -1,5 +1,5 @@
- {
--  "lockFileVersion": 26,
-+  "lockFileVersion": 28,
-   "registryFileHashes": {
-     "https://bcr.bazel.build/bazel_registry.json": "8a28e4aff06ee60aed2a8c281907fb8bcbf3b753c91fb5a5c57da3215d5b3497",
-     "https://bcr.bazel.build/modules/abseil-cpp/20210324.2/MODULE.bazel": "7cd0312e064fde87c8d1cd79ba06c876bd23630c83466e9500321be55c96ace2",
-@@ -292,31 +292,9 @@
-   },
-   "selectedYankedVersions": {},
-   "moduleExtensions": {
--    "@@pybind11_bazel+//:internal_configure.bzl%internal_configure_extension": {
--      "general": {
--        "bzlTransitiveDigest": "b+RP7Sgl8KN0VHamrgTqzGLuYPcQ/Mo4ptNkkHUIIlA=",
--        "usagesDigest": "D1r3lfzMuUBFxgG8V6o0bQTLMk3GkaGOaPzw53wrwyw=",
--        "recordedInputs": [
--          "REPO_MAPPING:pybind11_bazel+,bazel_tools bazel_tools",
--          "FILE:@@pybind11_bazel+//MODULE.bazel e6f4c20442eaa7c90d7190d8dc539d0ab422f95c65a57cc59562170c58ae3d34"
--        ],
--        "generatedRepoSpecs": {
--          "pybind11": {
--            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
--            "attributes": {
--              "build_file": "@@pybind11_bazel+//:pybind11-BUILD.bazel",
--              "strip_prefix": "pybind11-2.12.0",
--              "urls": [
--                "https://github.com/pybind/pybind11/archive/v2.12.0.zip"
--              ]
--            }
--          }
--        }
--      }
--    },
-     "@@rules_kotlin+//src/main/starlark/core/repositories:bzlmod_setup.bzl%rules_kotlin_extensions": {
-       "general": {
--        "bzlTransitiveDigest": "Ga4z8lQy1YQ5rAMy+dOl0dqcCEBnYNCXku8x3YQmDZI=",
-+        "bzlTransitiveDigest": "+Kp6j204mBZ3mxlIDDR0gBoP45BZ4jYRhRAcB8sU0qc=",
-         "usagesDigest": "QI2z8ZUR+mqtbwsf2fLqYdJAkPOHdOV+tF2yVAUgRzw=",
-         "recordedInputs": [
-           "REPO_MAPPING:rules_kotlin+,bazel_tools bazel_tools"
-@@ -402,7 +380,7 @@
-     },
-     "@@rules_python+//python/extensions:config.bzl%config": {
-       "general": {
--        "bzlTransitiveDigest": "iibnRYgg8LpcfmH7EAnVwYePC3jsVaJ6Id8XxUjSZps=",
-+        "bzlTransitiveDigest": "dzD8Q2YmrP3fz8saWLHPmlwPLO91ImtTmP/c9JKTStM=",
-         "usagesDigest": "ZVSXMAGpD+xzVNPuvF1IoLBkty7TROO0+akMapt1pAg=",
-         "recordedInputs": [
-           "REPO_MAPPING:rules_python+,bazel_tools bazel_tools",
-@@ -1013,5 +991,6 @@
-         ]
-       }
-     }
--  }
-+  },
-+  "factsVersions": {}
- }
 diff --git a/README.md b/README.md
-index 4b113c5..c750fdf 100644
+index 4b113c5..691b936 100644
 --- a/README.md
 +++ b/README.md
-@@ -105,6 +105,23 @@ into a Linux toolchain automatically.
+@@ -105,6 +105,29 @@ into a Linux toolchain automatically.
  
  ## Runtime Selection
  
@@ -72,6 +11,12 @@ index 4b113c5..c750fdf 100644
 +```python
 +exec_properties = {"input-rootfs": "path/to/declared/runtime"}
 +```
++
++When the path is determined during action analysis (for example a Bazel tree
++artifact), use `input-rootfs-env` instead, naming a declared command environment
++variable containing the path. The two properties are mutually exclusive; missing
++or duplicate variables fail. The environment value participates in the action
++digest just like other declared inputs.
 +
 +The path is relative to the input root and must traverse directory entries, not
 +symlinks. actiond exposes its `bin`, `sbin`, `lib`, `lib64`, `usr`, `etc`, and
@@ -88,14 +33,14 @@ index 4b113c5..c750fdf 100644
  
  - `glibc2.31`
 diff --git a/src/action_executor.zig b/src/action_executor.zig
-index 29a208f..cafd459 100644
+index 29a208f..f4e2417 100644
 --- a/src/action_executor.zig
 +++ b/src/action_executor.zig
 @@ -304,6 +304,9 @@ pub fn executeDecodedActionWithOptions(
  
      const libc_runtime = try libcRuntimeFromPlatform(platform);
      const shell_runtime = try shellRuntimeFromPlatform(platform);
-+    const input_rootfs = try inputRootfsFromPlatform(platform);
++    const input_rootfs = try resolveInputRootfs(platform, command);
 +    if (input_rootfs != null and (libc_runtime != null or shell_runtime != null))
 +        return error.ConflictingRuntimeProperties;
      var bind_mounts: std.ArrayListUnmanaged(action_runner.BindMount) = .empty;
@@ -112,7 +57,7 @@ index 29a208f..cafd459 100644
          borrowed_source_count = std.math.maxInt(usize);
          try checkExecutionCancellation(options.cancellation);
          try appendCachedRuntimeMount(io, allocator, work_root, work_root_path, cache.common_etc, "etc", &bind_mounts);
-@@ -442,6 +447,56 @@ fn shellRuntimeFromPlatform(platform: ?reapi.Platform) !?[]const u8 {
+@@ -442,6 +447,75 @@ fn shellRuntimeFromPlatform(platform: ?reapi.Platform) !?[]const u8 {
      return null;
  }
  
@@ -123,6 +68,25 @@ index 29a208f..cafd459 100644
 +        if (result != null) return error.DuplicateInputRootfs;
 +        try validatePath(property.value);
 +        result = property.value;
++    }
++    return result;
++}
++
++fn resolveInputRootfs(platform: ?reapi.Platform, command: reapi.Command) !?[]const u8 {
++    var result = try inputRootfsFromPlatform(platform);
++    var found_env = false;
++    for ((platform orelse return result).properties) |property| {
++        if (!std.mem.eql(u8, property.name, "input-rootfs-env")) continue;
++        if (found_env or result != null) return error.ConflictingRuntimeProperties;
++        found_env = true;
++        if (property.value.len == 0) return error.MissingInputRootfsVariable;
++        for (command.environment_variables) |variable| {
++            if (!std.mem.eql(u8, variable.name, property.value)) continue;
++            if (result != null) return error.DuplicateInputRootfs;
++            try validatePath(variable.value);
++            result = variable.value;
++        }
++        if (result == null) return error.MissingInputRootfsVariable;
 +    }
 +    return result;
 +}
@@ -169,7 +133,7 @@ index 29a208f..cafd459 100644
  fn stressCaseFromCommand(command: reapi.Command) []const u8 {
      for (command.environment_variables) |variable| {
          if (std.mem.eql(u8, variable.name, "ACTIOND_STRESS_CASE") and variable.value.len != 0) return variable.value;
-@@ -2406,6 +2461,63 @@ test "libc runtime platform property accepts pinned runtimes" {
+@@ -2406,6 +2480,86 @@ test "libc runtime platform property accepts pinned runtimes" {
      }));
  }
  
@@ -188,6 +152,29 @@ index 29a208f..cafd459 100644
 +            .{ .name = "input-rootfs", .value = "b" },
 +        },
 +    }));
++}
++
++test "input-rootfs-env resolves only a unique declared command variable" {
++    const platform: reapi.Platform = .{ .properties = &.{.{ .name = "input-rootfs-env", .value = "RUNTIME" }} };
++    try std.testing.expectEqualStrings("bazel-out/runtime", (try resolveInputRootfs(platform, .{
++        .environment_variables = &.{.{ .name = "RUNTIME", .value = "bazel-out/runtime" }},
++    })).?);
++    try std.testing.expectError(error.MissingInputRootfsVariable, resolveInputRootfs(platform, .{}));
++    try std.testing.expectError(error.EscapingExecPath, resolveInputRootfs(platform, .{
++        .environment_variables = &.{.{ .name = "RUNTIME", .value = "../host" }},
++    }));
++    try std.testing.expectError(error.DuplicateInputRootfs, resolveInputRootfs(platform, .{
++        .environment_variables = &.{
++            .{ .name = "RUNTIME", .value = "one" },
++            .{ .name = "RUNTIME", .value = "two" },
++        },
++    }));
++    try std.testing.expectError(error.ConflictingRuntimeProperties, resolveInputRootfs(.{
++        .properties = &.{
++            .{ .name = "input-rootfs", .value = "literal" },
++            .{ .name = "input-rootfs-env", .value = "RUNTIME" },
++        },
++    }, .{}));
 +}
 +
 +test "input-rootfs links CAS runtime directories but preserves executor-owned locations" {
