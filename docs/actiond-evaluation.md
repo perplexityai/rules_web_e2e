@@ -1,5 +1,7 @@
 # actiond evaluation for VRT
 
+Historical evaluation; the implemented path is described in [VRT on actiond](actiond.md).
+
 Source review on 2026-09-13 at upstream commit
 [`8a42c3d`](https://github.com/hermeticbuild/actiond/tree/8a42c3d481df3a1bf1b80e95a9bb991a207fc035).
 The initial review below is followed by a [runnable prototype](../experiments/actiond/README.md).

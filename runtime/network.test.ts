@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
-import {networkTargets, remoteAppUrl, environmentOrigins} from './network.js'
+import {remoteAppUrl} from './network.js'
 
 test('remote URL selection preserves paths and permits only explicit destinations', () => {
   const url = remoteAppUrl({
@@ -8,10 +8,6 @@ test('remote URL selection preserves paths and permits only explicit destination
     APP_URL: 'https://app.example/nested/?locale=fr',
   })!
   assert.equal(url, 'https://app.example/nested/?locale=fr')
-  assert.equal(
-    networkTargets(url, ['https://auth.example', 'http://127.0.0.1:8080']),
-    'app.example:443,auth.example:443,127.0.0.1:8080'
-  )
   assert.equal(
     remoteAppUrl({VRT_BASE_URL: 'http://localhost:8080/'}),
     'http://localhost:8080/'
@@ -35,30 +31,4 @@ test('remote mode fails closed for missing or malformed endpoints', () => {
     {VRT_BASE_URL: 'https://app.example', VRT_BASE_URL_ENV: 'APP_URL'},
   ])
     assert.throws(() => remoteAppUrl(env))
-  for (const origin of [
-    'https://*.example',
-    'https://app.example/path',
-    'file:///tmp',
-  ])
-    assert.throws(() => networkTargets('https://app.example', [origin]))
-})
-
-test('only declared environment endpoints join the exact origin allowlist', () => {
-  const env = {
-    BASELINE_URL: 'https://baseline.example',
-    UNDECLARED: 'https://other.example',
-  }
-  assert.equal(
-    networkTargets(
-      'http://localhost:8080',
-      environmentOrigins(['BASELINE_URL', 'UNSET'], env)
-    ),
-    'localhost:8080,baseline.example:443'
-  )
-  assert.throws(() =>
-    networkTargets(
-      'http://localhost:8080',
-      environmentOrigins(['BASELINE_URL'], {BASELINE_URL: 'https://*.example'})
-    )
-  )
 })

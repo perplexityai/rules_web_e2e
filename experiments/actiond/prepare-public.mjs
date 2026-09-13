@@ -85,4 +85,13 @@ visual_test(
     env = {"ACTIOND_HANG": "1"},
     execution_timeout_seconds = 8,
 )
+visual_test(
+    name = "actiond_cancel_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_failure_specs",
+    baseline_dir = "__actiond_cancel__",
+    env = {"ACTIOND_HANG": "1"},
+    execution_timeout_seconds = 90,
+)
 `)

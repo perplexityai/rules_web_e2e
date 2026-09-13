@@ -1,10 +1,11 @@
+load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_archive")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_binary", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_link_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@rules_web_e2e//component:defs.bzl", "browser_shell", "component_browser_test")
 load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_test")
-load("@rules_web_e2e//playwright:defs.bzl", "playwright_runtime")
+load("@rules_web_e2e//playwright:defs.bzl", "browser_runtime", "playwright_runtime")
 load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test", "visual_test")
 
 npm_link_all_packages(name = "node_modules")
@@ -35,6 +36,7 @@ web_e2e_test(
 )
 
 visual_test(
+    browser = ":browser",
     name = "native_visual_test",
     baseline_dir = "__native_screenshots__",
     baselines = glob(
@@ -149,6 +151,7 @@ js_library(
 )
 
 component_visual_test(
+    browser = ":browser",
     name = "visual_test",
     baselines = glob(
         ["__screenshots__/*.png"],
@@ -159,6 +162,7 @@ component_visual_test(
 )
 
 component_visual_test(
+    browser = ":browser",
     name = "component_visual_test",
     baseline_dir = "__component_screenshots__",
     baselines = glob(
@@ -240,33 +244,22 @@ js_library(
     deps = [":typecheck_project"],
 )
 
-# Network isolation is a property of the VRT container, not host-browser tests.
+# VRT runs in a Linux action with loopback-only networking.
 visual_test(
+    browser = ":browser",
     name = "network_isolation_test",
     tests = ":isolation_specs",
     shell = ":app_shell",
     baseline_dir = "__isolation_screenshots__",
 )
 
-js_test(
-    name = "preloaded_vrt_test",
-    copy_data_to_bin = False,
-    data = [
-        "package.json",
-        ":native_visual_test",
-        ":native_visual_test.update",
-        "__native_screenshots__/saved.png",
-        "@rules_web_e2e//runtime:typecheck",
-        "@rules_web_e2e//runtime:images",
-    ],
-    entry_point = "@rules_web_e2e//runtime:preload_lifecycle_entry",
-    env = {
-        "PRELOAD_COMPARE": "$(rlocationpath :native_visual_test)",
-        "PRELOAD_UPDATE": "$(rlocationpath :native_visual_test.update)",
-        "PRELOAD_BASELINE": "$(rlocationpath __native_screenshots__/saved.png)",
-        "PRELOAD_IMAGES": "$(rlocationpath @rules_web_e2e//runtime:images)",
-    },
-    env_inherit = ["DOCKER_HOST"],
-    tags = ["manual", "external", "no-sandbox", "no-remote", "no-cache"],
-    timeout = "long",
+# Supply this declared archive from your own image build; see docs/browser-runtime.md.
+browser_runtime_archive(name = "runtime_files", archive = "runtime.tar")
+browser_runtime(
+    name = "browser",
+    root = ":runtime_files",
+    executable = "chromium/chrome-headless-shell",
+    node = "bin/node",
+    library_dirs = ["lib"],
+    fontconfig = "etc/fonts",
 )

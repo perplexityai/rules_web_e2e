@@ -5,7 +5,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url'
 import {createRequire} from 'node:module'
 import {validatePlaywrightVersions} from './versions.js'
 import {spawn, type ChildProcess} from 'node:child_process'
-import {remoteAppUrl, networkTargets, environmentOrigins} from './network.js'
+import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
 import {baselineDestination, updateBaselines} from './baselines.js'
 import {stageRunfiles, testEnvironment} from './isolation.js'
@@ -22,17 +22,6 @@ async function main() {
   const gallery = required('VRT_MODE') === 'visual'
   const visual = gallery || required('VRT_MODE') === 'visual-spec'
   const remote = remoteAppUrl(process.env)
-  const origins = [
-    ...(JSON.parse(required('VRT_NETWORK_ORIGINS')) as string[]),
-    ...environmentOrigins(
-      JSON.parse(required('VRT_NETWORK_ORIGINS_ENV')) as string[],
-      process.env
-    ),
-  ]
-  // Validate explicit tunnel destinations before allocating resources.
-  if (visual) networkTargets(remote || 'http://127.0.0.1', origins)
-  else if (origins.length)
-    throw new Error('network_origins is supported only for VRT')
   const hostEnv = visual
     ? {}
     : hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
@@ -71,10 +60,10 @@ async function main() {
       test: string
       core: string
       version: string
-      images: {image: string; platform: string | null; roles: string[]}[]
     }
   }
   const selectors = testArguments(visual, args, descriptor.tests)
+  if (visual && !descriptor.browser) throw new Error("VRT requires a declared browser runtime")
   const declaredBrowser = descriptor.browser
     ? browserRuntime(inputs, descriptor.browser)
     : undefined
@@ -158,7 +147,6 @@ async function main() {
     ),
     ...hostEnv,
     ...declaredBrowser?.env,
-    VRT_NETWORK_ORIGINS: JSON.stringify(origins),
     VRT_INPUTS: inputs,
     VRT_MODE: required('VRT_MODE'),
     VRT_TEST_ROOT: visual ? testRoot : inputs,
@@ -189,7 +177,6 @@ async function main() {
     TEST_UNDECLARED_OUTPUTS_DIR: outputs,
     PATH: `${path.dirname(node)}:/usr/bin:/bin`,
   }
-  let browser: {endpoint: string; stop(): Promise<void>} | undefined
   const children: ChildProcess[] = []
   let succeeded = false
   const killChildren = () => {
@@ -257,22 +244,6 @@ async function main() {
         })
       })
     }
-    if (visual && !declaredBrowser) {
-      networkTargets(appUrl!, origins)
-      // Docker settings and helper images apply only to VRT.
-      for (const key of Object.keys(process.env))
-        if (key.startsWith('TESTCONTAINERS_') || key.startsWith('RYUK_'))
-          delete process.env[key]
-      const browserImage = descriptor.playwright.images.find(image =>
-        image.roles.includes('browser')
-      )!
-      const reaperImage = descriptor.playwright.images.find(image =>
-        image.roles.includes('reaper')
-      )!
-      process.env.RYUK_CONTAINER_IMAGE = reaperImage.image
-      const {startBrowser} = await import('./container.js')
-      browser = await startBrowser(browserImage.image, core, browserImage.platform!)
-    }
     if (interrupted) throw new Error('VRT interrupted')
     const run = (discover: boolean) =>
       new Promise<number>((resolve, reject) => {
@@ -293,7 +264,6 @@ async function main() {
               ...env,
               VRT_DISCOVER: discover ? '1' : '0',
               VRT_APP_URL: appUrl,
-              ...(browser ? {VRT_WS_ENDPOINT: browser.endpoint} : {}),
             },
           }
         )
@@ -359,7 +329,6 @@ async function main() {
           })
       )
     )
-    await browser?.stop()
     if (interrupted) process.exitCode = 143
     if (succeeded) fs.rmSync(temp, {recursive: true, force: true})
     process.removeListener('SIGTERM', onSignal)

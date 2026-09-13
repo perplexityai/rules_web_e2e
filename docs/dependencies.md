@@ -5,8 +5,7 @@ versions are exact pins; lockfiles pin transitive dependencies.
 
 | Dependency                               | Version                                   |
 | ---------------------------------------- | ----------------------------------------- |
-| Playwright Test / client / browser image | 1.63.0                                    |
-| Testcontainers                           | 12.1.0                                    |
+| Playwright Test / client | 1.63.0                                    |
 | Example build: Vite / React plugin       | 8.2.2 / 6.1.1                             |
 | TypeScript                               | 7.0.2                                     |
 | React / React DOM in standalone example  | 19.2.8                                    |
@@ -17,7 +16,7 @@ versions are exact pins; lockfiles pin transitive dependencies.
 | rules_js / rules_ts                      | 3.4.1 / 3.10.1                            |
 | bazel_lib / rules_shell                  | 3.7.2 / 0.8.0                             |
 
-The Playwright image pins its Linux amd64 manifest digest. Keep image and npm
+Callers pin their Linux amd64 runtime image or archive. Keep browser and npm
 versions synchronized and compare reviewed screenshots after upgrades. pnpm 12's
 release-age exceptions name only the exact recent releases selected here.
 

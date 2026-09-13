@@ -1,7 +1,7 @@
 import {expect, test} from '@playwright/test'
 import {createServer} from 'node:http'
 
-test('browser can reach the fixture but cannot tunnel to unrelated host ports', async ({
+test('browser and fixture services share the isolated action loopback', async ({
   page,
 }) => {
   let requests = 0
@@ -21,8 +21,9 @@ test('browser can reach the fixture but cannot tunnel to unrelated host ports', 
     await expect(
       page.getByRole('button', {name: 'Save', exact: true})
     ).toBeVisible()
-    await expect(page.goto(url, {timeout: 2000})).rejects.toThrow()
-    expect(requests).toBe(0)
+    await page.goto(url)
+    await expect(page.locator('body')).toHaveText('undeclared service')
+    expect(requests).toBeGreaterThan(0)
   } finally {
     await new Promise<void>((resolve, reject) =>
       unrelated.close(error => (error ? reject(error) : resolve()))

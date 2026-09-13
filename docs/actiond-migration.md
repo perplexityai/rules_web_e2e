@@ -2,7 +2,8 @@
 
 Active implementation plan. The existing Chromium prototype in PR #27 passes
 through actiond's Linux amd64 VM after applying `actiond-advice.patch` (upstream
-actiond PR #48). Production VRT still uses Testcontainers.
+actiond PR #48). This branch replaces the VRT backend with actiond; final
+validation of the replacement remains in progress.
 
 ## Execution contract
 
@@ -87,7 +88,10 @@ mark the goal complete based solely on the standalone prototype passing.
   and the real OCI-built runtime matches the archive-built browser, Node, and
   fixture font. The CI example now constructs and passes an OCI image target.
 
-Next: verify the full public-rule workflow in the VM, migrate concrete
-AGI/FormatJS callsites, and remove the legacy backend. Baseline application,
+The legacy backend and dependencies are now removed. The actual FormatJS
+editor gallery captures all eight screenshots under process isolation, and host
+E2E/component suites still pass. The next VM run includes deadline coverage and
+a larger worker after a 3 GiB guest ran out of memory with three parallel suites.
+Next: finish full VM failure/cancellation validation and consumer migration evidence. Baseline application,
 failures, cancellation, and isolation still need end-to-end VM coverage through
 the public rules. OCI support itself does not complete the migration.

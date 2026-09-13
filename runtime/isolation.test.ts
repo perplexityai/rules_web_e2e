@@ -3,7 +3,6 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
-import {networkTargets} from './network.js'
 import {stageRunfiles, testEnvironment} from './isolation.js'
 
 test('staging excludes adjacent files and preserves a single npm package identity', t => {
@@ -62,22 +61,4 @@ test('undeclared shell variables cannot change compare versus update', t => {
   assert.deepEqual(update, compare)
   assert.equal(update.FIXTURE, 'declared')
   assert.equal(update.HOME, path.join(root, 'home'))
-})
-
-test('network opt-ins require explicit origins and keep port boundaries', () => {
-  assert.equal(
-    networkTargets('http://127.0.0.1:4567/', [
-      'https://fixtures.example',
-      'http://localhost:8080',
-    ]),
-    '127.0.0.1:4567,fixtures.example:443,localhost:8080'
-  )
-  for (const origin of [
-    '*',
-    'https://*.example',
-    'https://user:pass@example.com',
-    'https://example.com/path',
-    'file:///tmp/file',
-  ])
-    assert.throws(() => networkTargets('http://127.0.0.1:4567', [origin]))
 })

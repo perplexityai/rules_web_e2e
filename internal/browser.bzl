@@ -1,6 +1,6 @@
 """Execute compiled browser inputs with a reusable Playwright runtime."""
 
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo", "runfile", _PLAYWRIGHT_IMAGE = "PLAYWRIGHT_IMAGE")
 load(":remote.bzl", "remote_browser_test")
 
@@ -44,8 +44,8 @@ def _inputs_impl(ctx):
         fail("tests must supply compiled JavaScript specs")
     runtime = ctx.attr.playwright[PlaywrightInfo]
     visual = ctx.attr.mode in ["visual", "visual-spec"]
-    if visual and not ctx.attr.browser and not runtime.images:
-        fail("VRT requires a matching digest-pinned browser image on playwright_runtime")
+    if visual and not ctx.attr.browser:
+        fail("VRT requires a declared browser_runtime via browser")
     shell = ctx.attr.shell[ShellInfo] if ctx.attr.shell else None
     result = ctx.actions.declare_file(ctx.label.name + ".json")
     ctx.actions.write(result, json.encode({
@@ -54,7 +54,7 @@ def _inputs_impl(ctx):
         "matching": _compiled(ctx.attr.matching, "matching"),
         "server": _compiled(ctx.attr.server, "server"),
         "shell": {"directory": shell.directory, "entryPoint": shell.entry_point} if shell else None,
-        "playwright": {"test": runtime.test, "core": runtime.core, "version": runtime.version, "images": runtime.images if visual else []},
+        "playwright": {"test": runtime.test, "core": runtime.core, "version": runtime.version},
         "browser": ctx.attr.browser[BrowserRuntimeInfo].descriptor if ctx.attr.browser else None,
     }))
     inputs = ctx.runfiles(files = [result])
@@ -111,16 +111,16 @@ def browser_test(
         fail("VRT_* environment names are reserved for the browser runtime")
     if visual and component:
         fail("Visual and component modes are separate targets")
+    if visual and not browser:
+        fail("VRT requires browser = <caller-owned browser_runtime target>")
     if browser and not visual:
         fail("browser is only supported for VRT; other browser tests use host browsers")
-    if browser and (network_origins or network_origins_env):
-        fail("Declared browser actions have loopback-only networking; supply local fixture servers")
+    if network_origins or network_origins_env:
+        fail("Network origin exceptions are unsupported: VRT uses action-local fixtures and host tests use the host network")
     if browser and env_inherit:
         fail("Remote VRT requires explicit env values instead of env_inherit")
     if browser and base_url_env and base_url_env not in env:
         fail("Remote VRT base_url_env must have an explicit env value")
-    if not visual and (network_origins or network_origins_env):
-        fail("network_origins and network_origins_env are VRT-only; host browsers use the host network")
     if not visual and matching:
         fail("matching is only supported by visual targets")
     if execution_timeout_seconds <= 0:
@@ -136,7 +136,6 @@ def browser_test(
         fail("base_url must not be empty")
     if base_url_env and base_url_env not in env and base_url_env not in env_inherit:
         env_inherit = env_inherit + [base_url_env]
-    env_inherit = env_inherit + [key for key in network_origins_env if key not in env and key not in env_inherit]
     js_library(name = name + "_sources", srcs = baselines, data = data)
     _inputs(
         name = name + "_inputs",
@@ -153,20 +152,18 @@ def browser_test(
     common = dict(
         copy_data_to_bin = False,
         entry_point = Label("//runtime:runner_entry"),
-        data = [":" + name + "_inputs", Label("//runtime:files")] + ([Label("//runtime:container_files")] if visual and not browser else []) + data,
+        data = [":" + name + "_inputs", Label("//runtime:files")] + data,
         env = env | {
             "VRT_DESCRIPTOR": "$(rlocationpath :%s_inputs)" % name,
             "VRT_BASE_URL": base_url or "",
             "VRT_BASE_URL_ENV": base_url_env or "",
             "VRT_MODE": "visual-spec" if visual and tests else "visual" if visual else "component" if component else "e2e",
             "VRT_BASELINE_RELATIVE": (native.package_name() + "/" if native.package_name() else "") + baseline_dir if visual else "",
-            "VRT_NETWORK_ORIGINS": json.encode(network_origins),
-            "VRT_NETWORK_ORIGINS_ENV": json.encode(network_origins_env),
             "VRT_ENV_NAMES": json.encode(env.keys() + env_inherit),
             "VRT_TIMEOUT_MS": str(execution_timeout_seconds * 1000),
         },
     )
-    browser_env_inherit = [] if browser else ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH", "DOCKER_CONFIG"] if visual else [
+    browser_env_inherit = [
         key
         for key in ["PLAYWRIGHT_BROWSERS_PATH"]
         if key not in env and key not in env_inherit
@@ -182,5 +179,3 @@ def browser_test(
         timeout = timeout,
         **common
     )
-    if visual:
-        js_binary(name = name + ".update", fixed_args = ["--update"], tags = ["manual"], **common)

@@ -61,7 +61,7 @@ flowchart LR
   Inputs --> Runtime[Shared browser runtime]
   Runtime --> Server[Consumer server adapter]
   Runtime --> Tests[Native Playwright Test]
-  Tests --> Browser[Pinned Testcontainers browser]
+  Tests --> Browser[Host Chromium]
   Browser -->|Allowed fixture endpoint| Server
   Tests --> Results[JUnit, failure screenshots and traces]
 ```
@@ -72,7 +72,7 @@ route registries, and framework conventions remain in the consuming repository.
 Page objects and `test.extend` fixtures work normally. Prefer `page.route` or local
 fixture APIs for deterministic data; declare any authentication state files in
 `data`. Keep credentials in explicitly declared environment variables rather
-than checked-in state. Host browsers use host networking; `network_origins` is reserved for VRT.
+than checked-in state. Host browsers use host networking; VRT uses separate offline Linux actions.
 
 E2E is manual, local, and uncached. It requires a provisioned host browser, not
 Docker; see [host setup](host-browsers.md).
@@ -114,8 +114,7 @@ Supply credentials through declared environment or private generated inputs.
 The version-matched host browser, staged specs, clean environment, and artifacts
 are shared with local E2E.
 Live data and remote deployments are external inputs, so these tests remain
-uncached and do not promise reproducible application state. The same endpoint
-options work with VRT, whose `.update` remains explicit.
+uncached and do not promise reproducible application state. VRT fixtures must run inside their Linux action; deployed URLs belong in host E2E.
 
 `//:remote_integration_test` in the React example starts an independent fixture
 on a random port and verifies base paths, interactions, host-network
@@ -129,10 +128,8 @@ compiled specs, config (or server/shell/URL), matching policy, and baseline inpu
 `bazel run //:visual_test.update` replaces baselines only after the full suite succeeds.
 The [native example](../examples/react/native.visual.spec.ts) exercises this path.
 
-For VRT, if an extra service endpoint changes between environments, declare its variable
-name in `network_origins_env = ["AUTH_ORIGIN"]`. Only named, nonempty variables
-are read, and each must be an exact HTTP(S) origin without paths, credentials,
-or wildcards. Static endpoints remain in `network_origins`.
+VRT requires a declared `browser` and action-local fixture services. See
+[actiond execution](actiond.md); external origin exceptions are unsupported.
 
 ## Suite selection belongs to Bazel
 

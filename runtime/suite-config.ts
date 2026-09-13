@@ -79,7 +79,7 @@ if (
     custom.projects?.some(project => project.use?.connectOptions))
 )
   throw new Error(
-    'E2E and component tests launch host browsers; connectOptions is managed only for VRT'
+    'E2E and component tests launch host browsers; connectOptions is unsupported'
   )
 
 // Keep browser connections, baseline updates, and required reports managed.
@@ -115,7 +115,7 @@ const testMatch =
 const managedUse = {
   ...merged.use,
   connectOptions: defaults.use!.connectOptions,
-  ...(visual && process.env.VRT_CHROMIUM_EXECUTABLE
+  ...(visual
     ? {launchOptions: defaults.use!.launchOptions}
     : {}),
   browserName: 'chromium' as const,
