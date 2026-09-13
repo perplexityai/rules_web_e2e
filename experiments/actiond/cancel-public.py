@@ -34,7 +34,9 @@ with log.open("w") as output:
         # time for this deliberately 90-second suite to enter the worker.
         time.sleep(5)
         assert process.poll() is None, log.read_text()
-        os.killpg(process.pid, signal.SIGINT)
+        # Bazelisk forwards signals to its Bazel child. Signalling the whole
+        # group delivers the interrupt twice and can crash Bazel's shutdown.
+        process.send_signal(signal.SIGINT)
         code = process.wait(timeout=20)
         assert code in (8, 130, -signal.SIGINT), (code, log.read_text())
     finally:
