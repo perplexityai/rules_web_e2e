@@ -59,34 +59,21 @@ mark the goal complete based solely on the standalone prototype passing.
 
 ## Current progress
 
-The runtime branch adds `browser_runtime` metadata, direct Chromium launch, and
-output-only baseline capture. Both production VRT modes pass capture and
-comparison under the actual actiond process runner, with JUnit reports. The
-diagnostic prepares existing Bazel runfiles and injects a browser descriptor;
-it does not yet prove the public rule's remote execution or runtime packaging.
-The legacy backend remains during this integration work.
+- Both production VRT modes capture and compare under actiond process isolation.
+- Public rules with a declared browser now create remote comparison/capture
+  actions and local result consumers. Bazel analysis verifies Linux amd64
+  constraints, disabled local execution, and declared runtime paths.
+- Failed and empty captures preserve source baselines; downloaded failure
+  reports survive through the local test wrapper. Filesystem and subprocess
+  regression tests pass.
+- The separate actiond `input-rootfs`/`input-rootfs-env` patch passes actiond's
+  full build and unit tests. The production VM workflow is still validating it.
+- `browser_runtime_archive` unpacks a caller-produced flattened runtime tar
+  through a declared Python toolchain. It normalizes image-root links, preserves
+  executables, and rejects dangling links and unflattened OCI whiteouts.
 
-Next: package a declared runtime filesystem that supplies `/bin/sh` and the ELF
-loader in the real VM, then execute the full suites through Bazel/REAPI. Native
-Playwright web servers demonstrated the shell requirement. Keep any actiond
-filesystem support isolated from the already-upstreamed kernel patch.
-
-The separate `actiond-input-rootfs.patch` now implements declared runtime
-directories at Linux absolute paths. Its full actiond build and unit tests pass;
-PR #28's production VM workflow is validating the complete runtime. The local
-remote-result handler preserves failure artifacts, propagates test exit status,
-and refuses failed or empty baseline updates. Its focused filesystem tests pass.
-The public remote action and `.update` rules still need to use this handler.
-
-The declared-browser branch of both public rules now creates remote comparison
-and capture actions, with local test/update consumers. Analysis verifies Linux
-amd64 execution constraints, `no-local`, and the declared runtime input path.
-The actiond patch also accepts that path through a declared command environment
-variable (`input-rootfs-env`), since generated artifact paths are determined
-during rule analysis. This updated patch passes full build and unit tests.
-The bootstrap's real-subprocess test proves that a failed consumer test produces
-downloadable artifacts and a failing local result.
-
-The first production VM CI attempt built actiond successfully, then failed while
-copying a two-file Bazel output list as one filename. The executable query is
-fixed. Full VM execution and public-rule end-to-end validation remain pending.
+Next: verify the full public-rule workflow in the VM, provide OCI-to-runtime
+packaging, migrate concrete AGI/FormatJS callsites, and remove the legacy backend.
+Archive support alone does not implement OCI layer application or complete the
+migration. Baseline application, failures, cancellation, and isolation still need
+end-to-end VM coverage through the public rules.

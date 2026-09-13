@@ -1,1 +1,16 @@
-exports_files(["defs.bzl"])
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+
+exports_files(["defs.bzl", "archive.bzl"])
+
+py_binary(
+    name = "unpack_runtime",
+    srcs = ["unpack_runtime.py"],
+    main = "unpack_runtime.py",
+)
+
+py_test(
+    name = "unpack_runtime_test",
+    size = "small",
+    srcs = ["unpack_runtime.py", "unpack_runtime_test.py"],
+    main = "unpack_runtime_test.py",
+)

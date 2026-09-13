@@ -2,7 +2,7 @@
 # Setup-only prototype: run inside the pinned Playwright image.
 set -euo pipefail
 out=${1:-/output}
-mkdir -p "$out"/{bin,lib,chromium,etc/fonts,fonts}
+mkdir -p "$out"/{bin,lib,lib64,chromium,etc/fonts,fonts}
 cp /usr/bin/node /bin/bash "$out/bin/"
 cp -a /ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/. "$out/chromium/"
 for binary in /usr/bin/node /bin/bash /ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell; do
@@ -11,12 +11,14 @@ for binary in /usr/bin/node /bin/bash /ms-playwright/chromium_headless_shell-124
   done
 done
 cp -L /lib64/ld-linux-x86-64.so.2 "$out/lib/"
-cp -a /usr/share/fonts/. "$out/fonts/"
+cp -L /lib64/ld-linux-x86-64.so.2 "$out/lib64/"
+ln -s bash "$out/bin/sh"
+cp -aL /usr/share/fonts/. "$out/fonts/"
 cat > "$out/etc/fonts/fonts.conf" <<'XML'
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
 <fontconfig>
-  <dir>/workspace/runtime/fonts</dir>
+  <dir prefix="relative">../../fonts</dir>
   <cachedir>/tmp/fontconfig</cachedir>
 </fontconfig>
 XML
