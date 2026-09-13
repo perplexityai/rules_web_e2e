@@ -7,6 +7,10 @@ on:
       - 'runtime/**'
       - 'internal/**'
       - 'playwright/**'
+      - 'examples/react/**'
+      - 'MODULE.bazel'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
       - '.github/workflows/actiond-production.yaml'
 
 permissions:
