@@ -52,6 +52,19 @@ jobs:
         with:
           bazelisk-cache: true
           repository-cache: true
+      - name: Preload declared images and verify credential-free browser startup
+        run: |
+          bazelisk build //runtime:images
+          manifest="$(bazelisk info bazel-bin)/runtime/images.json"
+          jq -r '.images[] | [.image, (.platform // "")] | @tsv' "$manifest" |
+          while IFS="$(printf '\t')" read -r image platform; do
+            if [ -n "$platform" ]; then
+              docker pull --platform "$platform" "$image"
+            else
+              docker pull "$image"
+            fi
+          done
+          bazelisk test //runtime:preload_browser_test --test_output=errors
       - name: Verify generated capture bounds and pixels
         run: bazelisk test //runtime:capture_browser_test --test_output=errors
       - name: Run E2E and visual tests

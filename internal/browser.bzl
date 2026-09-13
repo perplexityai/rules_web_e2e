@@ -50,7 +50,7 @@ def _inputs_impl(ctx):
         "matching": _compiled(ctx.attr.matching, "matching"),
         "server": _compiled(ctx.attr.server, "server"),
         "shell": {"directory": shell.directory, "entryPoint": shell.entry_point} if shell else None,
-        "playwright": {"test": runtime.test, "core": runtime.core, "version": runtime.version, "image": runtime.image},
+        "playwright": {"test": runtime.test, "core": runtime.core, "version": runtime.version, "images": runtime.images},
     }))
     inputs = ctx.runfiles(files = [result])
     for target in [ctx.attr.tests, ctx.attr.config, ctx.attr.matching, ctx.attr.server, ctx.attr.shell, ctx.attr.playwright, ctx.attr.sources]:

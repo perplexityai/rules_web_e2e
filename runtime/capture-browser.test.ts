@@ -8,7 +8,6 @@ import {createServer} from 'node:http'
 import {once} from 'node:events'
 import {spawn} from 'node:child_process'
 import {chromium} from 'playwright'
-import {startBrowser} from './container.js'
 import {testEnvironment} from './isolation.js'
 
 const require = createRequire(import.meta.url)
@@ -51,9 +50,20 @@ try {
     endpoint = browser.wsEndpoint()
     stopBrowser = () => browser.close()
   } else {
+    const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8')) as {
+      images: {image: string; platform: string | null; roles: string[]}[]
+    }
+    const browserImage = manifest.images.find(image => image.roles.includes('browser'))!
+    const reaperImage = manifest.images.find(image => image.roles.includes('reaper'))!
+    // Match the runner: configure the shared helper pin before importing Testcontainers.
+    for (const key of Object.keys(process.env))
+      if (key.startsWith('TESTCONTAINERS_') || key.startsWith('RYUK_')) delete process.env[key]
+    process.env.RYUK_CONTAINER_IMAGE = reaperImage.image
+    const {startBrowser} = await import('./container.js')
     const browser = await startBrowser(
-      process.env.CAPTURE_BROWSER_IMAGE!,
-      path.dirname(createRequire(require.resolve('playwright/package.json')).resolve('playwright-core/package.json'))
+      browserImage.image,
+      path.dirname(createRequire(require.resolve('playwright/package.json')).resolve('playwright-core/package.json')),
+      browserImage.platform!
     )
     endpoint = browser.endpoint
     stopBrowser = browser.stop

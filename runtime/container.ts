@@ -9,8 +9,22 @@ import {
 import {fileURLToPath} from 'node:url'
 import type {StartedTestContainer} from 'testcontainers'
 import {randomUUID} from 'node:crypto'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import {containerHostOverride} from './container-host.js'
 
-export async function startBrowser(image: string, core: string) {
+export async function startBrowser(
+  image: string,
+  core: string,
+  platform = 'linux/amd64'
+) {
+  const host = containerHostOverride(
+    fs.existsSync('/.dockerenv'),
+    process.env.DOCKER_HOST,
+    fs.existsSync(path.join(os.homedir(), '.testcontainers.properties'))
+  )
+  if (host) process.env.TESTCONTAINERS_HOST_OVERRIDE = host
   const client = await getContainerRuntimeClient()
   const reaper = await getReaper(client)
   const name = `vrt-${randomUUID()}`
@@ -75,7 +89,7 @@ export async function startBrowser(image: string, core: string) {
   }
   try {
     const container = await new BrowserContainer(image)
-      .withPlatform('linux/amd64')
+      .withPlatform(platform)
       .withNetwork(network)
       .withSharedMemorySize(1024 * 1024 * 1024)
       .withEnvironment({PLAYWRIGHT_BROWSERS_PATH: '/ms-playwright'})
@@ -122,7 +136,7 @@ export async function startBrowser(image: string, core: string) {
       }
     }
     const relay = await new ControlRelay()
-      .withPlatform('linux/amd64')
+      .withPlatform(platform)
       .withEnvironment({
         VRT_BROWSER_HOST: container.getIpAddress(network.getName()),
       })
