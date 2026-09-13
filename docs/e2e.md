@@ -72,14 +72,15 @@ route registries, and framework conventions remain in the consuming repository.
 Page objects and `test.extend` fixtures work normally. Prefer `page.route` or local
 fixture APIs for deterministic data; declare any authentication state files in
 `data`. Keep credentials in explicitly declared environment variables rather
-than checked-in state. Additional browser service origins require `network_origins`.
+than checked-in state. Host browsers use host networking; `network_origins` is reserved for VRT.
 
-Like VRT, E2E is manual, local, uncached, and requires a local Docker daemon.
+E2E is manual, local, and uncached. It requires a provisioned host browser, not
+Docker; see [host setup](host-browsers.md).
 Server processes and browser resources are cleaned up after completion. Failures
 return a nonzero status and preserve JUnit, screenshots, and traces in Bazel's
 undeclared outputs. The host test process (including Playwright's `request`
 fixture), custom server code, and setup scripts remain trusted and unsandboxed;
-browser network restrictions do not sandbox Node requests. Remote endpoints are caller-owned; automatic backend provisioning and authentication
+host browser and Node requests use host networking. Remote endpoints are caller-owned; automatic backend provisioning and authentication
 conventions remain consumer responsibilities.
 
 ## Existing application URLs
@@ -92,7 +93,6 @@ web_e2e_test(
     name = "deployed_test",
     base_url_env = "TEST_APP_URL",
     tests = ":compiled_specs",
-    network_origins = ["https://auth.example.test"],
 )
 ```
 
@@ -107,19 +107,19 @@ hosts are rejected. Use `page.goto('./')` to retain a base path.
 
 The runner starts no app process, performs no provisioning or health-check login,
 and never stops the endpoint. Specs or consumer setup own readiness and auth.
-Browser traffic is tunneled through the runner host, so that host must have the
-required DNS/VPN access. The endpoint's host and port are allowed automatically;
-redirects, API hosts, and identity providers need explicit `network_origins`.
+Browser traffic originates on the runner host, which must have the required
+DNS/VPN access. E2E does not enforce an origin allowlist.
 Supply credentials through declared environment or private generated inputs.
 
-The pinned browser, staged specs, clean environment, and artifacts are unchanged.
+The version-matched host browser, staged specs, clean environment, and artifacts
+are shared with local E2E.
 Live data and remote deployments are external inputs, so these tests remain
 uncached and do not promise reproducible application state. The same endpoint
 options work with VRT, whose `.update` remains explicit.
 
 `//:remote_integration_test` in the React example starts an independent fixture
-on a random port and verifies base paths, interactions, blocked undeclared
-origins, and caller-owned server lifetime. CI needs no public test site.
+on a random port and verifies base paths, interactions, host-network
+access and caller-owned server lifetime. CI needs no public test site.
 
 ## Interaction-driven visual tests
 
@@ -129,7 +129,7 @@ compiled specs, config (or server/shell/URL), matching policy, and baseline inpu
 `bazel run //:visual_test.update` replaces baselines only after the full suite succeeds.
 The [native example](../examples/react/native.visual.spec.ts) exercises this path.
 
-If an extra service endpoint changes between environments, declare its variable
+For VRT, if an extra service endpoint changes between environments, declare its variable
 name in `network_origins_env = ["AUTH_ORIGIN"]`. Only named, nonempty variables
 are read, and each must be an exact HTTP(S) origin without paths, credentials,
 or wildcards. Static endpoints remain in `network_origins`.

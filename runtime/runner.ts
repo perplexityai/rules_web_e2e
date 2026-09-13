@@ -9,6 +9,7 @@ import {remoteAppUrl, networkTargets, environmentOrigins} from './network.js'
 import {testArguments} from './arguments.js'
 import {baselineDestination, updateBaselines} from './baselines.js'
 import {stageRunfiles, testEnvironment} from './isolation.js'
+import {hostBrowserEnvironment} from './host-browser.js'
 
 function required(name: string) {
   const value = process.env[name]
@@ -28,7 +29,12 @@ async function main() {
     ),
   ]
   // Validate explicit tunnel destinations before allocating resources.
-  networkTargets(remote || 'http://127.0.0.1', origins)
+  if (visual) networkTargets(remote || 'http://127.0.0.1', origins)
+  else if (origins.length)
+    throw new Error('network_origins is supported only for VRT')
+  const hostEnv = visual
+    ? {}
+    : hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
   const args = process.argv.slice(2)
   const update = args.includes('--update')
   if (!visual && update) throw new Error('E2E tests do not update baselines')
@@ -144,6 +150,7 @@ async function main() {
       JSON.parse(required('VRT_ENV_NAMES')) as string[],
       temp
     ),
+    ...hostEnv,
     VRT_NETWORK_ORIGINS: JSON.stringify(origins),
     VRT_INPUTS: inputs,
     VRT_MODE: required('VRT_MODE'),
@@ -175,20 +182,7 @@ async function main() {
     TEST_UNDECLARED_OUTPUTS_DIR: outputs,
     PATH: `${path.dirname(node)}:/usr/bin:/bin`,
   }
-  // Docker discovery is deliberately separate from the fixture environment.
-  // Set before importing Testcontainers, which reads helper settings at import time.
-  for (const key of Object.keys(process.env))
-    if (key.startsWith('TESTCONTAINERS_') || key.startsWith('RYUK_'))
-      delete process.env[key]
-  const browserImage = descriptor.playwright.images.find(image =>
-    image.roles.includes('browser')
-  )!
-  const reaperImage = descriptor.playwright.images.find(image =>
-    image.roles.includes('reaper')
-  )!
-  process.env.RYUK_CONTAINER_IMAGE = reaperImage.image
-  const {startBrowser} = await import('./container.js')
-  let browser: Awaited<ReturnType<typeof startBrowser>> | undefined
+  let browser: {endpoint: string; stop(): Promise<void>} | undefined
   const children: ChildProcess[] = []
   let succeeded = false
   const killChildren = () => {
@@ -256,8 +250,22 @@ async function main() {
         })
       })
     }
-    networkTargets(appUrl!, origins)
-    browser = await startBrowser(browserImage.image, core, browserImage.platform!)
+    if (visual) {
+      networkTargets(appUrl!, origins)
+      // Docker settings and helper images apply only to VRT.
+      for (const key of Object.keys(process.env))
+        if (key.startsWith('TESTCONTAINERS_') || key.startsWith('RYUK_'))
+          delete process.env[key]
+      const browserImage = descriptor.playwright.images.find(image =>
+        image.roles.includes('browser')
+      )!
+      const reaperImage = descriptor.playwright.images.find(image =>
+        image.roles.includes('reaper')
+      )!
+      process.env.RYUK_CONTAINER_IMAGE = reaperImage.image
+      const {startBrowser} = await import('./container.js')
+      browser = await startBrowser(browserImage.image, core, browserImage.platform!)
+    }
     if (interrupted) throw new Error('VRT interrupted')
     const run = (discover: boolean) =>
       new Promise<number>((resolve, reject) => {
@@ -278,7 +286,7 @@ async function main() {
               ...env,
               VRT_DISCOVER: discover ? '1' : '0',
               VRT_APP_URL: appUrl,
-              VRT_WS_ENDPOINT: browser!.endpoint,
+              ...(browser ? {VRT_WS_ENDPOINT: browser.endpoint} : {}),
             },
           }
         )

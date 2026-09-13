@@ -1,6 +1,6 @@
 import {expect, test} from '@playwright/test'
 
-test('remote endpoint preserves base paths and restricts other destinations', async ({
+test('remote endpoint preserves base paths and uses host networking', async ({
   page,
 }) => {
   await page.goto('./')
@@ -16,5 +16,5 @@ test('remote endpoint preserves base paths and restricts other destinations', as
       return 'blocked'
     }
   }, process.env.EXAMPLE_BLOCKED_URL!)
-  expect(response).toBe('blocked')
+  expect(response).toBe('allowed')
 })

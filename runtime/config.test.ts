@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import {test} from 'node:test'
 import {componentBrowserConfig} from './config.js'
 
-test('component gallery resolves base paths without broadening browser access', () => {
+test('component gallery resolves base paths for host browser launch', () => {
   const previous = {...process.env}
   Object.assign(process.env, {
     VRT_APP_URL: 'https://preview.example/app/',
@@ -19,10 +19,7 @@ test('component gallery resolves base paths without broadening browser access', 
       config.use?.baseURL,
       'https://preview.example/app/gallery.html?theme=dark'
     )
-    assert.equal(
-      config.use?.connectOptions?.exposeNetwork,
-      'preview.example:443,auth.example:443'
-    )
+    assert.equal(config.use?.connectOptions, undefined)
     for (const gallery of [
       '',
       '//other.example/gallery',
@@ -165,11 +162,46 @@ test('compiled component suite preserves remote gallery paths and literal spec f
       config.use.baseURL,
       'https://preview.example/app/gallery.html?fixture=1'
     )
+    assert.equal(config.use.connectOptions, undefined)
     assert.equal(config.testMatch[0].test(file), true)
     assert.equal(config.testMatch[0].test('/compiled/f.browser.spec.js'), false)
   } finally {
     for (const key of Object.keys(process.env))
       if (!(key in previous)) delete process.env[key]
     Object.assign(process.env, previous)
+  }
+})
+
+
+test('host suites reject remote connection overrides at config and project scope', async () => {
+  const {mkdtempSync, writeFileSync, rmSync} = await import('node:fs')
+  const {tmpdir} = await import('node:os')
+  const {join} = await import('node:path')
+  const temp = mkdtempSync(join(tmpdir(), 'host-config-'))
+  const previous = {...process.env}
+  Object.assign(process.env, {
+    VRT_MODE: 'e2e', VRT_APP_URL: 'http://localhost:1234', VRT_OUTPUTS: temp,
+    VRT_TEST_ROOT: temp, VRT_TEST_FILES: JSON.stringify([join(temp, 'app.spec.js')]),
+  })
+  delete process.env.VRT_WS_ENDPOINT
+  delete process.env.VRT_MATCHING
+  try {
+    writeFileSync(join(temp, 'package.json'), '{"type":"module"}')
+    for (const [index, custom] of [
+      {use: {connectOptions: {wsEndpoint: 'ws://elsewhere'}}},
+      {projects: [{name: 'remote', use: {connectOptions: {wsEndpoint: 'ws://elsewhere'}}}]},
+    ].entries()) {
+      process.env.VRT_CONFIG_OVERRIDE = join(temp, `config-${index}.js`)
+      writeFileSync(process.env.VRT_CONFIG_OVERRIDE, `export default ${JSON.stringify(custom)}`)
+      await assert.rejects(import(new URL(`./suite-config.js?host-${index}`, import.meta.url).href), /launch host browsers/)
+    }
+    delete process.env.VRT_CONFIG_OVERRIDE
+    const config = (await import(new URL('./suite-config.js?host-default', import.meta.url).href)).default
+    assert.equal(config.use.connectOptions, undefined)
+    assert.equal(config.use.browserName, 'chromium')
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key]
+    Object.assign(process.env, previous)
+    rmSync(temp, {recursive: true, force: true})
   }
 })

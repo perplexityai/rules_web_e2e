@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Breaking compatibility: host browser execution
+
+`web_e2e_test` and `component_browser_test` now launch on the host. Provision a
+version-matched browser and supply `PLAYWRIGHT_BROWSERS_PATH` before upgrading.
+Remove their `network_origins`, `network_origins_env`, and `use.connectOptions`;
+host browsers use host networking. Only VRT retains Testcontainers and image
+requirements. See [migration guidance for AGI and FormatJS](docs/host-browsers.md).
+
 ## 2.0.0 (2026-09-11)
 
 ## What's Changed

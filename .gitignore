@@ -4,3 +4,5 @@ MODULE.bazel.lock
 node_modules/
 rules_web_e2e-*.tar.gz
 release_notes.txt
+
+.playwright-browsers/

@@ -1,10 +1,11 @@
 # Testcontainers and VRT stability
 
-The TypeScript runtime uses Testcontainers 12.1.0 to start a fresh browser and
+`visual_test` and `component_visual_test` use containers; E2E and component
+browser tests launch on the host. The VRT TypeScript runtime uses Testcontainers 12.1.0 to start a fresh browser and
 control relay per invocation. Both use the same digest-pinned Playwright image
 and explicit `linux/amd64` platform. The runner verifies the browser's platform
 and the declared Playwright package version before running tests. Ryuk, the
-cleanup helper, also uses a pinned Linux amd64 image digest.
+cleanup helper, uses a pinned image digest on the daemon-selected platform.
 
 ```mermaid
 flowchart LR

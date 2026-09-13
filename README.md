@@ -1,7 +1,8 @@
 # rules_web_e2e
 
 Bazel rules for Playwright E2E, component browser tests, and visual regression
-testing (VRT), using Testcontainers and a pinned Linux Chromium image.
+testing (VRT). E2E and component tests use host Playwright browsers; only VRT
+uses Testcontainers and a pinned Linux Chromium image.
 Bring compiled tests, your own server, or a built shell/template. Your build
 owns typechecking and bundling; the rules own execution and baseline updates.
 
@@ -73,9 +74,12 @@ attributes; see [migration](docs/getting-started.md#migrating-from-100).
 
 ## Try it
 
-Install Bazelisk and start a local Docker daemon. From this checkout:
+Install Bazelisk and provision host Chromium first (with the locked Playwright version).
+Start Docker only for VRT. From this checkout:
 
 ```sh
+export PLAYWRIGHT_BROWSERS_PATH="$(pwd)/.playwright-browsers"
+pnpm exec playwright install chromium
 cd examples/react
 bazelisk test //:e2e_test //:component_test //:component_visual_test
 bazelisk run //:component_visual_test.update
@@ -87,3 +91,5 @@ Linux amd64. Each VRT target owns a separate baseline directory.
 
 See [development and releases](docs/development.md) for build checks, hooks,
 and BCR publishing.
+
+See [host-browser provisioning and consumer migration](docs/host-browsers.md).

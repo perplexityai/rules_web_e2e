@@ -11,7 +11,7 @@ the consuming repository.
 | ------------------ | ------------------------------------------------------------------------------------------------------- |
 | Consumer           | Specs, React providers, CSS, fonts, fixtures, aliases, authentication, and server configuration.        |
 | Bazel macro        | Source staging, runner labels, runfiles locations, environment, timeouts, and target tags.              |
-| TypeScript runtime | Container lifecycle, Playwright connection, isolated capture directories, and baseline synchronization. |
+| TypeScript runtime | VRT container lifecycle, host browser configuration, isolated capture directories, and baseline synchronization. |
 | Playwright Test    | Test execution, assertions, browser automation, and screenshot comparison.                              |
 | Consumer CI        | Scheduling, artifact upload, and review of baseline changes.                                            |
 
@@ -29,7 +29,8 @@ flowchart TD
   Bazel --> Test
   Test --> Runner[TypeScript runner]
   Runner --> Host[Playwright Test and app server]
-  Runner --> Container[Pinned Linux container]
+  Runner -->|VRT only| Container[Pinned Linux container]
+  Host -->|E2E/component| LocalBrowser[Host Chromium]
   Host <-->|Playwright WebSocket| Container
   Container --> Browser[Chromium]
   Browser -->|Exact fixture endpoint tunnel| Host
@@ -37,13 +38,15 @@ flowchart TD
   Results --> Baselines[Compare inputs or explicit baseline update]
 ```
 
-The consumer build owns source compilation and the npm dependency graph. The container supplies
+The consumer build owns source compilation and the npm dependency graph. E2E and
+component tests use host browsers provisioned before execution; Playwright owns
+launch and cleanup. The VRT container supplies
 the browser and OS rendering environment. The runner verifies the declared
 `playwright-core` version and copies that package into the container before
 starting the server. Playwright forwards browser requests to the application
 server; Docker does not need a source-tree bind mount or an npm install.
 
-Each invocation uses Testcontainers to create a browser, control relay, and
+Each VRT invocation uses Testcontainers to create a browser, control relay, and
 internal network, and removes them on completion or handled termination. Playwright Test execution and Bazel have separate
 timeouts. The supported contract currently requires a local Docker daemon;
 remote daemons and shared-container reuse need separate validation.
@@ -87,7 +90,7 @@ See the [API reference](api.md) for attributes and configuration helpers.
 
 Server adapters own readiness and teardown; a config-only target delegates
 its native `webServer` lifecycle to Playwright. Both paths share the same
-runfiles staging, browser container, and exact-origin tunnel. Deployed
+runfiles staging and fixture isolation. VRT adds a browser container and exact-origin tunnel. Deployed
 mode must explicitly opt into network access and consumer-provided auth setup;
 it must not silently fall back to a local service or ambient credentials.
 
@@ -105,9 +108,9 @@ supports interaction tests and independent screenshot targets. See
 
 Playwright Test owns fixtures, browser contexts, assertions, and traces. The
 runtime owns managed-server readiness and cleanup; remote endpoints remain
-caller-owned. Both supply `VRT_APP_URL` to the config helper and retain exact
+caller-owned. Both supply `VRT_APP_URL` to the config helper. Only VRT has exact
 host/port browser tunnel restrictions. [Remote E2E](e2e.md) deliberately depends
-on external application state while retaining the pinned browser environment.
+on external application state and host networking.
 
 ## Built artifact seam
 

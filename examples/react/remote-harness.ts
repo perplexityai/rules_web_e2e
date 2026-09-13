@@ -52,7 +52,7 @@ try {
   )
   const [code] = await once(child, 'exit')
   assert.equal(code, 0, 'remote Playwright target failed')
-  assert.equal(blockedRequests, 0, 'browser must not reach undeclared origins')
+  assert(blockedRequests > 0, 'host browser should reach other host services')
   assert.equal(
     (await fetch(url)).status,
     200,
