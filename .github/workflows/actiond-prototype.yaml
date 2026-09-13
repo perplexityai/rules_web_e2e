@@ -12,7 +12,7 @@ permissions:
 jobs:
   chromium:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       USE_BAZEL_VERSION: '9.2.0'
     steps:
@@ -30,6 +30,15 @@ jobs:
           pnpm install --frozen-lockfile
           docker pull --platform linux/amd64 mcr.microsoft.com/playwright:v1.63.0-noble@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7
           bash experiments/actiond/prepare.sh "$RUNNER_TEMP/actiond-prototype"
+      - name: Build kernel with memory-advice syscalls
+        run: |
+          work="$RUNNER_TEMP/actiond-prototype"
+          git -C "$work/actiond" worktree add --detach "$work/kernel-source" c99b0cafc824faa59c2b04498eb1a6e5245b53e7
+          git -C "$work/kernel-source" apply "$GITHUB_WORKSPACE/experiments/actiond/actiond-advice.patch"
+          cd "$work/kernel-source"
+          bazelisk --output_base="$work/kernel-output" build --bes_backend= --remote_executor= --remote_cache= --spawn_strategy=local --jobs=2 --platforms=//platforms:linux_x86_64_musl //vm:linux_kernel.image > "$work/kernel-build.log" 2>&1
+          kernel=$(bazelisk --output_base="$work/kernel-output" cquery --bes_backend= --platforms=//platforms:linux_x86_64_musl //vm:linux_kernel.image --output=files)
+          cp "$kernel" "$work/patched-kernel"
       - name: Enable KVM and vhost-vsock
         run: |
           test -c /dev/kvm
@@ -45,7 +54,7 @@ jobs:
           curl -fsSL https://github.com/hermeticbuild/actiond/releases/download/v0.0.6/linux-actiond_linux_x86_64 -o "$work/actiond-worker"
           printf '006dc798d4363596fe8ab997606fc93766a0cc427c2d005cf4fc1765fa4c2052  %s\n' "$work/actiond-worker" | sha256sum -c -
           chmod +x "$work/actiond-worker"
-          "$work/actiond-worker" serve-vm --root="$work/vm" --listen=127.0.0.1:8980 --memory-mib=3072 --cpus=2 --cas-image-size-mib=4096 > "$work/vm.log" 2>&1 &
+          "$work/actiond-worker" serve-vm --kernel="$work/patched-kernel" --root="$work/vm" --listen=127.0.0.1:8980 --memory-mib=3072 --cpus=2 --cas-image-size-mib=4096 > "$work/vm.log" 2>&1 &
           worker_pid=$!
           trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
           ready=false
@@ -65,3 +74,4 @@ jobs:
           path: |
             ${{ runner.temp }}/actiond-prototype/results/
             ${{ runner.temp }}/actiond-prototype/vm.log
+            ${{ runner.temp }}/actiond-prototype/kernel-build.log
