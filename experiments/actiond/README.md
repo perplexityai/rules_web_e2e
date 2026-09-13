@@ -103,3 +103,20 @@ libraries. The VM integration still needs a declared runtime filesystem layout
 for the shell and loader. These new production-runner results are process
 sandbox results, not VM/REAPI validation; the earlier VM result above remains
 the standalone screenshot fixture.
+
+## Declared runtime root patch
+
+`actiond-input-rootfs.patch` is a separate local actiond change based on
+`8a42c3d` (local commit `66e2dca`). It adds the `input-rootfs` execution property:
+runtime directories from that declared input subtree appear at normal Linux
+paths. It replaces injected runtime files for that action and preserves the
+executor's device, process, temporary-directory, and network isolation.
+actiond's full build and both unit-test targets pass with the patch. macOS VM
+execution has not been run.
+
+`prepare-input-rootfs.sh` restores the image's original Node and Chromium
+executables and supplies the loader and shell layout. The production VM workflow
+builds actiond with this patch and the separate memory-advice patch, then runs
+`run-production-actiond.sh` with local execution fallback disabled. This workflow
+is the validation gate for the new rootfs support; local unit tests alone do not
+establish VM compatibility.

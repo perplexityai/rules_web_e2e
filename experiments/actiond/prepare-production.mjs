@@ -34,3 +34,15 @@ for (const target of ['native_visual_test', 'component_visual_test']) {
   fs.writeFileSync(path.join(directory, 'MANIFEST'), manifest.join('\n') + '\n')
 }
 fs.copyFileSync(new URL('./production-smoke.mjs', import.meta.url), path.join(work, 'workspace', 'production-smoke.mjs'))
+fs.copyFileSync(new URL('./capture.bzl', import.meta.url), path.join(work, 'workspace', 'capture.bzl'))
+const build = path.join(work, 'workspace', 'BUILD.bazel')
+const original = fs.readFileSync(new URL('./BUILD.bazel.template', import.meta.url), 'utf8')
+fs.writeFileSync(build, 'load(":capture.bzl", "production")\n' + original + `
+production(
+    name = "production",
+    node = "runtime/bin/node",
+    script = "production-smoke.mjs",
+    inputs = glob(["runtime/**", "native_visual_test/**", "component_visual_test/**"]),
+    exec_properties = {"input-rootfs": "runtime"},
+)
+`)

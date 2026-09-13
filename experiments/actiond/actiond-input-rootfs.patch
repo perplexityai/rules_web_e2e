@@ -1,0 +1,235 @@
+diff --git a/MODULE.bazel.lock b/MODULE.bazel.lock
+index 3b6063e..2f153f7 100644
+--- a/MODULE.bazel.lock
++++ b/MODULE.bazel.lock
+@@ -1,5 +1,5 @@
+ {
+-  "lockFileVersion": 26,
++  "lockFileVersion": 28,
+   "registryFileHashes": {
+     "https://bcr.bazel.build/bazel_registry.json": "8a28e4aff06ee60aed2a8c281907fb8bcbf3b753c91fb5a5c57da3215d5b3497",
+     "https://bcr.bazel.build/modules/abseil-cpp/20210324.2/MODULE.bazel": "7cd0312e064fde87c8d1cd79ba06c876bd23630c83466e9500321be55c96ace2",
+@@ -292,31 +292,9 @@
+   },
+   "selectedYankedVersions": {},
+   "moduleExtensions": {
+-    "@@pybind11_bazel+//:internal_configure.bzl%internal_configure_extension": {
+-      "general": {
+-        "bzlTransitiveDigest": "b+RP7Sgl8KN0VHamrgTqzGLuYPcQ/Mo4ptNkkHUIIlA=",
+-        "usagesDigest": "D1r3lfzMuUBFxgG8V6o0bQTLMk3GkaGOaPzw53wrwyw=",
+-        "recordedInputs": [
+-          "REPO_MAPPING:pybind11_bazel+,bazel_tools bazel_tools",
+-          "FILE:@@pybind11_bazel+//MODULE.bazel e6f4c20442eaa7c90d7190d8dc539d0ab422f95c65a57cc59562170c58ae3d34"
+-        ],
+-        "generatedRepoSpecs": {
+-          "pybind11": {
+-            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+-            "attributes": {
+-              "build_file": "@@pybind11_bazel+//:pybind11-BUILD.bazel",
+-              "strip_prefix": "pybind11-2.12.0",
+-              "urls": [
+-                "https://github.com/pybind/pybind11/archive/v2.12.0.zip"
+-              ]
+-            }
+-          }
+-        }
+-      }
+-    },
+     "@@rules_kotlin+//src/main/starlark/core/repositories:bzlmod_setup.bzl%rules_kotlin_extensions": {
+       "general": {
+-        "bzlTransitiveDigest": "Ga4z8lQy1YQ5rAMy+dOl0dqcCEBnYNCXku8x3YQmDZI=",
++        "bzlTransitiveDigest": "+Kp6j204mBZ3mxlIDDR0gBoP45BZ4jYRhRAcB8sU0qc=",
+         "usagesDigest": "QI2z8ZUR+mqtbwsf2fLqYdJAkPOHdOV+tF2yVAUgRzw=",
+         "recordedInputs": [
+           "REPO_MAPPING:rules_kotlin+,bazel_tools bazel_tools"
+@@ -402,7 +380,7 @@
+     },
+     "@@rules_python+//python/extensions:config.bzl%config": {
+       "general": {
+-        "bzlTransitiveDigest": "iibnRYgg8LpcfmH7EAnVwYePC3jsVaJ6Id8XxUjSZps=",
++        "bzlTransitiveDigest": "dzD8Q2YmrP3fz8saWLHPmlwPLO91ImtTmP/c9JKTStM=",
+         "usagesDigest": "ZVSXMAGpD+xzVNPuvF1IoLBkty7TROO0+akMapt1pAg=",
+         "recordedInputs": [
+           "REPO_MAPPING:rules_python+,bazel_tools bazel_tools",
+@@ -1013,5 +991,6 @@
+         ]
+       }
+     }
+-  }
++  },
++  "factsVersions": {}
+ }
+diff --git a/README.md b/README.md
+index 4b113c5..c750fdf 100644
+--- a/README.md
++++ b/README.md
+@@ -105,6 +105,23 @@ into a Linux toolchain automatically.
+ 
+ ## Runtime Selection
+ 
++An action can supply its own runtime as a directory in its REAPI input tree:
++
++```python
++exec_properties = {"input-rootfs": "path/to/declared/runtime"}
++```
++
++The path is relative to the input root and must traverse directory entries, not
++symlinks. actiond exposes its `bin`, `sbin`, `lib`, `lib64`, `usr`, `etc`, and
++`opt` entries at their usual absolute paths. These entries remain backed by the
++action's declared inputs; actiond does not download or unpack an image. Callers
++must package any OCI image into the input directory before execution.
++
++This replaces the packaged runtime and common `/etc` files for that action and
++cannot be combined with `libc` or `requires-bash`. `/dev`, `/proc`, `/tmp`,
++`/var/tmp`, and `/workspace` retain the executor's existing behavior. Networking,
++privilege restrictions, and seccomp remain unchanged.
++
+ The embedded runtime image currently includes:
+ 
+ - `glibc2.31`
+diff --git a/src/action_executor.zig b/src/action_executor.zig
+index 29a208f..cafd459 100644
+--- a/src/action_executor.zig
++++ b/src/action_executor.zig
+@@ -304,6 +304,9 @@ pub fn executeDecodedActionWithOptions(
+ 
+     const libc_runtime = try libcRuntimeFromPlatform(platform);
+     const shell_runtime = try shellRuntimeFromPlatform(platform);
++    const input_rootfs = try inputRootfsFromPlatform(platform);
++    if (input_rootfs != null and (libc_runtime != null or shell_runtime != null))
++        return error.ConflictingRuntimeProperties;
+     var bind_mounts: std.ArrayListUnmanaged(action_runner.BindMount) = .empty;
+     var borrowed_source_count: usize = 0;
+     defer {
+@@ -313,7 +316,9 @@ pub fn executeDecodedActionWithOptions(
+         }
+         bind_mounts.deinit(allocator);
+     }
+-    if (options.runtime_mount_cache) |cache| {
++    if (input_rootfs) |rootfs| {
++        try prepareInputRootfs(io, allocator, store, input_root_digest, work_root, rootfs, options.cancellation);
++    } else if (options.runtime_mount_cache) |cache| {
+         borrowed_source_count = std.math.maxInt(usize);
+         try checkExecutionCancellation(options.cancellation);
+         try appendCachedRuntimeMount(io, allocator, work_root, work_root_path, cache.common_etc, "etc", &bind_mounts);
+@@ -442,6 +447,56 @@ fn shellRuntimeFromPlatform(platform: ?reapi.Platform) !?[]const u8 {
+     return null;
+ }
+ 
++fn inputRootfsFromPlatform(platform: ?reapi.Platform) !?[]const u8 {
++    var result: ?[]const u8 = null;
++    for ((platform orelse return null).properties) |property| {
++        if (!std.mem.eql(u8, property.name, "input-rootfs")) continue;
++        if (result != null) return error.DuplicateInputRootfs;
++        try validatePath(property.value);
++        result = property.value;
++    }
++    return result;
++}
++
++// Link only runtime locations. /dev, /proc, /tmp, /var/tmp and /workspace
++// remain owned by the executor. Targets resolve after chroot, against CAS inputs.
++fn prepareInputRootfs(
++    io: std.Io,
++    allocator: std.mem.Allocator,
++    store: cas.Store,
++    input_root_digest: cas.Digest,
++    work_root: std.Io.Dir,
++    path: []const u8,
++    cancellation: ?*const std.atomic.Value(bool),
++) !void {
++    try validatePath(path);
++    var inputs: OutputParentValidator = .{
++        .io = io,
++        .allocator = allocator,
++        .store = store,
++        .root_digest = input_root_digest,
++        .cancellation = cancellation,
++    };
++    defer inputs.deinit();
++    var digest = input_root_digest;
++    var parts = std.mem.splitScalar(u8, path, '/');
++    while (parts.next()) |part| {
++        const directory = try inputs.getDirectory(digest);
++        const child = findInputDirectoryEntry(reapi.DirectoryNode, directory.directories, part) orelse
++            return error.InputRootfsNotDirectory;
++        digest = try cas.Digest.fromReapi(child.digest orelse return error.MissingInputDirectoryDigest);
++    }
++    const directory = try inputs.getDirectory(digest);
++    for ([_][]const u8{ "bin", "sbin", "lib", "lib64", "usr", "etc", "opt" }) |name| {
++        try checkExecutionCancellation(cancellation);
++        if (findInputDirectoryEntry(reapi.DirectoryNode, directory.directories, name) == null and
++            findInputDirectoryEntry(reapi.SymlinkNode, directory.symlinks, name) == null) continue;
++        const target = try std.fmt.allocPrint(allocator, "workspace/{s}/{s}", .{ path, name });
++        defer allocator.free(target);
++        try work_root.symLink(io, target, name, .{ .is_directory = true });
++    }
++}
++
+ fn stressCaseFromCommand(command: reapi.Command) []const u8 {
+     for (command.environment_variables) |variable| {
+         if (std.mem.eql(u8, variable.name, "ACTIOND_STRESS_CASE") and variable.value.len != 0) return variable.value;
+@@ -2406,6 +2461,63 @@ test "libc runtime platform property accepts pinned runtimes" {
+     }));
+ }
+ 
++test "input-rootfs rejects paths outside declared inputs and duplicate properties" {
++    for ([_][]const u8{ "/host", "../host", "root/../host", "root//fs", "root/.", "root\x00fs" }) |path| {
++        try std.testing.expectError(error.EscapingExecPath, inputRootfsFromPlatform(.{
++            .properties = &.{.{ .name = "input-rootfs", .value = path }},
++        }));
++    }
++    try std.testing.expectError(error.EmptyExecPath, inputRootfsFromPlatform(.{
++        .properties = &.{.{ .name = "input-rootfs", .value = "" }},
++    }));
++    try std.testing.expectError(error.DuplicateInputRootfs, inputRootfsFromPlatform(.{
++        .properties = &.{
++            .{ .name = "input-rootfs", .value = "a" },
++            .{ .name = "input-rootfs", .value = "b" },
++        },
++    }));
++}
++
++test "input-rootfs links CAS runtime directories but preserves executor-owned locations" {
++    var tmp = std.testing.tmpDir(.{});
++    defer tmp.cleanup();
++    var cas_dir = try tmp.dir.createDirPathOpen(std.testing.io, "cas", .{});
++    defer cas_dir.close(std.testing.io);
++    var work = try tmp.dir.createDirPathOpen(std.testing.io, "work", .{});
++    defer work.close(std.testing.io);
++    try prepareChrootBaseDirs(std.testing.io, work);
++    try work.createDir(std.testing.io, "workspace", .default_dir);
++    const store = cas.Store.init(cas_dir);
++    const empty = try putProto(std.testing.io, std.testing.allocator, store, reapi.Directory{});
++    var empty_hash: [64]u8 = undefined;
++    const rootfs = try putProto(std.testing.io, std.testing.allocator, store, reapi.Directory{
++        .directories = &.{
++            .{ .name = "dev", .digest = empty.toReapi(&empty_hash) },
++            .{ .name = "etc", .digest = empty.toReapi(&empty_hash) },
++            .{ .name = "proc", .digest = empty.toReapi(&empty_hash) },
++            .{ .name = "tmp", .digest = empty.toReapi(&empty_hash) },
++            .{ .name = "usr", .digest = empty.toReapi(&empty_hash) },
++            .{ .name = "workspace", .digest = empty.toReapi(&empty_hash) },
++        },
++        .symlinks = &.{.{ .name = "bin", .target = "usr/bin" }},
++    });
++    var rootfs_hash: [64]u8 = undefined;
++    const root = try putProto(std.testing.io, std.testing.allocator, store, reapi.Directory{
++        .directories = &.{.{ .name = "runtime", .digest = rootfs.toReapi(&rootfs_hash) }},
++        .symlinks = &.{.{ .name = "alias", .target = "runtime" }},
++    });
++    try std.testing.expectError(error.InputRootfsNotDirectory, prepareInputRootfs(std.testing.io, std.testing.allocator, store, root, work, "alias", null));
++    try std.testing.expectError(error.InputRootfsNotDirectory, prepareInputRootfs(std.testing.io, std.testing.allocator, store, root, work, "missing", null));
++    try prepareInputRootfs(std.testing.io, std.testing.allocator, store, root, work, "runtime", null);
++    var buffer: [1024]u8 = undefined;
++    const length = try work.readLink(std.testing.io, "bin", &buffer);
++    try std.testing.expectEqualStrings("workspace/runtime/bin", buffer[0..length]);
++    for ([_][]const u8{ "dev", "proc", "tmp", "workspace" }) |name| {
++        var directory = try work.openDir(std.testing.io, name, .{ .follow_symlinks = false });
++        directory.close(std.testing.io);
++    }
++}
++
+ test "execution platform falls back to command platform" {
+     const platform = executionPlatform(
+         .{},

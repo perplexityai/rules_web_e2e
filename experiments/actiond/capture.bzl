@@ -44,3 +44,31 @@ kernel_probe = rule(
     implementation = _kernel_probe_impl,
     attrs = {"binary": attr.label(allow_single_file = True)},
 )
+
+def _production_impl(ctx):
+    out = ctx.actions.declare_directory("production-results")
+    ctx.actions.run(
+        executable = ctx.file.node,
+        arguments = [ctx.file.script.path],
+        inputs = depset(ctx.files.inputs + [ctx.file.script]),
+        outputs = [out],
+        env = {
+            "HOME": "/tmp",
+            "TMPDIR": "/tmp",
+            "LANG": "C.UTF-8",
+            "TZ": "UTC",
+            "LD_LIBRARY_PATH": "/workspace/runtime/lib",
+            "OUTPUT_DIR": out.path,
+        },
+        mnemonic = "ActiondProductionVrt",
+    )
+    return [DefaultInfo(files = depset([out]))]
+
+production = rule(
+    implementation = _production_impl,
+    attrs = {
+        "node": attr.label(allow_single_file = True),
+        "script": attr.label(allow_single_file = True),
+        "inputs": attr.label_list(allow_files = True),
+    },
+)

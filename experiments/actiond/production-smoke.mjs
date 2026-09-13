@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {spawnSync} from 'node:child_process'
+import path from 'node:path'
 
 for (const [target, mode, baselines] of [
   ['native_visual_test', 'visual-spec', '__native_screenshots__'],
@@ -8,7 +9,7 @@ for (const [target, mode, baselines] of [
 ]) {
   const runfiles = `/tmp/${target}`
   fs.cpSync(`/workspace/${target}`, runfiles, {recursive: true})
-  const output = `/workspace/outputs/${target}`
+  const output = path.join(path.resolve(process.env.OUTPUT_DIR || '/workspace/outputs'), target)
   const captured = `${output}/captured`
   for (const update of [true, false]) {
     const artifacts = `${output}/${update ? 'update' : 'compare'}`
