@@ -26,6 +26,19 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.0.0 (2026-09-13)
+
+## What's Changed
+* feat: expose runtime image manifest for CI preloading by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/19
+* feat: support viewport capture for component visuals by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/18
+* feat: scope Testcontainers to visual regression tests by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/21
+* fix: use an available context for CI browser cache by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/25
+* fix: reject native spec selection overrides by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/17
+* fix: enforce preloaded VRT images and verified reaper reuse by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/26
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v2.0.0...v3.0.0
+
 ## 2.0.0 (2026-09-11)
 
 ## What's Changed
