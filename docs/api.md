@@ -202,6 +202,7 @@ The generic `Node` is your renderer's node type, for example `ReactNode`.
 | `.visuals`                           | Readonly array of `ComponentVisual<Node>`                                                        |
 | `.renderShell?`                      | `(children: Node) => Node`; wraps each visual with app providers                                 |
 | `ComponentVisual.visualId`, `.name`  | Stable case identity and display name                                                            |
+| `.vrt.capture?`                     | `'element'` (default) or `'viewport'`; viewport skips `getScreenshotElement` and captures the visible page |
 | `.render`                            | `(props?: Record<string, unknown>) => Node`; props must be serializable when supplied from specs |
 | `.beforeCapture?`                    | Browser-side readiness/setup; may return a promise                                               |
 | `.getScreenshotElement?`             | Returns an attached `Element`, optionally asynchronously; defaults to `#root`                    |

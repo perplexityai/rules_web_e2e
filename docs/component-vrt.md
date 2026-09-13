@@ -85,3 +85,27 @@ A custom compiled `server` or existing URL can replace `shell`; see
   seconds each for discovery and capture). Managed server startup has a separate
   30-second deadline; Bazel’s `timeout` independently bounds the whole test. Failed updates leave existing
   baselines intact and print the artifact directory.
+
+## Fixed and portaled visuals
+
+Use `vrt: {capture: 'viewport'}` when content is fixed-position or rendered in a
+portal outside the normal layout flow:
+
+```ts
+{
+  visualId: 'dialog',
+  name: 'Dialog',
+  render: () => <Dialog open />,
+  vrt: {capture: 'viewport', viewport: {width: 390, height: 844}},
+}
+```
+
+The default `capture: 'element'` screenshots `getScreenshotElement()` (or `#root`)
+using its element bounds. Selecting `document.body` does not mean viewport capture:
+fixed descendants may leave the body's layout height at zero.
+
+Viewport capture runs `beforeCapture` and waits for fonts, skips screenshot-element
+selection, and uses Playwright's page screenshot assertion. It captures the visible
+viewport, not the full scrollable page. `viewport` configures the browser dimensions
+in either mode; `deviceScaleFactor` and the config's screenshot `scale` retain their
+usual behavior. For explicit full-page screenshots use a native `visual_test` spec.

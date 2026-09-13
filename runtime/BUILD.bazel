@@ -1,7 +1,7 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
-load("//playwright:defs.bzl", "playwright_runtime")
+load("//playwright:defs.bzl", "PLAYWRIGHT_IMAGE", "playwright_runtime")
 
 ts_project(
     name = "typecheck",
@@ -170,4 +170,16 @@ js_test(
         ":typecheck",
     ],
     entry_point = "built-inputs.test.js",
+)
+
+
+js_test(
+    name = "capture_browser_test",
+    copy_data_to_bin = False,
+    size = "large",
+    data = ["package.json", ":typecheck"],
+    entry_point = "capture-browser.test.js",
+    env = {"CAPTURE_BROWSER_IMAGE": PLAYWRIGHT_IMAGE},
+    env_inherit = ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_CONFIG", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH", "CAPTURE_CHROMIUM_EXECUTABLE"],
+    tags = ["manual", "no-sandbox", "no-remote", "no-cache"],
 )

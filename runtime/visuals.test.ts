@@ -47,7 +47,27 @@ test('duplicate identities and unsafe screenshot destinations fail before captur
     [capture, capture],
     [{...capture, screenshotName: '../escape.png'}],
     [{...capture, deviceScaleFactor: 1.5}],
+    [{...capture, capture: 'fullPage'}],
     [{...capture, viewport: {width: 0, height: 100}}],
   ])
     assert.throws(() => validateCaptures(value))
+})
+
+
+test('capture modes survive gallery discovery and reject unsupported values', () => {
+  for (const capture of ['element', 'viewport'] as const) {
+    const captures = visualCaptures([{
+      id: 'portal', title: 'Portal', visuals: [{
+        visualId: 'dialog', name: 'Dialog', render: () => null, vrt: {capture},
+      }],
+    }])
+    validateCaptures(captures)
+    assert.equal(captures[0].capture, capture)
+  }
+  assert.throws(() => visualCaptures([{
+    id: 'portal', title: 'Portal', visuals: [{
+      visualId: 'dialog', name: 'Dialog', render: () => null,
+      vrt: {capture: 'fullPage' as 'viewport'},
+    }],
+  }]), /Invalid visual capture mode/)
 })

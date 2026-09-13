@@ -1,5 +1,7 @@
 /** Framework-neutral version of the consumer visual-module convention. */
 export interface ComponentVisualVrtOptions {
+  /** Element bounds by default; viewport includes fixed and portaled content. */
+  capture?: 'element' | 'viewport'
   screenshotName?: string
   viewport?: {width: number; height: number}
   deviceScaleFactor?: number
@@ -55,6 +57,7 @@ export function visualCaptures<Node>(
       ids.add(id)
       if (visual.vrt === false) return []
       const options = visual.vrt ?? {}
+      validateCaptureMode(options.capture)
       const screenshotName =
         options.screenshotName ??
         `${kebab(module.id.split('/').at(-1)!)}-${kebab(visual.visualId)}`
@@ -131,6 +134,7 @@ export function installVisualGallery<Node>(
         .forEach(element =>
           element.removeAttribute('data-rules-visual-capture')
         )
+      if (current.vrt && current.vrt.capture === 'viewport') return
       const element = current.getScreenshotElement
         ? await current.getScreenshotElement()
         : document.getElementById('root')
@@ -148,6 +152,11 @@ export function installVisualGallery<Node>(
     mount: gallery.mount,
     unmount: gallery.unmount,
   })
+}
+
+function validateCaptureMode(capture: unknown): void {
+  if (capture !== undefined && capture !== 'element' && capture !== 'viewport')
+    throw new Error('Invalid visual capture mode')
 }
 
 /** Validate browser-provided metadata before it becomes test names or output paths. */
@@ -173,6 +182,7 @@ export function validateCaptures(
       throw new Error('Invalid visual capture metadata')
     if (ids.has(item.id) || files.has(item.screenshotName))
       throw new Error('Duplicate visual capture metadata')
+    validateCaptureMode(item.capture)
     ids.add(item.id)
     files.add(item.screenshotName)
     if (

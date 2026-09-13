@@ -33,9 +33,10 @@ if (process.env.VRT_DISCOVER === '1') {
           await window.rulesVisuals.mount({story: visual.id})
           await window.rulesVisuals.prepareCapture()
         }, visual)
-        await expect(
-          page.locator('[data-rules-visual-capture]')
-        ).toHaveScreenshot(visual.screenshotName)
+        const subject = visual.capture === 'viewport'
+          ? page
+          : page.locator('[data-rules-visual-capture]')
+        await expect(subject).toHaveScreenshot(visual.screenshotName)
       })
     })
   }
