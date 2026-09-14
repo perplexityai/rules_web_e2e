@@ -13,6 +13,7 @@ import {screenshotMatching, type VisualMatching} from './matching.js'
 const mode = process.env.VRT_MODE!
 const root = process.env.VRT_TEST_ROOT!
 const visual = mode === 'visual' || mode === 'visual-spec'
+const isolated = process.env.VRT_ISOLATED === '1'
 const defaults = visual
   ? visualConfig({root})
   : mode === 'component'
@@ -82,6 +83,22 @@ if (
     'E2E and component tests launch host browsers; connectOptions is unsupported'
   )
 
+// Declared runtimes own executable selection; native launch options may tune it.
+function isolatedUse(use: PlaywrightTestConfig['use']) {
+  if (!isolated) return use
+  if (use?.channel || use?.launchOptions?.executablePath || use?.headless === false || use?.launchOptions?.headless === false)
+    throw new Error('Isolated browser tests require the declared headless Chromium; channel, executablePath, and headed mode are unsupported')
+  return {
+    ...use,
+    headless: true,
+    launchOptions: {
+      ...use?.launchOptions,
+      executablePath: process.env.VRT_CHROMIUM_EXECUTABLE!,
+      chromiumSandbox: false,
+      args: [...(use?.launchOptions?.args ?? []), '--no-zygote'],
+    },
+  }
+}
 // Keep browser connections, baseline updates, and required reports managed.
 const merged = defineConfig(defaults, custom)
 const configDirectory = process.env.VRT_CONFIG_OVERRIDE
@@ -138,12 +155,12 @@ export default defineConfig(
       ? defaults.snapshotPathTemplate
       : custom.snapshotPathTemplate,
     webServer,
-    globalSetup: visual ? lifecycleModules(custom.globalSetup) : [
+    globalSetup: isolated ? lifecycleModules(custom.globalSetup) : [
       ...(lifecycleModules(custom.globalSetup) ?? []),
       fileURLToPath(new URL('./host-browser-check.js', import.meta.url)),
     ],
     globalTeardown: lifecycleModules(custom.globalTeardown),
-    use: managedUse,
+    use: isolated && !visual ? isolatedUse(managedUse) : managedUse,
     ...(merged.projects
       ? {
           projects: merged.projects.map(project => ({
@@ -154,12 +171,12 @@ export default defineConfig(
             outputDir: defaults.outputDir,
             snapshotPathTemplate:
               project.snapshotPathTemplate ?? custom.snapshotPathTemplate,
-            use: {
+            use: isolatedUse({
               ...managedUse,
               ...project.use,
               connectOptions: defaults.use!.connectOptions,
               browserName: 'chromium' as const,
-            },
+            }),
           })),
         }
       : {}),

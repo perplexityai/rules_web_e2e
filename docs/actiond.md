@@ -2,7 +2,8 @@
 
 `visual_test` and `component_visual_test` run the fixture server, Playwright,
 Chromium, and screenshot comparison together in an isolated Linux amd64 action.
-Callers supply a [declared browser runtime](browser-runtime.md), built from declared archives and files. Host E2E and component tests use host browsers.
+E2E and component tests also use this execution path when supplied a `browser`.
+Callers supply a [declared browser runtime](browser-runtime.md), built from declared archives and files. Without `browser`, E2E and component tests use host browsers.
 
 ## Worker and Bazel configuration
 
@@ -22,6 +23,7 @@ build:vrt --remote_cache=grpc://127.0.0.1:8980
 build:vrt --spawn_strategy=sandboxed,local
 build:vrt --strategy=VrtCapture=remote
 build:vrt --strategy=VrtCompare=remote
+build:vrt --strategy=BrowserTest=remote
 build:vrt --remote_local_fallback=false
 build:vrt --remote_upload_local_results=false
 build:vrt --noremote_cache_compression

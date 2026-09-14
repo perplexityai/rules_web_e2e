@@ -112,14 +112,12 @@ def browser_test(
         fail("Visual and component modes are separate targets")
     if visual and not browser:
         fail("VRT requires browser = <caller-owned browser_runtime target>")
-    if browser and not visual:
-        fail("browser is only supported for VRT; other browser tests use host browsers")
     if network_origins or network_origins_env:
         fail("Network origin exceptions are unsupported: VRT uses action-local fixtures and host tests use the host network")
     if browser and env_inherit:
-        fail("Remote VRT requires explicit env values instead of env_inherit")
+        fail("Remote browser tests require explicit env values instead of env_inherit")
     if browser and base_url_env and base_url_env not in env:
-        fail("Remote VRT base_url_env must have an explicit env value")
+        fail("Remote browser base_url_env must have an explicit env value")
     if not visual and matching:
         fail("matching is only supported by visual targets")
     if execution_timeout_seconds <= 0:
@@ -168,7 +166,7 @@ def browser_test(
         if key not in env and key not in env_inherit
     ]
     if browser:
-        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform)
+        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual)
         return
     js_test(
         name = name,

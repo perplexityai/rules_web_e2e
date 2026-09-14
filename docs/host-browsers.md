@@ -9,6 +9,31 @@
 
 VRT uses [actiond](actiond.md); host tests keep their existing browser setup.
 
+## Hermetic E2E and component tests
+
+Supply `browser` to run an ordinary test's server, Playwright, and Chromium together
+in an actiond Linux amd64 action. Omit it for native host execution.
+
+```starlark
+web_e2e_test(
+    name = "e2e_test",
+    browser = ":linux_browser",
+    server = ":fixture_server",
+    tests = ":compiled_specs",
+)
+```
+
+`component_browser_test` accepts the same `browser` and `target_platform` attributes.
+Reuse `linux_chromium_runtime` from VRT. No host cache or `apt-get` setup is needed.
+Add `--strategy=BrowserTest=remote` to the [actiond configuration](actiond.md).
+The `<name>_run` action returns status and reports to the local test wrapper;
+ordinary tests have no capture/update targets and do not update baselines.
+
+The action has loopback-only networking and rejects inherited environment values.
+Declare fixture assets, APIs, and fonts. Native Playwright `webServer` and projects
+are supported; browser channels, executable overrides, and headed mode are not.
+Live-service tests and native macOS coverage should retain host mode.
+
 ## Provision once, then test
 
 Install Chromium with the same Playwright version as `playwright_runtime.test`

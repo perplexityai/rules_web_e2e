@@ -14,7 +14,7 @@ trap collect EXIT
 flags=(
   --jobs=2
   --remote_executor="$endpoint" --remote_cache="$endpoint"
-  --spawn_strategy=sandboxed,local --strategy=VrtCapture=remote --strategy=VrtCompare=remote
+  --spawn_strategy=sandboxed,local --strategy=VrtCapture=remote --strategy=VrtCompare=remote --strategy=BrowserTest=remote
   --remote_local_fallback=false --remote_upload_local_results=false
   --noremote_cache_compression --remote_download_outputs=all
 )
@@ -34,6 +34,19 @@ import sys
 log = Path(sys.argv[1]).read_text()
 assert 'VRT requires an isolated action without system runtimes' in log, log
 PY
+"${bazel_cmd[@]}" test //:actiond_e2e_test //:actiond_component_test //:actiond_browser_isolation_test "${flags[@]}" --test_output=errors
+if "${bazel_cmd[@]}" test //:actiond_browser_failure_test "${flags[@]}" --test_output=errors; then
+  echo 'Expected ordinary browser failure to reach the local test wrapper' >&2
+  exit 1
+fi
+python3 - <<'PYTEST'
+import json
+from pathlib import Path
+result = Path('bazel-bin/actiond_browser_failure_test_run.results')
+assert json.loads((result / 'result.json').read_text())['exitCode'] != 0
+assert list((result / 'artifacts').rglob('junit.xml'))
+assert not (result / 'baselines').exists()
+PYTEST
 "${bazel_cmd[@]}" run //:actiond_native_test.update "${flags[@]}"
 "${bazel_cmd[@]}" run //:actiond_gallery_test.update "${flags[@]}"
 test -s __actiond_native__/saved.png

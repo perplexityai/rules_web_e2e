@@ -4,7 +4,7 @@ import {baselineDestination, updateBaselines} from './baselines.js'
 
 export interface RemoteVrtResult {
   schemaVersion: 1
-  mode: 'compare' | 'capture'
+  mode: 'compare' | 'capture' | 'test'
   exitCode: number
 }
 
@@ -25,6 +25,7 @@ function copyArtifacts(source: string, destination: string) {
 export function consumeRemoteResult(
   directory: string,
   options: {
+    mode?: 'compare' | 'test'
     artifacts?: string
     update?: {workspace: string; baselineRelative: string}
   } = {}
@@ -34,7 +35,7 @@ export function consumeRemoteResult(
   ) as RemoteVrtResult
   if (
     result.schemaVersion !== 1 ||
-    result.mode !== (options.update ? 'capture' : 'compare') ||
+    result.mode !== (options.update ? 'capture' : options.mode ?? 'compare') ||
     !Number.isInteger(result.exitCode) ||
     result.exitCode < 0 || result.exitCode > 255
   ) throw new Error('Invalid remote VRT result')

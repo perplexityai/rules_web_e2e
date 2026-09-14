@@ -42,7 +42,7 @@ def _remote_impl(ctx):
         "env": env,
         "args": [ctx.expand_location(value, targets = locations) for value in ctx.attr.args],
         "output": output.path,
-        "capture": ctx.attr.capture,
+        "mode": ctx.attr.mode,
         "runtime": dict(browser.descriptor, path = root.path),
     }))
     descriptor = browser.descriptor
@@ -64,7 +64,7 @@ def _remote_impl(ctx):
             "TZ": "UTC",
         },
         execution_requirements = {"no-local": "1"},
-        mnemonic = "VrtCapture" if ctx.attr.capture else "VrtCompare",
+        mnemonic = {"capture": "VrtCapture", "compare": "VrtCompare", "test": "BrowserTest"}[ctx.attr.mode],
     )
     return [
         DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output])),
@@ -80,7 +80,7 @@ _remote = rule(
         "target_platform": attr.label(mandatory = True),
         "env": attr.string_dict(),
         "args": attr.string_list(),
-        "capture": attr.bool(),
+        "mode": attr.string(mandatory = True, values = ["capture", "compare", "test"]),
         "_runtime": attr.label(default = Label("//runtime:files")),
         "_runner": attr.label(default = Label("//runtime:runner_entry"), allow_single_file = True),
         "_bootstrap": attr.label(default = Label("//runtime:remote_runner_entry"), allow_single_file = True),
@@ -88,17 +88,18 @@ _remote = rule(
     },
 )
 
-def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform):
+def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual):
     """Build comparisons/captures remotely, then consume their downloaded results."""
-    for capture in [False, True]:
-        action = name + ("_capture" if capture else "_compare")
+    for mode in (["compare", "capture"] if visual else ["test"]):
+        capture = mode == "capture"
+        action = name + ("_" + mode if visual else "_run")
         _remote(
             name = action,
             inputs = ":" + name + "_inputs",
             browser = browser,
             env = env,
             args = args,
-            capture = capture,
+            mode = mode,
             data = data,
             target_platform = target_platform,
             exec_compatible_with = [Label("@platforms//os:linux"), Label("@platforms//cpu:x86_64")],
@@ -109,6 +110,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             data = [":" + action, Label("//runtime:remote_result_files")],
             env = {
                 "VRT_RESULT": "$(rlocationpath :%s)" % action,
+                "VRT_RESULT_MODE": mode,
                 "VRT_APPLY_BASELINES": "1" if capture else "0",
                 "VRT_BASELINE_RELATIVE": env["VRT_BASELINE_RELATIVE"],
             },
@@ -116,4 +118,4 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         if capture:
             js_binary(name = name + ".update", tags = ["manual"], **common)
         else:
-            js_test(name = name, tags = ["manual", "visual_test", "no-remote"] + tags, timeout = timeout, **common)
+            js_test(name = name, tags = ["manual", "visual_test" if visual else "browser_test", "no-remote"] + tags, timeout = timeout, **common)

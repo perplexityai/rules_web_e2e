@@ -9,7 +9,7 @@ export interface RemoteJob {
   env: Record<string, string>
   args: string[]
   output: string
-  capture: boolean
+  mode: 'capture' | 'compare' | 'test'
 }
 
 /** Preserve child failure reports as build outputs for the local result consumer. */
@@ -24,7 +24,7 @@ export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.P
     ` ${escape(name)} ${escape(path.resolve(source))}\n`
   ).join(''))
   const result = spawnSync(node, [
-    path.resolve(job.runner), ...job.args, ...(job.capture ? ['--update'] : []),
+    path.resolve(job.runner), ...job.args, ...(job.mode === 'capture' ? ['--update'] : []),
   ], {
     env: {
       ...process.env,
@@ -35,7 +35,7 @@ export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.P
       JS_BINARY__NODE_BINARY: node,
       TEST_TMPDIR: temp,
       TEST_UNDECLARED_OUTPUTS_DIR: artifacts,
-      VRT_CAPTURE_OUTPUT: job.capture ? path.join(output, 'baselines') : '',
+      VRT_CAPTURE_OUTPUT: job.mode === 'capture' ? path.join(output, 'baselines') : '',
     },
     stdio: 'inherit',
   })
@@ -44,7 +44,7 @@ export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.P
   // their reports and screenshots. The local test wrapper returns this status.
   fs.writeFileSync(path.join(output, 'result.json'), JSON.stringify({
     schemaVersion: 1,
-    mode: job.capture ? 'capture' : 'compare',
+    mode: job.mode,
     exitCode: result.status ?? 1,
   }))
   fs.rmSync(temp, {recursive: true, force: true})

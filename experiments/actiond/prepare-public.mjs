@@ -17,11 +17,58 @@ fs.writeFileSync(path.join(destination, 'MODULE.bazel'), module.replace('path = 
 fs.copyFileSync(path.join(work, 'runtime.tar'), path.join(destination, 'runtime.tar'))
 for (const name of ['isolation', 'failure'])
   fs.copyFileSync(new URL(`./${name}.visual.spec.ts`, import.meta.url), path.join(destination, `actiond-${name}.visual.spec.ts`))
+fs.copyFileSync(new URL('./isolation.visual.spec.ts', import.meta.url), path.join(destination, 'actiond-isolation.spec.ts'))
+fs.writeFileSync(path.join(destination, 'actiond-browser-failure.spec.ts'), `
+import {test} from '@playwright/test'
+test('ordinary failure reaches the local wrapper', async ({page}) => {
+  await page.goto('/')
+  throw new Error('Intentional ordinary browser failure')
+})
+`)
 const build = path.join(destination, 'BUILD.bazel')
 fs.writeFileSync(build,
   'load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_archive")\n' +
   'load("@rules_web_e2e//playwright:defs.bzl", "browser_runtime")\n' +
   fs.readFileSync(build, 'utf8') + `
+web_e2e_test(
+    name = "actiond_e2e_test",
+    browser = ":actiond_browser",
+    shell = ":app_shell",
+    tests = ":e2e_specs",
+)
+component_browser_test(
+    name = "actiond_component_test",
+    browser = ":actiond_browser",
+    shell = ":component_shell",
+    tests = ":component_specs",
+)
+js_library(
+    name = "actiond_browser_isolation_specs",
+    srcs = ["actiond-isolation.spec.js"],
+    deps = [":typecheck_project"],
+)
+web_e2e_test(
+    name = "actiond_browser_isolation_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_browser_isolation_specs",
+    data = [":actiond_fixture_server", "package.json"],
+    env = {
+        "EXAMPLE_SERVER_COMMAND": "$(rootpath :actiond_fixture_server)",
+        "ACTIOND_FIXTURE": json.encode({"package": "$(rootpath package.json)"}),
+    },
+)
+js_library(
+    name = "actiond_browser_failure_specs",
+    srcs = ["actiond-browser-failure.spec.js"],
+    deps = [":typecheck_project"],
+)
+web_e2e_test(
+    name = "actiond_browser_failure_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_browser_failure_specs",
+)
 js_binary(
     name = "actiond_fixture_server",
     entry_point = "native-server.js",

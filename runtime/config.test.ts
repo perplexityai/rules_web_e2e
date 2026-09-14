@@ -62,6 +62,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
   )
   Object.assign(process.env, {
     VRT_MODE: 'visual',
+    VRT_ISOLATED: '1',
     VRT_APP_URL: 'http://127.0.0.1:1234/',
     VRT_OUTPUTS: temp,
     VRT_BASELINES: join(temp, 'baselines'),
@@ -265,6 +266,49 @@ test('suite config rejects explicit native discovery instead of broadening selec
   } finally {
     for (const key of Object.keys(process.env))
       if (!(key in previous)) delete process.env[key]
+    Object.assign(process.env, previous)
+    rmSync(temp, {recursive: true, force: true})
+  }
+})
+
+
+test('isolated ordinary suites preserve projects but reject host browser selection', async () => {
+  const {mkdtempSync, writeFileSync, rmSync} = await import('node:fs')
+  const {tmpdir} = await import('node:os')
+  const {join} = await import('node:path')
+  const temp = mkdtempSync(join(tmpdir(), 'isolated-config-'))
+  const previous = {...process.env}
+  Object.assign(process.env, {
+    VRT_MODE: 'e2e', VRT_ISOLATED: '1', VRT_APP_URL: 'http://127.0.0.1:1234',
+    VRT_OUTPUTS: temp, VRT_TEST_ROOT: temp,
+    VRT_TEST_FILES: JSON.stringify([join(temp, 'app.spec.js')]),
+    VRT_CHROMIUM_EXECUTABLE: '/declared/chromium',
+  })
+  delete process.env.VRT_MATCHING
+  try {
+    writeFileSync(join(temp, 'package.json'), '{"type":"module"}')
+    const configurations = [
+      {use: {launchOptions: {args: ['--disable-gpu']}}, projects: [{name: 'rtl', use: {locale: 'ar'}}]},
+      {use: {channel: 'chrome'}},
+      {projects: [{use: {launchOptions: {executablePath: '/host/chrome'}}}]},
+      {use: {headless: false}},
+    ]
+    for (const [index, custom] of configurations.entries()) {
+      process.env.VRT_CONFIG_OVERRIDE = join(temp, `config-${index}.js`)
+      writeFileSync(process.env.VRT_CONFIG_OVERRIDE, `export default ${JSON.stringify(custom)}`)
+      const load = import(new URL(`./suite-config.js?isolated-${index}`, import.meta.url).href)
+      if (index) await assert.rejects(load, /declared headless Chromium/)
+      else {
+        const config = (await load).default
+        assert.equal(config.globalSetup, undefined)
+        assert.equal(config.updateSnapshots, 'none')
+        assert.equal(config.projects[0].use.locale, 'ar')
+        assert.equal(config.projects[0].use.launchOptions.executablePath, '/declared/chromium')
+        assert.deepEqual(config.projects[0].use.launchOptions.args, ['--disable-gpu', '--no-zygote'])
+      }
+    }
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key]
     Object.assign(process.env, previous)
     rmSync(temp, {recursive: true, force: true})
   }
