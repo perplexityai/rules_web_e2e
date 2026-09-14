@@ -36,8 +36,6 @@ jobs:
           disk-cache: actiond-linux-amd64
       - name: Prepare production suites and caller runtime
         run: |
-          corepack enable pnpm
-          pnpm install --frozen-lockfile
           work="$RUNNER_TEMP/actiond-production"
           bash tests/actiond/prepare.sh "$work"
           node tests/actiond/prepare-public.mjs "$work"
