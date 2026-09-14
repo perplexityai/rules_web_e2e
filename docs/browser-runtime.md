@@ -114,3 +114,22 @@ package out of a baseline-sensitive runtime. Destination paths must not overlap,
 archive content. The assembler does not discover library dependencies or run
 package installation scripts. Preserve the distribution's fontconfig policy files
 alongside a top-level configuration with relative font paths.
+
+## Build the example runtime
+
+From the repository root, build the Linux amd64 runtime using Bazel 9 and package
+its declared directory for the React example:
+
+```sh
+(
+  cd experiments/actiond/runtime
+  bazelisk build //:files
+  runtime_files=$(bazelisk cquery //:files --output=files)
+  tar -C "$runtime_files" -cf ../../../examples/react/runtime.tar .
+)
+```
+
+The committed module lock pins the Ubuntu package closure. Chromium and Node use
+explicit archive checksums. The VRT action itself runs offline; repository
+acquisition happens before execution. Callers can instead pass the assembled
+directory directly to `browser_runtime(root=...)` without this tar export.

@@ -77,8 +77,8 @@ attributes; see [migration](docs/getting-started.md#migrating-from-100).
 ## Try it
 
 Provision host Chromium for interaction tests. For VRT, supply the example's
-`runtime.tar` from your image build and configure a patched actiond worker using
-[the execution guide](docs/actiond.md).
+`runtime.tar` using the [package-built runtime example](docs/browser-runtime.md#build-the-example-runtime)
+and configure a patched actiond worker using [the execution guide](docs/actiond.md).
 
 ```sh
 export PLAYWRIGHT_BROWSERS_PATH="$(pwd)/.playwright-browsers"

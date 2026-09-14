@@ -10,7 +10,7 @@ and the [API reference](api.md) for all supported attributes.
 
 ## Try the standalone example
 
-Supply `examples/react/runtime.tar` from your image build and configure a
+Build `examples/react/runtime.tar` with the [package runtime example](browser-runtime.md#build-the-example-runtime) and configure a
 patched worker with [the actiond guide](actiond.md), then:
 
 ```sh
