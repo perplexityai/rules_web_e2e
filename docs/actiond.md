@@ -58,7 +58,8 @@ reruns Chromium; failure reports are standard test artifacts.
 
 VRT comparison and capture are cacheable build actions. Their result directory
 contains test status and artifacts even when the suite fails. A local test
-wrapper reports comparison failure and copies reports into Bazel test outputs.
+wrapper reports comparison failure, copies reports into Bazel test outputs, and
+forwards per-case JUnit to Bazel’s XML output for failure/quarantine matching.
 The local update wrapper applies successful, nonempty captures to the source
 baseline directory. Failed, timed-out, and empty captures preserve references.
 A cancelled build never runs the local update wrapper.

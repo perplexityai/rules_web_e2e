@@ -24,7 +24,7 @@ linux_chromium_runtime(
 supplies the executable/loader paths and assembles the default
 `@rules_web_e2e//playwright/presets:noble_20260901` library/font preset. Its package
 URLs and checksums are checked in; consumers do not resolve APT dependencies.
-The optional preset selects an explicit shared-library closure, five shell
+The preset includes libatomic for Node 26. The optional preset selects an explicit shared-library closure, five shell
 executables, and the existing font/fontconfig policy. It excludes unrelated OS
 packages and graphics drivers. Font changes may require screenshot regeneration.
 

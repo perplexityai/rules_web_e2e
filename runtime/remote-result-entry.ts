@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import {consumeRemoteResult} from './remote-result.js'
 
@@ -25,6 +26,9 @@ try {
       } : {}),
     }
   )
+  const junit = path.join(result, 'artifacts', 'junit.xml')
+  if (process.env.XML_OUTPUT_FILE && fs.existsSync(junit))
+    fs.copyFileSync(junit, process.env.XML_OUTPUT_FILE)
   if (process.exitCode)
     console.error(`Browser test failed (exit ${process.exitCode}); reports: ${process.env.TEST_UNDECLARED_OUTPUTS_DIR || path.join(result, 'artifacts')}`)
 } catch (error) {
