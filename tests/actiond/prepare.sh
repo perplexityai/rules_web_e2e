@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Prepare declared inputs for the Linux VM integration suite.
+set -euo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+repository=$(cd "$here/../.." && pwd)
+work=${1:?usage: prepare.sh ABSOLUTE_WORK_DIRECTORY}
+[[ $work = /* ]] || { echo 'Use an absolute work directory' >&2; exit 1; }
+bazel_bin=${ACTIOND_BAZEL:-bazelisk}
+mkdir -p "$work/actiond"
+(
+  cd "$repository"
+  "$bazel_bin" build //tests/actiond:worker_source
+  archive=$("$bazel_bin" cquery //tests/actiond:worker_source --output=files)
+  execution_root=$("$bazel_bin" info execution_root)
+  tar -xf "$execution_root/$archive" --strip-components=1 -C "$work/actiond"
+)
+(
+  cd "$repository/examples/browser-runtime"
+  "$bazel_bin" build //:browser
+  runtime=$("$bazel_bin" cquery //:browser --output=files)
+  tar -C "$runtime" -cf "$work/runtime.tar" .
+)

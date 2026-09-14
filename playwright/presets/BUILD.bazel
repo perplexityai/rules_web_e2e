@@ -1,3 +1,4 @@
+load("@rules_web_e2e_noble_20260901//:paths.bzl", "BROWSER_PATHS")
 load("//playwright:archive.bzl", "browser_runtime_archive")
 
 exports_files(["noble_20260901.json"])
@@ -6,16 +7,7 @@ browser_runtime_archive(
     name = "noble_20260901",
     archives = ["@rules_web_e2e_noble_20260901//:packages"],
     files = {":fonts.conf": "etc/fonts/fonts.conf"},
-    paths = {
-        "etc/fonts/conf.d": "etc/fonts/conf.d",
-        "usr/bin/bash": "bin/bash",
-        "usr/bin/env": "bin/env",
-        "usr/bin/dirname": "bin/dirname",
-        "usr/bin/uname": "bin/uname",
-        "usr/bin/readlink": "bin/readlink",
-        "usr/lib/x86_64-linux-gnu": "lib",
-        "usr/share/fonts": "fonts",
-    },
+    paths = BROWSER_PATHS,
     tags = ["manual"],
     visibility = ["//visibility:public"],
 )

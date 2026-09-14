@@ -1,0 +1,47 @@
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -1,7 +1,8 @@
++load("@rules_web_e2e//internal/test_tools:magic.bzl", "magic_database", "static_compiler")
+ load("@bazel_lib//lib:expand_template.bzl", "expand_template")
+ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_shared_library")
+ 
+-_VERSION = module_version().partition(".bcr")[0].replace(".", "")  # "5.47.bcr.1" -> "547"
++_VERSION = "547"  # "5.47.bcr.1" -> "547"
+ 
+ expand_template(
+     name = "gen_magic_h",
+@@ -66,7 +67,7 @@
+ )
+ 
+ cc_binary(
+-    name = "file_bootstrap",
++    name = "file_bootstrap_binary",
+     srcs = [
+         "src/file.c",
+         "src/magic.c",
+@@ -75,12 +76,21 @@
+     deps = [":lib_bootstrap"],
+ )
+ 
+-genrule(
++static_compiler(
++    name = "file_bootstrap",
++    binary = ":file_bootstrap_binary",
++    platform = select({
++        "@rules_web_e2e//internal/test_tools:linux_x86_64": "@llvm//platforms:linux_x86_64_musl",
++        "@rules_web_e2e//internal/test_tools:linux_aarch64": "@llvm//platforms:linux_aarch64_musl",
++        "//conditions:default": None,
++    }),
++)
++
++magic_database(
+     name = "gen_magic",
+     srcs = glob(["magic/Magdir/*"]),
+-    outs = ["magic.mgc"],
+-    cmd = """cat $(SRCS) > combined_magic && $(execpath :file_bootstrap) -C -m combined_magic 2>/dev/null && mv combined_magic.mgc $@ && rm combined_magic""",
+-    tools = [":file_bootstrap"],
++    out = "magic.mgc",
++    compiler = ":file_bootstrap",
+     visibility = ["//visibility:public"],
+ )
+ 

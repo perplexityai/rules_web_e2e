@@ -9,12 +9,13 @@ function required(name: string) {
 
 try {
   if (process.argv.length > 2)
-    throw new Error('Remote VRT selection is declared by the Bazel target; use separate targets for subsets')
+    throw new Error('Remote browser selection is declared by the Bazel target; use separate targets for subsets')
   const runfiles = process.env.RUNFILES_DIR || required('JS_BINARY__RUNFILES')
   const result = path.join(runfiles, required('VRT_RESULT'))
   process.exitCode = consumeRemoteResult(
     result,
     {
+      mode: process.env.VRT_RESULT_MODE === 'test' ? 'test' : 'compare',
       artifacts: process.env.TEST_UNDECLARED_OUTPUTS_DIR,
       ...(process.env.VRT_APPLY_BASELINES === '1' ? {
         update: {
@@ -25,7 +26,7 @@ try {
     }
   )
   if (process.exitCode)
-    console.error(`VRT failed (exit ${process.exitCode}); reports: ${process.env.TEST_UNDECLARED_OUTPUTS_DIR || path.join(result, 'artifacts')}`)
+    console.error(`Browser test failed (exit ${process.exitCode}); reports: ${process.env.TEST_UNDECLARED_OUTPUTS_DIR || path.join(result, 'artifacts')}`)
 } catch (error) {
   console.error(error)
   process.exitCode = 1

@@ -1,6 +1,7 @@
-"""VRT execution actions and local result consumers."""
+"""Native browser tests and VRT artifact-producing actions."""
 
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
+load("//internal/test_tools:defs.bzl", "TestToolsInfo")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "runfile")
 
 def _linux_impl(_settings, attr):
@@ -12,12 +13,53 @@ _linux = transition(
     outputs = ["//command_line_option:platforms"],
 )
 
+def _native_test(ctx, root, descriptor, files, job):
+    executable = ctx.actions.declare_file(ctx.label.name)
+    setup = ctx.actions.declare_file(ctx.label.name + ".bash-env")
+    tools = ctx.attr._test_tools[TestToolsInfo]
+    # Bazel itself invokes /bin/bash before our executable. actiond supplies
+    # its pinned static shell; BASH_ENV supplies the wrapper's declared tools.
+    ctx.actions.write(setup, "\n".join([
+        "unset BASH_ENV",
+        'if [[ -e /bin/sh || -e /lib64/ld-linux-x86-64.so.2 ]]; then echo "Browser tests require isolated actiond execution" >&2; exit 1; fi',
+        'case "$TEST_SRCDIR" in /*) ;; *) export TEST_SRCDIR="$PWD/$TEST_SRCDIR" ;; esac',
+        'export MAGIC="$TEST_SRCDIR/%s"' % runfile(tools.magic),
+    ] + [
+        '%s() { "$TEST_SRCDIR/%s" %s "$@"; }; export -f %s' % (command, runfile(binary), " ".join(args), command)
+        for command, (binary, args) in tools.commands.items()
+    ]) + "\n")
+    ctx.actions.write(executable, "\n".join([
+        "#!/bin/bash",
+        "set -euo pipefail",
+        'root="$TEST_SRCDIR/%s"' % runfile(root),
+        'exec "$root/%s" --library-path "%s" "$root/%s" "$TEST_SRCDIR/%s" "$TEST_SRCDIR/%s" "$@"' % (
+            descriptor["loader"],
+            ":".join(["$root/" + p for p in descriptor["libraryDirs"]]),
+            descriptor["node"], runfile(ctx.file._bootstrap), runfile(job),
+        ),
+    ]) + "\n", is_executable = True)
+    inputs = files + [root, job, ctx.file._bootstrap, setup] + ctx.attr._test_tools[DefaultInfo].files.to_list()
+    return [
+        DefaultInfo(executable = executable, runfiles = ctx.runfiles(files = inputs).merge_all([
+            target[DefaultInfo].default_runfiles
+            for target in [ctx.attr.inputs[0], ctx.attr._runtime, ctx.attr._runner]
+        ])),
+        testing.TestEnvironment({
+            "BASH_ENV": executable.path + ".runfiles/" + runfile(setup),
+            "USER": "test",
+            "LANG": "C.UTF-8",
+            "TZ": "UTC",
+        }),
+        testing.ExecutionInfo({"no-local": "1"}),
+    ]
+
 def _remote_impl(ctx):
+    native_test = ctx.attr.mode == "test"
     browser = ctx.attr.browser[0][BrowserRuntimeInfo]
     if browser.descriptor["arch"] != "x64":
         fail("Remote VRT currently requires a Linux amd64 runtime and worker")
     root = ctx.file.browser
-    output = ctx.actions.declare_directory(ctx.label.name + ".results")
+    output = None if native_test else ctx.actions.declare_directory(ctx.label.name + ".results")
     files = []
     manifest = {}
     for target in [ctx.attr.inputs[0], ctx.attr._runtime, ctx.attr._runner]:
@@ -37,15 +79,17 @@ def _remote_impl(ctx):
     env["VRT_DESCRIPTOR"] = runfile(ctx.file.inputs)
     job = ctx.actions.declare_file(ctx.label.name + ".job.json")
     ctx.actions.write(job, json.encode({
-        "runfiles": manifest,
-        "runner": ctx.file._runner.path,
+        "runfiles": {key: key for key in manifest} if native_test else manifest,
+        "runner": runfile(ctx.file._runner) if native_test else ctx.file._runner.path,
         "env": env,
-        "args": [ctx.expand_location(value, targets = locations) for value in ctx.attr.args],
-        "output": output.path,
-        "capture": ctx.attr.capture,
-        "runtime": dict(browser.descriptor, path = root.path),
+        "args": [] if native_test else [ctx.expand_location(value, targets = locations) for value in ctx.attr.args],
+        "output": "" if native_test else output.path,
+        "mode": ctx.attr.mode,
+        "runtime": dict(browser.descriptor, path = runfile(root) if native_test else root.path),
     }))
     descriptor = browser.descriptor
+    if native_test:
+        return _native_test(ctx, root, descriptor, files, job)
     ctx.actions.run(
         executable = root.path + "/" + descriptor["loader"],
         arguments = [
@@ -64,41 +108,66 @@ def _remote_impl(ctx):
             "TZ": "UTC",
         },
         execution_requirements = {"no-local": "1"},
-        mnemonic = "VrtCapture" if ctx.attr.capture else "VrtCompare",
+        mnemonic = {"capture": "VrtCapture", "compare": "VrtCompare", "test": "BrowserTest"}[ctx.attr.mode],
     )
     return [
         DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output])),
         OutputGroupInfo(inputs = depset(files + [root, job, ctx.file._bootstrap])),
     ]
 
-_remote = rule(
+_attrs = {
+    "inputs": attr.label(mandatory = True, allow_single_file = True, cfg = _linux),
+    "browser": attr.label(mandatory = True, providers = [BrowserRuntimeInfo], allow_single_file = True, cfg = _linux),
+    "data": attr.label_list(allow_files = True, cfg = _linux),
+    "target_platform": attr.label(mandatory = True),
+    "env": attr.string_dict(),
+    "args": attr.string_list(),
+    "mode": attr.string(mandatory = True, values = ["capture", "compare", "test"]),
+    "_runtime": attr.label(default = Label("//runtime:files")),
+    "_runner": attr.label(default = Label("//runtime:runner_entry"), allow_single_file = True),
+    "_bootstrap": attr.label(default = Label("//runtime:remote_runner_entry"), allow_single_file = True),
+    "_allowlist_function_transition": attr.label(default = "@bazel_tools//tools/allowlists/function_transition_allowlist"),
+}
+_remote = rule(implementation = _remote_impl, attrs = _attrs)
+
+_test_attrs = dict(_attrs)
+_test_attrs.pop("args")  # Native test rules already have this attribute.
+_test_attrs["_test_tools"] = attr.label(default = Label("//internal/test_tools:tools"), providers = [TestToolsInfo])
+_native_browser_test = rule(
     implementation = _remote_impl,
-    attrs = {
-        "inputs": attr.label(mandatory = True, allow_single_file = True, cfg = _linux),
-        "browser": attr.label(mandatory = True, providers = [BrowserRuntimeInfo], allow_single_file = True, cfg = _linux),
-        "data": attr.label_list(allow_files = True, cfg = _linux),
-        "target_platform": attr.label(mandatory = True),
-        "env": attr.string_dict(),
-        "args": attr.string_list(),
-        "capture": attr.bool(),
-        "_runtime": attr.label(default = Label("//runtime:files")),
-        "_runner": attr.label(default = Label("//runtime:runner_entry"), allow_single_file = True),
-        "_bootstrap": attr.label(default = Label("//runtime:remote_runner_entry"), allow_single_file = True),
-        "_allowlist_function_transition": attr.label(default = "@bazel_tools//tools/allowlists/function_transition_allowlist"),
-    },
+    attrs = _test_attrs,
+    test = True,
+    exec_groups = {"test": exec_group(exec_compatible_with = [str(Label("@platforms//os:linux")), str(Label("@platforms//cpu:x86_64"))])},
 )
 
-def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform):
-    """Build comparisons/captures remotely, then consume their downloaded results."""
-    for capture in [False, True]:
-        action = name + ("_capture" if capture else "_compare")
+def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual):
+    """Run native browser tests or produce downloadable VRT comparisons/captures."""
+    if not visual:
+        _native_browser_test(
+            name = name,
+            inputs = ":" + name + "_inputs",
+            browser = browser,
+            env = env,
+            args = args,
+            mode = "test",
+            data = data,
+            target_platform = target_platform,
+            exec_properties = {"requires-bash": ""},
+            exec_compatible_with = [Label("@platforms//os:linux"), Label("@platforms//cpu:x86_64")],
+            tags = ["manual", "browser_test"] + tags,
+            timeout = timeout,
+        )
+        return
+    for mode in ["compare", "capture"]:
+        capture = mode == "capture"
+        action = name + "_" + mode
         _remote(
             name = action,
             inputs = ":" + name + "_inputs",
             browser = browser,
             env = env,
             args = args,
-            capture = capture,
+            mode = mode,
             data = data,
             target_platform = target_platform,
             exec_compatible_with = [Label("@platforms//os:linux"), Label("@platforms//cpu:x86_64")],
@@ -109,6 +178,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             data = [":" + action, Label("//runtime:remote_result_files")],
             env = {
                 "VRT_RESULT": "$(rlocationpath :%s)" % action,
+                "VRT_RESULT_MODE": mode,
                 "VRT_APPLY_BASELINES": "1" if capture else "0",
                 "VRT_BASELINE_RELATIVE": env["VRT_BASELINE_RELATIVE"],
             },

@@ -97,3 +97,6 @@ See [development and releases](docs/development.md) for build checks, hooks,
 and BCR publishing.
 
 See [host-browser provisioning and consumer migration](docs/host-browsers.md).
+
+Ordinary E2E and component tests can also supply `browser` for isolated Linux execution,
+without host-installed libraries. See [hermetic browser tests](docs/host-browsers.md#hermetic-e2e-and-component-tests).

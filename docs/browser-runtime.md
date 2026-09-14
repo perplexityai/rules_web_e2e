@@ -24,7 +24,9 @@ linux_chromium_runtime(
 supplies the executable/loader paths and assembles the default
 `@rules_web_e2e//playwright/presets:noble_20260901` library/font preset. Its package
 URLs and checksums are checked in; consumers do not resolve APT dependencies.
-The preset includes the resolved font packages; font changes may require screenshot regeneration.
+The optional preset selects an explicit shared-library closure, five shell
+executables, and the existing font/fontconfig policy. It excludes unrelated OS
+packages and graphics drivers. Font changes may require screenshot regeneration.
 
 Add `fonts = [":brand_fonts"]` for declared font files/directories, or set `system`
 to a custom declared directory containing `lib/`, `bin/bash`, `etc/fonts/`, and
@@ -158,7 +160,9 @@ its declared directory for the React example:
 )
 ```
 
-The checked-in preset manifest pins the Ubuntu package closure. Chromium and Node use
+The checked-in preset manifest pins only the packages supplying selected runtime
+files. Bazel `http_archive` downloads and verifies every package; no apt resolver
+or package installation scripts run in consuming workspaces. Chromium and Node use
 explicit archive checksums. The VRT action itself runs offline; repository
 acquisition happens before execution. Callers can instead pass the assembled
 directory directly to `browser_runtime(root=...)` without this tar export.

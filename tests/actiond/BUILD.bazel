@@ -1,0 +1,6 @@
+# CI builds the downloaded upstream workspace with its own MODULE overrides.
+filegroup(
+    name = "worker_source",
+    srcs = ["@rules_web_e2e_actiond_source//file"],
+    visibility = ["//visibility:public"],
+)

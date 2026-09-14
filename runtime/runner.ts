@@ -23,9 +23,6 @@ async function main() {
   const gallery = required('VRT_MODE') === 'visual'
   const visual = gallery || required('VRT_MODE') === 'visual-spec'
   const remote = remoteAppUrl(process.env)
-  const hostEnv = visual
-    ? {}
-    : hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
   const args = process.argv.slice(2)
   const update = args.includes('--update')
   if (!visual && update) throw new Error('E2E tests do not update baselines')
@@ -68,8 +65,9 @@ async function main() {
   const declaredBrowser = descriptor.browser
     ? browserRuntime(inputs, descriptor.browser)
     : undefined
+  const hostEnv = declaredBrowser ? {} : hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
   const node = declaredBrowser?.node || fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
-  if (visual) relocateInputs(inputs)
+  if (declaredBrowser) relocateInputs(inputs)
   const testRoot = path.dirname(descriptorPath)
   const generated = path.join(testRoot, '.rules-browser')
   fs.mkdirSync(generated)
@@ -146,12 +144,12 @@ async function main() {
   const env = {
     ...testEnvironment(
       process.env,
-      JSON.parse(required('VRT_ENV_NAMES')) as string[],
+      [...JSON.parse(required('VRT_ENV_NAMES')) as string[], 'TEST_RUN_NUMBER', 'TEST_RANDOM_SEED'],
       temp
     ),
     ...hostEnv,
     ...declaredBrowser?.env,
-    ...(visual ? {
+    ...(declaredBrowser ? {
       VRT_BASH: path.join(runtimeDirectory, 'bash'),
       NODE_OPTIONS: [
         process.env.NODE_OPTIONS || '',
@@ -160,6 +158,7 @@ async function main() {
     } : {}),
     VRT_INPUTS: inputs,
     VRT_PLAYWRIGHT_CORE: core,
+    VRT_ISOLATED: declaredBrowser ? '1' : '0',
     VRT_MODE: required('VRT_MODE'),
     VRT_TEST_ROOT: visual ? testRoot : inputs,
     VRT_TEST_FILES: JSON.stringify(descriptor.tests.map(input)),
