@@ -8,6 +8,7 @@ on:
       - 'internal/**'
       - 'playwright/**'
       - 'examples/react/**'
+      - 'examples/browser-runtime/**'
       - 'MODULE.bazel'
       - 'package.json'
       - 'pnpm-lock.yaml'

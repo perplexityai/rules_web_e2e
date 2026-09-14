@@ -274,3 +274,20 @@ only the local `.update` wrapper writes source references.
 
 Host E2E/component tests retain their browser provisioning and command-line
 selection behavior; see [host browsers](host-browsers.md).
+
+
+### Runtime convenience rules
+
+Load from `@rules_web_e2e//playwright:browser.bzl`:
+
+- `linux_chromium_runtime(name, chromium, node, system?, fonts?)` returns a
+  Linux amd64 browser runtime and its assembled directory. The default system is
+  the versioned `noble_20260901` library/font preset. Chromium and Node remain
+  caller-provided.
+- `playwright_browser_installation(name, chromium, ffmpeg, playwright?)` builds
+  the host browser cache using revision metadata from the selected Playwright
+  package. It supports Linux x64 and macOS x64/arm64.
+
+The runner rejects VRT Chromium versions that differ from the selected
+Playwright package's headless-shell version. See [runtime setup](browser-runtime.md)
+and [host provisioning](host-browsers.md) for complete examples and upgrades.

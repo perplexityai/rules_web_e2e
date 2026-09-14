@@ -21,3 +21,10 @@ use_repo(npm, "rules_web_e2e_npm")
 typescript = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
 typescript.deps(ts_version = "7.0.2")
 use_repo(typescript, "npm_typescript")
+
+# Only consumers of the Linux preset download these locked package archives.
+linux_presets = use_extension("//playwright:presets.bzl", "linux_presets")
+use_repo(linux_presets, "rules_web_e2e_noble_20260901")
+
+runtime_tools = use_extension("@bazel_lib//lib:extensions.bzl", "toolchains")
+use_repo(runtime_tools, "zstd_toolchains")

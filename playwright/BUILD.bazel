@@ -20,3 +20,19 @@ py_test(
     ],
     main = "unpack_runtime_test.py",
 )
+
+py_binary(
+    name = "browser_files",
+    srcs = ["browser_files.py"],
+    main = "browser_files.py",
+)
+
+py_test(
+    name = "browser_files_test",
+    size = "small",
+    srcs = [
+        "browser_files.py",
+        "browser_files_test.py",
+    ],
+    main = "browser_files_test.py",
+)

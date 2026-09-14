@@ -1,12 +1,5 @@
-module(name = "actiond_browser_runtime")
+module(name = "browser_runtime_preset_lock")
 
-bazel_dep(name = "rules_web_e2e", version = "0.0.0")
-local_path_override(
-    module_name = "rules_web_e2e",
-    path = "../../..",
-)
-
-bazel_dep(name = "bazel_lib", version = "3.7.2")
 bazel_dep(name = "rules_distroless", version = "0.9.4")
 
 apt = use_extension("@rules_distroless//apt:extensions.bzl", "apt")
@@ -74,21 +67,3 @@ apt.install(
     ],
 )
 use_repo(apt, "vrt_noble")
-
-http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
-http_archive(
-    name = "chromium",
-    build_file_content = 'filegroup(name = "files", srcs = glob(["**"]), visibility = ["//visibility:public"])',
-    sha256 = "a9da028861a0cf789ff25c2fed45f5f1aaf969ed9247835b6a7821a4f7af9d1d",
-    strip_prefix = "chrome-headless-shell-linux64",
-    urls = ["https://storage.googleapis.com/chrome-for-testing-public/153.0.8010.12/linux64/chrome-headless-shell-linux64.zip"],
-)
-
-http_archive(
-    name = "node",
-    build_file_content = 'exports_files(["bin/node"])',
-    sha256 = "41cd79bb7877c81605a9e68ec4c91547774f46a40c67a17e34d7179ef11729df",
-    strip_prefix = "node-v24.14.0-linux-x64",
-    urls = ["https://nodejs.org/dist/v24.14.0/node-v24.14.0-linux-x64.tar.xz"],
-)

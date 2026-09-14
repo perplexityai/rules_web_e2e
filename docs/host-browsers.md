@@ -76,3 +76,33 @@ FormatJS CI migration, or macOS worker support.
 `playwright_runtime` now groups only matching npm packages and their version.
 Replace its former `image` setting with a declared package/browser runtime assembled
 by `browser_runtime_archive`. Remove `playwright_images` and Ryuk preload jobs.
+
+
+## Assemble an existing browser download
+
+`playwright_browser_installation` accepts caller-owned Chrome for Testing
+headless-shell and FFmpeg downloads. It reads cache revisions from the declared
+Playwright package; no handwritten `chromium_headless_shell-<revision>` paths
+are needed:
+
+```starlark
+load("@rules_web_e2e//playwright:browser.bzl", "playwright_browser_installation")
+
+playwright_browser_installation(
+    name = "browsers",
+    chromium = "@rules_browsers_chrome_linux//:info",
+    ffmpeg = ":downloaded_ffmpeg",
+    playwright = ":playwright",
+)
+```
+
+Use platform `select()` for Linux x64 and macOS x64/arm64 browser/FFmpeg labels.
+Pass this target in test `data` and set
+`PLAYWRIGHT_BROWSERS_PATH = "$(rootpath :browsers)"` as before.
+
+To upgrade, change the caller's Chromium pin and compatible Playwright npm
+packages (including `playwright_runtime(version = ...)`). Update the
+`rules_browsers` catalog pin if necessary. Select the FFmpeg download revision
+listed in the new Playwright package's `browsers.json`; the helper handles its
+cache directory name. Re-run host and VRT suites and review any intentional
+baseline changes. Library/font preset upgrades remain an explicit separate choice.

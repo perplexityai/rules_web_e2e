@@ -12,7 +12,7 @@ Docker socket, or Ryuk is used inside the action.
 
 Setup requires Linux amd64, Python 3, curl, Git, Bazelisk, and the repository's
 installed pnpm dependencies. Bazel assembles the runtime from pinned package,
-Chromium, and Node downloads in `runtime/`.
+Chromium, and Node downloads in [`examples/browser-runtime`](../../examples/browser-runtime).
 
 ```sh
 bash experiments/actiond/prepare.sh /tmp/actiond-prototype
@@ -77,7 +77,8 @@ The local host has no `/dev/kvm`; KVM validation ran on GitHub's Ubuntu runner.
 The production workflow builds actiond at `8a42c3d` with the memory-advice patch,
 starts a Linux amd64 VM, and runs `prepare-public.mjs` / `run-public-actiond.sh`.
 The fixture assembles pinned Ubuntu packages, Chrome for Testing, and Node
-through Bazel in [`runtime`](runtime), using `browser_runtime_archive`. Public `.update` and test targets execute
+through the public `linux_chromium_runtime` helper in
+[`examples/browser-runtime`](../../examples/browser-runtime). Public `.update` and test targets execute
 capture/comparison actions remotely and consume downloaded results locally.
 Only the temporary example checkout receives baseline updates.
 

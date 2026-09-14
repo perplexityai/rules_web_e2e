@@ -24,9 +24,9 @@ ZIG_GLOBAL_CACHE_DIR="$work/zig-cache" "$work/zig-x86_64-linux-0.16.0/zig" build
   -Mactiond_build_options="$work/build/options.zig" -femit-bin="$work/build/sandbox-smoke"
 runtime_bazel=${ACTIOND_BAZEL:-bazelisk}
 (
-  cd "$here/runtime"
-  "$runtime_bazel" build //:files
-  runtime_files=$("$runtime_bazel" cquery //:files --output=files)
+  cd "$here/../../examples/browser-runtime"
+  "$runtime_bazel" build //:browser
+  runtime_files=$("$runtime_bazel" cquery //:browser --output=files)
   tar -C "$runtime_files" -cf "$work/runtime.tar" .
 )
 mkdir -p "$work/workspace/runtime"

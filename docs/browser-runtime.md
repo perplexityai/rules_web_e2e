@@ -7,6 +7,36 @@ and the shell utilities used by fixture launchers (including `dirname`, `uname`,
 and `readlink` for Bazel `js_binary`). These files stay inside the runtime tree;
 they are not installed at system paths.
 
+For the common Linux amd64 case, use the public helper:
+
+```starlark
+load("@rules_web_e2e//playwright:browser.bzl", "linux_chromium_runtime")
+
+linux_chromium_runtime(
+    name = "browser",
+    chromium = "@rules_browsers_chrome_linux//:info",
+    node = "@nodejs_linux_amd64//:node_bin",
+)
+```
+
+`chromium` accepts Chrome for Testing headless-shell files or a declared directory.
+`node` is the actual Linux Node executable, not a launcher script. This helper
+supplies the executable/loader paths and assembles the default
+`@rules_web_e2e//playwright/presets:noble_20260901` library/font preset. Its package
+URLs and checksums are checked in; consumers do not resolve APT dependencies.
+The preset retains the existing Liberation font policy.
+
+Add `fonts = [":brand_fonts"]` for declared font files/directories, or set `system`
+to a custom declared directory containing `lib/`, `bin/bash`, `etc/fonts/`, and
+`fonts/` with the same layout. A system preset must not contain Node or Chromium.
+Use `browser_runtime` below for other layouts. The assembled output itself is a
+directory, so it can also be exported by caller-owned packaging rules.
+
+The caller selects Chromium's version through its downloader (`rules_browsers`
+or checksum-pinned archives). The rules do not silently upgrade it. Before VRT,
+the runner compares the actual binary's `--version` to the selected Playwright
+package's `browsers.json` and reports a mismatch with upgrade guidance.
+
 A caller can produce a flattened filesystem tar and unpack it during the Bazel
 build:
 
@@ -100,9 +130,9 @@ browser_runtime_archive(
 )
 ```
 
-The caller owns package selection and pins. The [complete example](../experiments/actiond/runtime)
-uses `rules_distroless` with a fixed Ubuntu Noble snapshot and commits its package
-lock, plus checksum-pinned Chrome for Testing and Node downloads. It also includes
+The caller owns package selection and pins. The [complete example](../examples/browser-runtime)
+uses the public runtime helper with a versioned Ubuntu Noble preset, plus
+checksum-pinned Chrome for Testing and Node downloads. It also includes
 shell utilities for fixture launchers. Only filesystem archives and declared files
 are accepted; there is no container image interface.
 
@@ -122,14 +152,14 @@ its declared directory for the React example:
 
 ```sh
 (
-  cd experiments/actiond/runtime
-  bazelisk build //:files
-  runtime_files=$(bazelisk cquery //:files --output=files)
-  tar -C "$runtime_files" -cf ../../../examples/react/runtime.tar .
+  cd examples/browser-runtime
+  bazelisk build //:browser
+  runtime_files=$(bazelisk cquery //:browser --output=files)
+  tar -C "$runtime_files" -cf ../react/runtime.tar .
 )
 ```
 
-The committed module lock pins the Ubuntu package closure. Chromium and Node use
+The checked-in preset manifest pins the Ubuntu package closure. Chromium and Node use
 explicit archive checksums. The VRT action itself runs offline; repository
 acquisition happens before execution. Callers can instead pass the assembled
 directory directly to `browser_runtime(root=...)` without this tar export.
