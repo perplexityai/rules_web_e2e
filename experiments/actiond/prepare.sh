@@ -30,7 +30,10 @@ runtime_bazel=${ACTIOND_BAZEL:-bazelisk}
   tar -C "$runtime_files" -cf "$work/runtime.tar" .
 )
 mkdir -p "$work/workspace/runtime"
+chmod -R u+w "$work/workspace/runtime"
 tar -xf "$work/runtime.tar" -C "$work/workspace/runtime"
+# Bazel artifacts are read-only; the standalone diagnostic patches copied ELFs.
+chmod -R u+w "$work/workspace/runtime"
 cp "$work/workspace/runtime/lib/ld-linux-x86-64.so.2" "$work/workspace/ld.so"
 python3 "$here/patch-interpreter.py" "$work/workspace/runtime/bin/node" "$work/workspace/runtime/chromium/chrome-headless-shell"
 cp -RL "$here/../../node_modules/playwright-core" "$work/workspace/"
