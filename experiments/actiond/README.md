@@ -74,7 +74,7 @@ The local host has no `/dev/kvm`; KVM validation ran on GitHub's Ubuntu runner.
 
 ## Production validation
 
-The production workflow builds actiond at `8a42c3d` with both patches below,
+The production workflow builds actiond at `8a42c3d` with the memory-advice patch,
 starts a Linux amd64 VM, and runs `prepare-public.mjs` / `run-public-actiond.sh`.
 The fixture constructs a caller-owned OCI layout through Bazel and extracts its
 runtime with `browser_runtime_oci`. Public `.update` and test targets execute
@@ -96,13 +96,20 @@ is separate from the VM fixtures and does not establish a full consumer CI migra
 ## Local actiond patches
 
 - `actiond-advice.patch`: enables memory-advice syscalls in both kernel configs;
-  submitted as [upstream PR #48](https://github.com/hermeticbuild/actiond/pull/48).
-- `actiond-input-rootfs.patch`: exposes selected directories from a declared
+  covered by [upstream PR #33](https://github.com/hermeticbuild/actiond/pull/33).
+- `actiond-input-rootfs.patch`: historical alternative, submitted as
+  [upstream PR #49](https://github.com/hermeticbuild/actiond/pull/49), and no longer
+  applied by production CI. It exposes selected directories from a declared
   runtime input tree at normal Linux paths, preserving executor-owned devices,
   `/proc`, temporary storage, and network isolation. `input-rootfs-env` resolves
   its path from a declared command variable, which supports Bazel output paths.
   Maintained separately in local actiond commits `66e2dca` and `f713bca` for
   upstreaming. The full actiond build and both unit-test targets pass.
+
+The current VRT runner instead relocates staged executable interpreter paths,
+supplies explicit library/font paths, and directs Node shell launches to declared
+Bash. The production isolation fixture asserts that the former system runtime
+paths are absent. Image extraction remains a caller-side Bazel action.
 
 The native macOS VM backend has not been exercised here. ARM64 clients must
 select an amd64 worker for these baseline inputs.

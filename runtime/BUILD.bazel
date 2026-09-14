@@ -46,6 +46,9 @@ js_library(
         "host-browser.js",
         "matching.js",
         "network.js",
+        "relocation.js",
+        "remote-job.js",
+        "vrt-processes.cjs",
         "package.json",
         "server.js",
         "static-server.js",
@@ -85,6 +88,13 @@ js_test(
     size = "small",
     data = ["package.json", ":typecheck"],
     entry_point = "remote-result.test.js",
+)
+
+js_test(
+    name = "relocation_test",
+    size = "small",
+    data = ["package.json", ":typecheck", "vrt-processes.cjs"],
+    entry_point = "relocation.test.js",
 )
 
 npm_package(

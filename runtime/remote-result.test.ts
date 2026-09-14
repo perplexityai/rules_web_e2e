@@ -3,9 +3,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
-import {spawnSync} from 'node:child_process'
-import {fileURLToPath} from 'node:url'
 import {consumeRemoteResult} from './remote-result.js'
+import {runRemoteJob} from './remote-job.js'
 
 test('failed remote capture preserves local baselines and returns failure artifacts', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-result-'))
@@ -53,7 +52,7 @@ test('result metadata and artifact links cannot bypass local validation', t => {
   assert.throws(() => consumeRemoteResult(root, {artifacts: path.join(root, 'downloads')}), /only regular files/)
 })
 
-test('remote bootstrap preserves a failing subprocess result for the local test', t => {
+test('remote job preserves a failing subprocess result for the local test', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-bootstrap-'))
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))
   const runner = path.join(root, 'consumer.mjs')
@@ -61,16 +60,8 @@ test('remote bootstrap preserves a failing subprocess result for the local test'
     fs.writeFileSync(process.env.TEST_UNDECLARED_OUTPUTS_DIR + '/junit.xml', '<failure/>');
     process.exitCode = 7;`)
   const output = path.join(root, 'output')
-  const job = path.join(root, 'job.json')
-  fs.writeFileSync(job, JSON.stringify({
-    runfiles: {}, runner, env: {}, args: [], output, capture: false,
-  }))
-  // The VM invokes Node directly, without rules_js's process.execPath wrapper.
   const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
-  const result = spawnSync(node, [
-    fileURLToPath(new URL('./remote-runner.js', import.meta.url)), job,
-  ], {encoding: 'utf8', env: {...process.env, NODE_OPTIONS: ''}, timeout: 5000})
-  assert.equal(result.status, 0, result.stderr)
+  runRemoteJob({runfiles: {}, runner, env: {}, args: [], output, capture: false}, node, {NODE_OPTIONS: ''})
   const artifacts = path.join(root, 'test-artifacts')
   assert.equal(consumeRemoteResult(output, {artifacts}), 7)
   assert.equal(fs.readFileSync(path.join(artifacts, 'junit.xml'), 'utf8'), '<failure/>')

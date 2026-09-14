@@ -43,20 +43,20 @@ def _remote_impl(ctx):
         "args": [ctx.expand_location(value, targets = locations) for value in ctx.attr.args],
         "output": output.path,
         "capture": ctx.attr.capture,
+        "runtime": dict(browser.descriptor, path = root.path),
     }))
     descriptor = browser.descriptor
     ctx.actions.run(
-        executable = "/workspace/" + root.path + "/" + descriptor["node"],
-        arguments = [ctx.file._bootstrap.path, job.path],
+        executable = root.path + "/" + descriptor["loader"],
+        arguments = [root.path + "/" + descriptor["node"], ctx.file._bootstrap.path, job.path],
         inputs = depset(files + [root, job, ctx.file._bootstrap]),
         outputs = [output],
         env = {
-            "VRT_RUNTIME_ROOT": root.path,
             "HOME": "/tmp",
             "TMPDIR": "/tmp",
             "LANG": "C.UTF-8",
             "TZ": "UTC",
-            "LD_LIBRARY_PATH": ":".join(["/workspace/" + root.path + "/" + p for p in descriptor["libraryDirs"]]),
+            "LD_LIBRARY_PATH": ":".join([root.path + "/" + p for p in descriptor["libraryDirs"]]),
         },
         execution_requirements = {"no-local": "1"},
         mnemonic = "VrtCapture" if ctx.attr.capture else "VrtCompare",
@@ -96,7 +96,6 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             capture = capture,
             data = data,
             target_platform = target_platform,
-            exec_properties = {"input-rootfs-env": "VRT_RUNTIME_ROOT"},
             exec_compatible_with = [Label("@platforms//os:linux"), Label("@platforms//cpu:x86_64")],
             tags = ["manual"],
         )
