@@ -39,6 +39,7 @@ js_library(
     srcs = [
         "arguments.js",
         "baselines.js",
+        "browser-runtime.js",
         "capture.js",
         "config.js",
         "config-url.js",
@@ -67,6 +68,31 @@ filegroup(
     name = "runner_entry",
     srcs = ["runner.js"],
     visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "remote_result_files",
+    srcs = ["remote-result.js", "baselines.js", "package.json"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "remote_result_entry",
+    srcs = ["remote-result-entry.js"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "remote_runner_entry",
+    srcs = ["remote-runner.js"],
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "remote_result_test",
+    size = "small",
+    data = ["package.json", ":typecheck"],
+    entry_point = "remote-result.test.js",
 )
 
 npm_package(
@@ -148,6 +174,13 @@ js_test(
         ":typecheck",
     ],
     entry_point = "config.test.js",
+)
+
+js_test(
+    name = "browser_runtime_test",
+    size = "small",
+    data = ["package.json", ":typecheck"],
+    entry_point = "browser-runtime.test.js",
 )
 
 js_test(

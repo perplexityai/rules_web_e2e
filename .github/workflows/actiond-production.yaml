@@ -1,0 +1,78 @@
+name: actiond production VRT
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/actiond/**'
+      - 'runtime/**'
+      - 'internal/**'
+      - 'playwright/**'
+      - '.github/workflows/actiond-production.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  vrt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      USE_BAZEL_VERSION: '9.2.0'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '24'
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-cache: true
+          repository-cache: true
+          disk-cache: actiond-linux-amd64
+      - name: Prepare production suites and caller runtime
+        run: |
+          corepack enable pnpm
+          pnpm install --frozen-lockfile
+          docker pull --platform linux/amd64 mcr.microsoft.com/playwright:v1.63.0-noble@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7
+          work="$RUNNER_TEMP/actiond-production"
+          bash experiments/actiond/prepare.sh "$work"
+          node experiments/actiond/prepare-public.mjs "$work"
+      - name: Build patched actiond
+        run: |
+          work="$RUNNER_TEMP/actiond-production"
+          git -C "$work/actiond" apply "$GITHUB_WORKSPACE/experiments/actiond/actiond-advice.patch"
+          git -C "$work/actiond" apply "$GITHUB_WORKSPACE/experiments/actiond/actiond-input-rootfs.patch"
+          cd "$work/actiond"
+          bazelisk --output_base="$work/worker-output" build --bes_backend= --remote_executor= --remote_cache= --spawn_strategy=local --jobs=2 //cmd/linux-actiond:linux-actiond_linux_x86_64 > "$work/worker-build.log" 2>&1
+          worker=$(bazelisk --output_base="$work/worker-output" cquery --bes_backend= //cmd/linux-actiond:linux-actiond_linux_x86_64 --output=starlark '--starlark:expr=providers(target)["DefaultInfo"].files_to_run.executable.path')
+          cp "$worker" "$work/actiond-worker"
+      - name: Enable KVM and vhost-vsock
+        run: |
+          test -c /dev/kvm
+          sudo chmod a+rw /dev/kvm
+          if [[ ! -e /dev/vhost-vsock ]]; then sudo modprobe vhost_vsock; fi
+          test -c /dev/vhost-vsock
+          sudo chmod a+rw /dev/vhost-vsock
+      - name: Capture and compare in the VM
+        env:
+          ACTIOND_BAZEL: bazelisk
+        run: |
+          work="$RUNNER_TEMP/actiond-production"
+          "$work/actiond-worker" serve-vm --root="$work/vm" --listen=127.0.0.1:8980 --memory-mib=6144 --cpus=2 --cas-image-size-mib=4096 > "$work/vm.log" 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
+          ready=false
+          for attempt in $(seq 1 90); do
+            kill -0 "$worker_pid"
+            if (echo > /dev/tcp/127.0.0.1/8980) 2>/dev/null; then ready=true; break; fi
+            sleep 1
+          done
+          "$ready"
+          bash experiments/actiond/run-public-actiond.sh "$work" grpc://127.0.0.1:8980
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: actiond-production-vrt
+          path: |
+            ${{ runner.temp }}/actiond-production/results/
+            ${{ runner.temp }}/actiond-production/vm.log
+            ${{ runner.temp }}/actiond-production/worker-build.log

@@ -22,11 +22,14 @@ printf 'pub const executor_timing_logs = false;\npub const actiondfs_fstype: [:0
 ZIG_GLOBAL_CACHE_DIR="$work/zig-cache" "$work/zig-x86_64-linux-0.16.0/zig" build-exe -O ReleaseFast -target x86_64-linux-musl \
   --dep actiond_build_options -Mroot="$work/build/sandbox-smoke.zig" \
   -Mactiond_build_options="$work/build/options.zig" -femit-bin="$work/build/sandbox-smoke"
-if [[ ! -f $work/runtime.tar ]]; then
+runtime_image=mcr.microsoft.com/playwright:v1.63.0-noble@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7
+runtime_key=$({ printf '%s\n' "$runtime_image"; cat "$here/package-runtime.sh"; } | sha256sum | cut -d ' ' -f 1)
+if [[ ! -f $work/runtime.tar || $(cat "$work/runtime.key" 2>/dev/null || true) != "$runtime_key" ]]; then
   docker run --rm -i --network none --pull=never \
-    mcr.microsoft.com/playwright:v1.63.0-noble@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7 \
+    "$runtime_image" \
     bash -s /output < "$here/package-runtime.sh" > "$work/runtime.tar.tmp"
   mv "$work/runtime.tar.tmp" "$work/runtime.tar"
+  printf '%s\n' "$runtime_key" > "$work/runtime.key"
 fi
 mkdir -p "$work/workspace/runtime"
 tar -xf "$work/runtime.tar" -C "$work/workspace/runtime"

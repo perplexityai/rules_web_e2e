@@ -115,6 +115,9 @@ const testMatch =
 const managedUse = {
   ...merged.use,
   connectOptions: defaults.use!.connectOptions,
+  ...(visual && process.env.VRT_CHROMIUM_EXECUTABLE
+    ? {launchOptions: defaults.use!.launchOptions}
+    : {}),
   browserName: 'chromium' as const,
 }
 export default defineConfig(

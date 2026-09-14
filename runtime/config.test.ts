@@ -133,6 +133,23 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
       ['junit', {outputFile: join(temp, 'junit.xml')}],
       [realpathSync(join(reporterPackage, 'index.js'))],
     ])
+    // Consumer launch/connection overrides must not replace a declared browser.
+    writeFileSync(join(temp, 'declared.js'), `export default {use: {
+      connectOptions: {wsEndpoint: 'ws://elsewhere'},
+      launchOptions: {executablePath: '/host/chrome', args: ['--proxy-server=elsewhere']},
+      viewport: {width: 800, height: 600}
+    }}`)
+    process.env.VRT_CONFIG_OVERRIDE = join(temp, 'declared.js')
+    process.env.VRT_CHROMIUM_EXECUTABLE = '/inputs/runtime/chrome'
+    delete process.env.VRT_WS_ENDPOINT
+    const declared = (await import(new URL('./suite-config.js?declared', import.meta.url).href)).default
+    assert.equal(declared.use.connectOptions, undefined)
+    assert.deepEqual(declared.use.launchOptions, {
+      executablePath: '/inputs/runtime/chrome',
+      chromiumSandbox: false,
+      args: ['--no-zygote'],
+    })
+    assert.deepEqual(declared.use.viewport, {width: 800, height: 600})
   } finally {
     for (const key of Object.keys(process.env))
       if (!(key in previous)) delete process.env[key]
