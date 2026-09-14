@@ -144,7 +144,7 @@ async function main() {
   const env = {
     ...testEnvironment(
       process.env,
-      JSON.parse(required('VRT_ENV_NAMES')) as string[],
+      [...JSON.parse(required('VRT_ENV_NAMES')) as string[], 'TEST_RUN_NUMBER', 'TEST_RANDOM_SEED'],
       temp
     ),
     ...hostEnv,

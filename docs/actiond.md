@@ -9,8 +9,10 @@ Callers supply a [declared browser runtime](browser-runtime.md), built from decl
 
 Use actiond at commit [`4b767e8`](https://github.com/hermeticbuild/actiond/commit/4b767e852e21c5affa72ea7ebbf4d8a6e5d58136)
 or newer, which enables memory-advice syscalls in both VM kernels.
-The production workflow builds this pinned upstream revision without local patches. No `input-rootfs`,
-`libc`, or `requires-bash` execution properties are needed.
+The production workflow builds this pinned upstream revision without local patches. VRT needs no runtime mounts. Ordinary native Bazel tests request actiond’s pinned
+static Bash (`requires-bash`) for Bazel’s own test wrapper. Its remaining utilities
+come from checksum-pinned declared packages, supplied through `BASH_ENV`; no host
+packages or system libc are used. No `input-rootfs` or `libc` properties are needed.
 Linux VM workers require KVM and vhost-vsock.
 
 With a pinned worker listening on `127.0.0.1:8980`, put this in the consumer's
@@ -23,7 +25,7 @@ build:vrt --remote_cache=grpc://127.0.0.1:8980
 build:vrt --spawn_strategy=sandboxed,local
 build:vrt --strategy=VrtCapture=remote
 build:vrt --strategy=VrtCompare=remote
-build:vrt --strategy=BrowserTest=remote
+build:vrt --strategy=TestRunner=remote,local
 build:vrt --remote_local_fallback=false
 build:vrt --remote_upload_local_results=false
 build:vrt --noremote_cache_compression
@@ -49,7 +51,11 @@ bazel test --config=vrt //path:visual_test
 bazel run --config=vrt //path:visual_test.update
 ```
 
-Comparison and capture are cacheable build actions. Their result directory
+Ordinary browser tests are native Bazel test actions. Bazel owns their exit
+status, retries, repeated runs, and test-result caching. `--nocache_test_results`
+reruns Chromium; failure reports are standard test artifacts.
+
+VRT comparison and capture are cacheable build actions. Their result directory
 contains test status and artifacts even when the suite fails. A local test
 wrapper reports comparison failure and copies reports into Bazel test outputs.
 The local update wrapper applies successful, nonempty captures to the source
@@ -65,7 +71,7 @@ Docker, registry credentials, Testcontainers, and Ryuk are absent from the actio
 
 The declared ELF loader starts the bootstrap. It prepares a private Node/Bash
 launcher in the action's temporary directory, then relocates executable copies
-in the staged inputs. Libraries and fonts use explicit paths. A VRT-only Node
+in the staged inputs. Libraries and fonts use explicit paths. An isolated-browser Node
 preload directs `spawn(..., {shell: true})` to declared Bash, preserving native
 Playwright `webServer` behavior without `/bin/sh`. Host tests do not load it.
 

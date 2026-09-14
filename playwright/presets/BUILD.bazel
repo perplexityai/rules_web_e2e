@@ -1,6 +1,6 @@
 load("//playwright:archive.bzl", "browser_runtime_archive")
 
-exports_files(["noble_20260901.json"])
+exports_files(["noble_20260901.json", "noble_test_tools_20260901.json"])
 
 browser_runtime_archive(
     name = "noble_20260901",
@@ -15,6 +15,36 @@ browser_runtime_archive(
         "usr/bin/readlink": "bin/readlink",
         "usr/lib/x86_64-linux-gnu": "lib",
         "usr/share/fonts": "fonts",
+    },
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
+
+# Bazel's test-setup.sh runs before the browser launcher. Keep its utilities
+# declared separately so custom browser runtimes need not supply them.
+browser_runtime_archive(
+    name = "test_tools",
+    archives = ["@rules_web_e2e_noble_20260901//:test_packages"],
+    paths = {
+        "usr/bin/cat": "bin/cat",
+        "usr/bin/date": "bin/date",
+        "usr/bin/dirname": "bin/dirname",
+        "usr/bin/file": "bin/file",
+        "usr/bin/find": "bin/find",
+        "usr/bin/grep": "bin/grep",
+        "usr/bin/ln": "bin/ln",
+        "usr/bin/mkdir": "bin/mkdir",
+        "usr/bin/pgrep": "bin/pgrep",
+        "usr/bin/ps": "bin/ps",
+        "usr/bin/rm": "bin/rm",
+        "usr/bin/sed": "bin/sed",
+        "usr/bin/sleep": "bin/sleep",
+        "usr/bin/sort": "bin/sort",
+        "usr/bin/stat": "bin/stat",
+        "usr/bin/touch": "bin/touch",
+        "usr/bin/zip": "bin/zip",
+        "usr/lib/x86_64-linux-gnu": "lib",
+        "usr/lib/file": "share/misc",
     },
     tags = ["manual"],
     visibility = ["//visibility:public"],

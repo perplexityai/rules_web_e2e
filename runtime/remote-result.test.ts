@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
+import {spawnSync} from 'node:child_process'
 import {consumeRemoteResult} from './remote-result.js'
 import {runRemoteJob} from './remote-job.js'
 
@@ -61,8 +62,27 @@ test('remote job preserves a failing subprocess result for the local test', t =>
     process.exitCode = 7;`)
   const output = path.join(root, 'output')
   const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
-  runRemoteJob({runfiles: {}, runner, env: {}, args: [], output, mode: 'test'}, node, {NODE_OPTIONS: ''})
+  runRemoteJob({runfiles: {}, runner, env: {}, args: [], output, mode: 'compare'}, node, {NODE_OPTIONS: ''})
   const artifacts = path.join(root, 'test-artifacts')
-  assert.equal(consumeRemoteResult(output, {artifacts, mode: 'test'}), 7)
+  assert.equal(consumeRemoteResult(output, {artifacts, mode: 'compare'}), 7)
   assert.equal(fs.readFileSync(path.join(artifacts, 'junit.xml'), 'utf8'), '<failure/>')
+})
+
+test('native browser failure exits the test process and preserves standard artifacts', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-test-'))
+  t.after(() => fs.rmSync(root, {recursive: true, force: true}))
+  const runner = path.join(root, 'fail.mjs')
+  fs.writeFileSync(runner, `import fs from 'node:fs';
+    fs.writeFileSync(process.env.TEST_UNDECLARED_OUTPUTS_DIR + '/junit.xml', '<failure/>');
+    process.exitCode = 7;`)
+  const job = {runfiles: {}, runner, env: {}, args: [], output: root, mode: 'test'}
+  const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
+  const result = spawnSync(node, ['--input-type=module', '-e',
+    `import {runRemoteJob} from ${JSON.stringify(new URL('./remote-job.js', import.meta.url).href)};
+     runRemoteJob(${JSON.stringify(job)}, ${JSON.stringify(node)}, {NODE_OPTIONS: ''});`,
+  ], {env: {...process.env, NODE_OPTIONS: '', XML_OUTPUT_FILE: path.join(root, 'test.xml')}, encoding: 'utf8'})
+  assert.equal(result.status, 7, result.stderr)
+  assert.equal(fs.readFileSync(path.join(root, 'junit.xml'), 'utf8'), '<failure/>')
+  assert.equal(fs.existsSync(path.join(root, 'result.json')), false)
+  assert.equal(fs.readFileSync(path.join(root, 'test.xml'), 'utf8'), '<failure/>')
 })

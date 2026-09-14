@@ -17,12 +17,22 @@ fs.writeFileSync(path.join(destination, 'MODULE.bazel'), module.replace('path = 
 fs.copyFileSync(path.join(work, 'runtime.tar'), path.join(destination, 'runtime.tar'))
 for (const name of ['isolation', 'failure'])
   fs.copyFileSync(new URL(`./${name}.visual.spec.ts`, import.meta.url), path.join(destination, `actiond-${name}.visual.spec.ts`))
-fs.copyFileSync(new URL('./isolation.visual.spec.ts', import.meta.url), path.join(destination, 'actiond-isolation.spec.ts'))
+fs.writeFileSync(path.join(destination, 'actiond-isolation.spec.ts'), fs.readFileSync(new URL('./isolation.visual.spec.ts', import.meta.url), 'utf8').replace("['/bin/bash', '/bin/sh', '/usr/bin/env', '/lib64/ld-linux-x86-64.so.2']", "['/bin/sh', '/lib64/ld-linux-x86-64.so.2']"))
 fs.writeFileSync(path.join(destination, 'actiond-browser-failure.spec.ts'), `
 import {test} from '@playwright/test'
-test('ordinary failure reaches the local wrapper', async ({page}) => {
+test('ordinary failure reaches Bazel', async ({page}) => {
   await page.goto('/')
+  console.log('BROWSER_EXECUTION ' + await page.evaluate(() => crypto.randomUUID()))
   throw new Error('Intentional ordinary browser failure')
+})
+`)
+fs.writeFileSync(path.join(destination, 'actiond-rerun.spec.ts'), `
+import {expect, test} from '@playwright/test'
+test('Bazel launches a new browser for each run', async ({page}) => {
+  await page.goto('/')
+  await expect(page.getByRole('button', {name: 'Save', exact: true})).toBeVisible()
+  expect(['1', '2']).toContain(process.env.TEST_RUN_NUMBER)
+  console.log('BROWSER_EXECUTION ' + await page.evaluate(() => crypto.randomUUID()))
 })
 `)
 const build = path.join(destination, 'BUILD.bazel')
@@ -30,6 +40,17 @@ fs.writeFileSync(build,
   'load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_archive")\n' +
   'load("@rules_web_e2e//playwright:defs.bzl", "browser_runtime")\n' +
   fs.readFileSync(build, 'utf8') + `
+js_library(
+    name = "actiond_rerun_specs",
+    srcs = ["actiond-rerun.spec.js"],
+    deps = [":typecheck_project"],
+)
+web_e2e_test(
+    name = "actiond_rerun_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_rerun_specs",
+)
 web_e2e_test(
     name = "actiond_e2e_test",
     browser = ":actiond_browser",

@@ -25,9 +25,11 @@ web_e2e_test(
 
 `component_browser_test` accepts the same `browser` and `target_platform` attributes.
 Reuse `linux_chromium_runtime` from VRT. No host cache or `apt-get` setup is needed.
-Add `--strategy=BrowserTest=remote` to the [actiond configuration](actiond.md).
-The `<name>_run` action returns status and reports to the local test wrapper;
-ordinary tests have no capture/update targets and do not update baselines.
+Add `--strategy=TestRunner=remote,local` to the [actiond configuration](actiond.md).
+These are native Bazel test actions: retries, `--runs_per_test`, and
+`--nocache_test_results` launch the browser again. Failures return a nonzero test
+exit status; reports use standard Bazel test outputs. Ordinary tests have no
+capture/update targets and do not update baselines.
 
 The action has loopback-only networking and rejects inherited environment values.
 Declare fixture assets, APIs, and fonts. Native Playwright `webServer` and projects

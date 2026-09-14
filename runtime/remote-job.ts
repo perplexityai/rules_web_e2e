@@ -16,7 +16,7 @@ export interface RemoteJob {
 export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.ProcessEnv = {}) {
   const output = path.resolve(job.output)
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-action-'))
-  const artifacts = path.join(output, 'artifacts')
+  const artifacts = job.mode === 'test' ? output : path.join(output, 'artifacts')
   fs.mkdirSync(artifacts, {recursive: true})
   const escape = (value: string) => value.replaceAll('\\', '\\b').replaceAll(' ', '\\s').replaceAll('\n', '\\n')
   const manifest = path.join(temp, 'MANIFEST')
@@ -40,6 +40,14 @@ export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.P
     stdio: 'inherit',
   })
   if (result.error) console.error(result.error)
+  if (job.mode === 'test') {
+    const junit = path.join(artifacts, 'junit.xml')
+    if (process.env.XML_OUTPUT_FILE && fs.existsSync(junit))
+      fs.copyFileSync(junit, process.env.XML_OUTPUT_FILE)
+    fs.rmSync(temp, {recursive: true, force: true})
+    process.exitCode = result.status ?? 1
+    return
+  }
   // Return a successful build action even when tests fail, so Bazel downloads
   // their reports and screenshots. The local test wrapper returns this status.
   fs.writeFileSync(path.join(output, 'result.json'), JSON.stringify({

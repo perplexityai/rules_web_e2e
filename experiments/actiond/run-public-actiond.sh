@@ -13,8 +13,9 @@ collect() {
 trap collect EXIT
 flags=(
   --jobs=2
+  --remote_default_exec_properties="actiond-worker-sha256=$(sha256sum "$work/actiond-worker" | cut -d ' ' -f 1)"
   --remote_executor="$endpoint" --remote_cache="$endpoint"
-  --spawn_strategy=sandboxed,local --strategy=VrtCapture=remote --strategy=VrtCompare=remote --strategy=BrowserTest=remote
+  --spawn_strategy=sandboxed,local --strategy=VrtCapture=remote --strategy=VrtCompare=remote --strategy=TestRunner=remote,local
   --remote_local_fallback=false --remote_upload_local_results=false
   --noremote_cache_compression --remote_download_outputs=all
 )
@@ -35,18 +36,42 @@ log = Path(sys.argv[1]).read_text()
 assert 'VRT requires an isolated action without system runtimes' in log, log
 PY
 "${bazel_cmd[@]}" test //:actiond_e2e_test //:actiond_component_test //:actiond_browser_isolation_test "${flags[@]}" --test_output=errors
-if "${bazel_cmd[@]}" test //:actiond_browser_failure_test "${flags[@]}" --test_output=errors; then
-  echo 'Expected ordinary browser failure to reach the local test wrapper' >&2
+if "${bazel_cmd[@]}" test //:actiond_browser_failure_test "${flags[@]}" --flaky_test_attempts=2 --nocache_test_results --test_output=errors; then
+  echo 'Expected ordinary browser failure to fail the Bazel test' >&2
   exit 1
 fi
 python3 - <<'PYTEST'
+from pathlib import Path
+import zipfile
+import re
+result = Path('bazel-testlogs/actiond_browser_failure_test')
+assert 'Intentional ordinary browser failure' in (result / 'test.log').read_text()
+ids = {i for p in result.rglob('*.log') for i in re.findall(r'BROWSER_EXECUTION ([a-f0-9-]{36})', p.read_text())}
+assert len(ids) == 2, f'Retries did not launch two browsers: {ids}'
+archive = result / 'test.outputs/outputs.zip'
+if archive.exists():
+    with zipfile.ZipFile(archive) as outputs:
+        assert 'junit.xml' in outputs.namelist()
+else:
+    assert (result / 'test.outputs/junit.xml').exists()
+PYTEST
+# runs_per_test and nocache_test_results must execute Chromium, not replay reports.
+for round in 1 2; do
+  "${bazel_cmd[@]}" test //:actiond_rerun_test "${flags[@]}" --runs_per_test=2 --nocache_test_results --test_output=errors
+  python3 - "$work/results/browser-runs.json" <<'PYRUNS'
 import json
 from pathlib import Path
-result = Path('bazel-bin/actiond_browser_failure_test_run.results')
-assert json.loads((result / 'result.json').read_text())['exitCode'] != 0
-assert list((result / 'artifacts').rglob('junit.xml'))
-assert not (result / 'baselines').exists()
-PYTEST
+import re
+import sys
+previous = Path(sys.argv[1])
+ids = {i for p in Path('bazel-testlogs/actiond_rerun_test').rglob('test.log')
+       for i in re.findall(r'BROWSER_EXECUTION ([a-f0-9-]{36})', p.read_text())}
+assert len(ids) == 2, f'runs_per_test did not launch two browsers: {ids}'
+if previous.exists():
+    assert ids.isdisjoint(json.loads(previous.read_text())), 'nocache_test_results replayed a browser run'
+previous.write_text(json.dumps(sorted(ids)))
+PYRUNS
+done
 "${bazel_cmd[@]}" run //:actiond_native_test.update "${flags[@]}"
 "${bazel_cmd[@]}" run //:actiond_gallery_test.update "${flags[@]}"
 test -s __actiond_native__/saved.png
