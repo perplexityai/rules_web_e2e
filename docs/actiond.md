@@ -31,6 +31,11 @@ build:vrt --remote_download_outputs=all
 build:vrt --extra_execution_platforms=@platforms//host:host,@rules_web_e2e//internal:linux_amd64
 ```
 
+Include the worker binary SHA256 in the execution platform properties, for example
+`--remote_default_exec_properties=actiond-worker-sha256=WORKER_SHA256`. Change it
+when the worker or embedded kernel changes; otherwise previous action results can
+be reused across execution environments. The worker operator owns this identity.
+
 Use a remote worker address when appropriate. ARM64 clients need an amd64 worker
 for these baselines. The validated CI worker uses 6 GiB RAM for at most two
 concurrent actions; size workers for fixture and staging memory as well as
