@@ -26,6 +26,21 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.1.0 (2026-09-14)
+
+## What's Changed
+* test: prototype declared Chromium execution with actiond by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/27
+* feat: run VRT with declared Linux browser inputs by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/28
+* feat: replace Testcontainers with actiond for VRT by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/29
+* feat: run VRT without actiond rootfs mappings by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/31
+* docs: remove obsolete actiond rootfs proposal references by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/32
+* feat: replace OCI with public Chromium runtime helpers by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/35
+* feat: support hermetic E2E and component tests by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/36
+* fix: support Node 26 runtimes and preserve VRT JUnit by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/37
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.0.0...v3.1.0
+
 ## 3.0.0 (2026-09-13)
 
 ## What's Changed
