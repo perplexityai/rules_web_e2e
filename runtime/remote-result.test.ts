@@ -86,3 +86,23 @@ test('native browser failure exits the test process and preserves standard artif
   assert.equal(fs.existsSync(path.join(root, 'result.json')), false)
   assert.equal(fs.readFileSync(path.join(root, 'test.xml'), 'utf8'), '<failure/>')
 })
+
+for (const exitCode of [0, 7]) {
+  test(`local result wrapper preserves per-case JUnit with exit ${exitCode}`, t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-junit-'))
+    t.after(() => fs.rmSync(root, {recursive: true, force: true}))
+    const result = path.join(root, 'result')
+    fs.mkdirSync(path.join(result, 'artifacts'), {recursive: true})
+    const xml = '<testsuite tests="1"><testcase name="Button / default"/></testsuite>'
+    fs.writeFileSync(path.join(result, 'artifacts/junit.xml'), xml)
+    fs.writeFileSync(path.join(result, 'result.json'), JSON.stringify({schemaVersion: 1, mode: 'compare', exitCode}))
+    const xmlOutput = path.join(root, 'test.xml')
+    const child = spawnSync(process.execPath, [new URL('./remote-result-entry.js', import.meta.url).pathname], {
+      env: {...process.env, RUNFILES_DIR: root, VRT_RESULT: 'result', VRT_APPLY_BASELINES: '', VRT_RESULT_MODE: '', XML_OUTPUT_FILE: xmlOutput, TEST_UNDECLARED_OUTPUTS_DIR: path.join(root, 'outputs')},
+      encoding: 'utf8',
+    })
+    assert.equal(child.status, exitCode, child.stderr)
+    assert.equal(fs.readFileSync(xmlOutput, 'utf8'), xml)
+    assert.equal(fs.readFileSync(path.join(root, 'outputs/junit.xml'), 'utf8'), xml)
+  })
+}

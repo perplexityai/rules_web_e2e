@@ -121,6 +121,14 @@
       ]
     },
     {
+      "name": "libatomic1",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "sha256": "fe49cbbc7be753528380c724a8eef5f1e31dffa9221f692c5069048d81c7449d",
+      "urls": [
+        "https://snapshot.ubuntu.com/ubuntu/20260901T000000Z/pool/main/g/gcc-14/libatomic1_14.2.0-4ubuntu2~24.04.1_amd64.deb"
+      ]
+    },
+    {
       "name": "libatspi2.0-0t64",
       "version": "2.52.0-1build1",
       "sha256": "d686ace4080eca9c2d6ce8de69392a5ac56c846701894c0858922d4ce341a1d7",
@@ -483,12 +491,11 @@
   ],
   "paths": {
     "etc/fonts/conf.d": "etc/fonts/conf.d",
-    "usr/share/fonts": "fonts",
     "usr/bin/bash": "bin/bash",
-    "usr/bin/env": "bin/env",
     "usr/bin/dirname": "bin/dirname",
-    "usr/bin/uname": "bin/uname",
+    "usr/bin/env": "bin/env",
     "usr/bin/readlink": "bin/readlink",
+    "usr/bin/uname": "bin/uname",
     "usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2": "lib/ld-linux-x86-64.so.2",
     "usr/lib/x86_64-linux-gnu/libX11.so.6": "lib/libX11.so.6",
     "usr/lib/x86_64-linux-gnu/libXau.so.6": "lib/libXau.so.6",
@@ -503,6 +510,7 @@
     "usr/lib/x86_64-linux-gnu/libasound.so.2": "lib/libasound.so.2",
     "usr/lib/x86_64-linux-gnu/libatk-1.0.so.0": "lib/libatk-1.0.so.0",
     "usr/lib/x86_64-linux-gnu/libatk-bridge-2.0.so.0": "lib/libatk-bridge-2.0.so.0",
+    "usr/lib/x86_64-linux-gnu/libatomic.so.1": "lib/libatomic.so.1",
     "usr/lib/x86_64-linux-gnu/libatspi.so.0": "lib/libatspi.so.0",
     "usr/lib/x86_64-linux-gnu/libblkid.so.1": "lib/libblkid.so.1",
     "usr/lib/x86_64-linux-gnu/libbsd.so.0": "lib/libbsd.so.0",
@@ -546,7 +554,8 @@
     "usr/lib/x86_64-linux-gnu/libxcb.so.1": "lib/libxcb.so.1",
     "usr/lib/x86_64-linux-gnu/libxkbcommon.so.0": "lib/libxkbcommon.so.0",
     "usr/lib/x86_64-linux-gnu/libz.so.1": "lib/libz.so.1",
-    "usr/lib/x86_64-linux-gnu/libzstd.so.1": "lib/libzstd.so.1"
+    "usr/lib/x86_64-linux-gnu/libzstd.so.1": "lib/libzstd.so.1",
+    "usr/share/fonts": "fonts"
   },
   "browserPackages": [
     "bash",
@@ -564,6 +573,7 @@
     "libasound2t64",
     "libatk-bridge2.0-0t64",
     "libatk1.0-0t64",
+    "libatomic1",
     "libatspi2.0-0t64",
     "libblkid1",
     "libbsd0",
