@@ -7,11 +7,12 @@ from their own OCI image. Host E2E and component tests use host browsers.
 
 ## Worker and Bazel configuration
 
-The worker currently needs the memory-advice and declared-rootfs patches in
-[`experiments/actiond`](../experiments/actiond). The memory-advice change is
-[upstream PR #48](https://github.com/hermeticbuild/actiond/pull/48); the rootfs
-patch is maintained locally for upstreaming. The production workflow builds and
-runs that exact patched worker. Linux VM workers require KVM and vhost-vsock.
+The worker currently needs the memory-advice kernel patch in
+[`experiments/actiond`](../experiments/actiond), covered by
+[upstream PR #33](https://github.com/hermeticbuild/actiond/pull/33).
+The production workflow builds actiond with only that patch. No `input-rootfs`,
+`libc`, or `requires-bash` execution properties are needed.
+Linux VM workers require KVM and vhost-vsock.
 
 With a patched worker listening on `127.0.0.1:8980`, put this in the consumer's
 Bazel configuration:
@@ -34,8 +35,9 @@ Use a remote worker address when appropriate. ARM64 clients need an amd64 worker
 for these baselines. The validated CI worker uses 6 GiB RAM for at most two
 concurrent actions; size workers for fixture and staging memory as well as
 Chromium. The macOS native VM backend is not yet validated by these
-checks. Local fallback must remain disabled; `/workspace` runtime executables
-are meaningful inside the worker's declared rootfs.
+checks. Keep VRT's explicit remote strategies and local fallback disabled.
+The bootstrap also rejects ordinary host roots with system shell/loader paths
+before creating temporary runtime launchers.
 
 ```sh
 bazel test --config=vrt //path:visual_test
@@ -55,6 +57,12 @@ The runtime tree contains Node, Chromium, loaders, libraries, fonts, and shell
 commands needed by fixtures. OCI extraction verifies declared blobs and never
 contacts a registry. Acquisition and image construction happen before execution;
 Docker, registry credentials, Testcontainers, and Ryuk are absent from the action.
+
+The declared ELF loader starts the bootstrap. It prepares a private Node/Bash
+launcher in the action's temporary directory, then relocates executable copies
+in the staged inputs. Libraries and fonts use explicit paths. A VRT-only Node
+preload directs `spawn(..., {shell: true})` to declared Bash, preserving native
+Playwright `webServer` behavior without `/bin/sh`. Host tests do not load it.
 
 The action has loopback-only networking. Start fixture services inside it using
 `server` or native Playwright `webServer`, and declare their files in `data`.

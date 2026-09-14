@@ -11,6 +11,7 @@ import {baselineDestination, updateBaselines} from './baselines.js'
 import {stageRunfiles, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
 import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
+import {relocateInputs, runtimeDirectory} from './relocation.js'
 
 function required(name: string) {
   const value = process.env[name]
@@ -68,6 +69,7 @@ async function main() {
     ? browserRuntime(inputs, descriptor.browser)
     : undefined
   const node = declaredBrowser?.node || fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
+  if (visual) relocateInputs(inputs)
   const testRoot = path.dirname(descriptorPath)
   const generated = path.join(testRoot, '.rules-browser')
   fs.mkdirSync(generated)
@@ -147,6 +149,13 @@ async function main() {
     ),
     ...hostEnv,
     ...declaredBrowser?.env,
+    ...(visual ? {
+      VRT_BASH: path.join(runtimeDirectory, 'bash'),
+      NODE_OPTIONS: [
+        process.env.NODE_OPTIONS || '',
+        `--require=${JSON.stringify(fileURLToPath(new URL('./vrt-processes.cjs', import.meta.url)))}`,
+      ].filter(Boolean).join(' '),
+    } : {}),
     VRT_INPUTS: inputs,
     VRT_MODE: required('VRT_MODE'),
     VRT_TEST_ROOT: visual ? testRoot : inputs,

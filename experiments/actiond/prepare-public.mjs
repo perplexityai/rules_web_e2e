@@ -39,6 +39,13 @@ browser_runtime(
     fontconfig = "etc/fonts",
 )
 visual_test(
+    name = "actiond_local_rejection_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":native_visual_specs",
+    baseline_dir = "__actiond_local_rejection__",
+)
+visual_test(
     name = "actiond_native_test",
     browser = ":actiond_browser",
     config = ":native_config",

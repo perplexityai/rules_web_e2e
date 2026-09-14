@@ -2,10 +2,10 @@
 
 The actiond migration accepts caller-owned Linux runtime files through
 `browser_runtime`. The runtime must contain Chromium, Node, their ELF loader and
-shared libraries, and the fonts/fontconfig used for screenshots. Native
-Playwright `webServer` commands also need `/bin/sh`. Bazel `js_binary` fixture
-launchers additionally need `/usr/bin/env`, Bash, and their shell utilities
-(including `dirname`, `uname`, and `readlink`) in the declared runtime.
+shared libraries, and the fonts/fontconfig used for screenshots. Include Bash
+and the shell utilities used by fixture launchers (including `dirname`, `uname`,
+and `readlink` for Bazel `js_binary`). These files stay inside the runtime tree;
+they are not installed at system paths.
 
 A caller can produce a flattened filesystem tar and unpack it during the Bazel
 build:
@@ -25,6 +25,8 @@ browser_runtime(
     root = ":runtime_files",
     executable = "chromium/chrome-headless-shell",
     node = "bin/node",
+    loader = "lib/ld-linux-x86-64.so.2",
+    bash = "bin/bash",
     library_dirs = ["lib"],
     fontconfig = "etc/fonts",
 )
@@ -46,8 +48,22 @@ Archive extraction uses a Bazel-provided Python interpreter and makes no network
 requests. Absolute image symlinks are resolved within the image root, then links
 are materialized into regular files and directories for the output tree. Missing
 link targets are errors, so runtime packaging cannot silently borrow host files.
-Font configuration should use image paths or paths relative to the configuration
-file, rather than a build-machine path.
+Font configuration must use paths relative to its configuration file, rather
+than absolute image or build-machine paths.
+
+`loader` and `bash` default to the paths shown above. Execution starts the
+declared loader directly. The VRT runner creates `/tmp/rules-web-vrt` inside its
+isolated action, copies the loader/Node/Bash there, and rewrites staged ELF64
+interpreter paths to that loader. This retains executable identity for Chromium
+subprocesses. Interpreter segments too short for the replacement are rejected.
+Original declared inputs are never modified.
+
+Executable scripts with ordinary `/bin/sh`, `/bin/bash`, `/usr/bin/env bash`,
+or Node shebangs are redirected to the declared launchers. The VRT subprocess
+adapter supplies Bash for Playwright's `shell: true` launches. Other hardcoded
+system paths, interpreters, and complex `env -S` shebangs need caller-owned
+wrappers or packaging changes; arbitrary OCI images are not automatically
+relocatable.
 
 For a caller-owned OCI image layout directory, use `browser_runtime_oci` instead:
 

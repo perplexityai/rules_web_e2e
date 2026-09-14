@@ -19,6 +19,21 @@ flags=(
   --noremote_cache_compression --remote_download_outputs=all
 )
 bazel_cmd=("${ACTIOND_BAZEL:-bazelisk}" --output_base="$work/public-bazel-output")
+# This target is never executed remotely, so it cannot reuse a successful
+# capture from the action cache and accidentally skip the rejection check.
+mkdir -p "$work/results"
+if "${bazel_cmd[@]}" build //:actiond_local_rejection_test_capture \
+  --remote_executor= --remote_cache= --disk_cache= --spawn_strategy=sandboxed,local \
+  > "$work/results/local-rejection.log" 2>&1; then
+  echo 'VRT unexpectedly executed on the host' >&2
+  exit 1
+fi
+python3 - "$work/results/local-rejection.log" <<'PY'
+from pathlib import Path
+import sys
+log = Path(sys.argv[1]).read_text()
+assert 'VRT requires an isolated action without system runtimes' in log, log
+PY
 "${bazel_cmd[@]}" run //:actiond_native_test.update "${flags[@]}"
 "${bazel_cmd[@]}" run //:actiond_gallery_test.update "${flags[@]}"
 test -s __actiond_native__/saved.png
