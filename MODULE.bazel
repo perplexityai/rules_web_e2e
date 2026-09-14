@@ -6,7 +6,7 @@ module(
 
 bazel_dep(name = "rules_shell", version = "0.8.0")
 bazel_dep(name = "platforms", version = "1.1.0")
-bazel_dep(name = "rules_python", version = "1.7.0")
+bazel_dep(name = "rules_python", version = "1.8.0")
 bazel_dep(name = "aspect_rules_js", version = "3.4.1")
 bazel_dep(name = "bazel_lib", version = "3.7.2")
 bazel_dep(name = "aspect_rules_ts", version = "3.10.1")
@@ -37,3 +37,14 @@ http_file(
     sha256 = "efef39fc1d4888a8225eaca9f0663842ba60c256be8124265d917cd305226dc5",
     urls = ["https://github.com/hermeticbuild/actiond/archive/4b767e852e21c5affa72ea7ebbf4d8a6e5d58136.tar.gz"],
 )
+
+# Build native test-launcher tools for the isolated Linux worker.
+bazel_dep(name = "llvm", version = "0.8.19")
+bazel_dep(name = "rules_license", version = "1.0.0")
+bazel_dep(name = "zip", version = "3.0")
+bazel_dep(name = "rules_cc", version = "0.2.22")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+bazel_dep(name = "ncurses", version = "6.4.20221231.bcr.4")
+
+test_tool_sources = use_extension("//internal/test_tools:repositories.bzl", "sources")
+use_repo(test_tool_sources, "test_tools_libmagic", "test_tools_procps_ng", "test_tools_toybox")

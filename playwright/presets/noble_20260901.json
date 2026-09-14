@@ -97,14 +97,6 @@
       ]
     },
     {
-      "name": "libacl1",
-      "version": "2.3.2-1build1.1",
-      "sha256": "f2bfd3f8f00413d5f1f04fc723063803c56ac0f1e0efae3bc41f2d7276972ec3",
-      "urls": [
-        "https://snapshot.ubuntu.com/ubuntu/20260901T000000Z/pool/main/a/acl/libacl1_2.3.2-1build1.1_amd64.deb"
-      ]
-    },
-    {
       "name": "libasound2t64",
       "version": "1.2.11-1ubuntu0.3",
       "sha256": "5d17bfb5683eb99f1be951fe48e1be5bf3c52391913b6b74a8aecf9b4f5e779f",
@@ -150,14 +142,6 @@
       "sha256": "f3857b0863ac5cfd4263e9bf6cfb1d4be88d5321e4070d5bc2b62b0949e6c86f",
       "urls": [
         "https://snapshot.ubuntu.com/ubuntu/20260901T000000Z/pool/main/libb/libbsd/libbsd0_0.12.1-1build1.1_amd64.deb"
-      ]
-    },
-    {
-      "name": "libbz2-1.0",
-      "version": "1.0.8-5.1ubuntu0.1",
-      "sha256": "36ee08b00b1ee5018b2fce02881b7d2d73c9b4e32990bde3388400d86c48126a",
-      "urls": [
-        "https://snapshot.ubuntu.com/ubuntu/20260901T000000Z/pool/main/b/bzip2/libbz2-1.0_1.0.8-5.1ubuntu0.1_amd64.deb"
       ]
     },
     {
@@ -318,14 +302,6 @@
       "sha256": "488511119cad001a00f7e00e597112cf743ccfbd3f7a03c82d66237e1bfd82c8",
       "urls": [
         "https://snapshot.ubuntu.com/ubuntu/20260901T000000Z/pool/main/s/sqlite3/libsqlite3-0_3.45.1-1ubuntu2.7_amd64.deb"
-      ]
-    },
-    {
-      "name": "libssl3t64",
-      "version": "3.0.13-0ubuntu3.15",
-      "sha256": "3d0955bc049bbcca0f4c3e78a3a8b994593d96db7d84f4320217224433844534",
-      "urls": [
-        "https://snapshot.ubuntu.com/ubuntu/20260901T000000Z/pool/main/o/openssl/libssl3t64_3.0.13-0ubuntu3.15_amd64.deb"
       ]
     },
     {

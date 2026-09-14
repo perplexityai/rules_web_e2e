@@ -12,8 +12,8 @@ or newer, which enables memory-advice syscalls in both VM kernels.
 The [integration suite](../tests/actiond/README.md) downloads this pinned source
 archive through Bazel and builds the upstream workspace without local patches. VRT needs no runtime mounts. Ordinary native Bazel tests request actiond’s pinned
 static Bash (`requires-bash`) for Bazel’s own test wrapper. Its remaining utilities
-come from checksum-pinned declared packages, supplied through `BASH_ENV`; no host
-packages or system libc are used. No `input-rootfs` or `libc` properties are needed.
+are [built from pinned sources](../internal/test_tools/README.md) with hermetic
+LLVM and musl, supplied through `BASH_ENV`; no host packages or system libc are used. No `input-rootfs` or `libc` properties are needed.
 Linux VM workers require KVM and vhost-vsock.
 
 With a pinned worker listening on `127.0.0.1:8980`, put this in the consumer's

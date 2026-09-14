@@ -17,9 +17,8 @@ They are not inferred from ELF dependencies. Adding custom fonts remains a
 caller choice through `fonts`; changing the system/font preset may require new
 screenshots.
 
-`browserPackages` lists only packages supplying these selected files. The
-separate test-tools lock describes Bazel's native test-wrapper utilities and
-references shared package pins by name.
+`browserPackages` lists only packages supplying these selected files. Bazel's native test-wrapper utilities are built separately from source; see
+[internal test tools](../../internal/test_tools/README.md).
 
 To update the preset, inspect ELF `DT_NEEDED` entries recursively against the
 pinned package contents, account for dynamically loaded modules, and update the

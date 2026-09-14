@@ -1,6 +1,7 @@
 """Native browser tests and VRT artifact-producing actions."""
 
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
+load("//internal/test_tools:defs.bzl", "TestToolsInfo")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "runfile")
 
 def _linux_impl(_settings, attr):
@@ -15,19 +16,17 @@ _linux = transition(
 def _native_test(ctx, root, descriptor, files, job):
     executable = ctx.actions.declare_file(ctx.label.name)
     setup = ctx.actions.declare_file(ctx.label.name + ".bash-env")
-    tools = ctx.file._test_tools
+    tools = ctx.attr._test_tools[TestToolsInfo]
     # Bazel itself invokes /bin/bash before our executable. actiond supplies
     # its pinned static shell; BASH_ENV supplies the wrapper's declared tools.
-    commands = ["cat", "date", "dirname", "file", "find", "grep", "ln", "mkdir", "pgrep", "ps", "rm", "sed", "sleep", "sort", "stat", "touch", "zip"]
     ctx.actions.write(setup, "\n".join([
         "unset BASH_ENV",
         'if [[ -e /bin/sh || -e /lib64/ld-linux-x86-64.so.2 ]]; then echo "Browser tests require isolated actiond execution" >&2; exit 1; fi',
         'case "$TEST_SRCDIR" in /*) ;; *) export TEST_SRCDIR="$PWD/$TEST_SRCDIR" ;; esac',
-        'export RULES_WEB_TEST_TOOLS="$TEST_SRCDIR/%s"' % runfile(tools),
-        'export MAGIC="$RULES_WEB_TEST_TOOLS/share/misc/magic.mgc"',
+        'export MAGIC="$TEST_SRCDIR/%s"' % runfile(tools.magic),
     ] + [
-        '%s() { "$RULES_WEB_TEST_TOOLS/lib/ld-linux-x86-64.so.2" --library-path "$RULES_WEB_TEST_TOOLS/lib" "$RULES_WEB_TEST_TOOLS/bin/%s" "$@"; }; export -f %s' % (command, command, command)
-        for command in commands
+        '%s() { "$TEST_SRCDIR/%s" %s "$@"; }; export -f %s' % (command, runfile(binary), " ".join(args), command)
+        for command, (binary, args) in tools.commands.items()
     ]) + "\n")
     ctx.actions.write(executable, "\n".join([
         "#!/bin/bash",
@@ -39,7 +38,7 @@ def _native_test(ctx, root, descriptor, files, job):
             descriptor["node"], runfile(ctx.file._bootstrap), runfile(job),
         ),
     ]) + "\n", is_executable = True)
-    inputs = files + [root, job, ctx.file._bootstrap, setup, tools]
+    inputs = files + [root, job, ctx.file._bootstrap, setup] + ctx.attr._test_tools[DefaultInfo].files.to_list()
     return [
         DefaultInfo(executable = executable, runfiles = ctx.runfiles(files = inputs).merge_all([
             target[DefaultInfo].default_runfiles
@@ -133,7 +132,7 @@ _remote = rule(implementation = _remote_impl, attrs = _attrs)
 
 _test_attrs = dict(_attrs)
 _test_attrs.pop("args")  # Native test rules already have this attribute.
-_test_attrs["_test_tools"] = attr.label(default = Label("//playwright/presets:test_tools"), allow_single_file = True, cfg = _linux)
+_test_attrs["_test_tools"] = attr.label(default = Label("//internal/test_tools:tools"), providers = [TestToolsInfo])
 _native_browser_test = rule(
     implementation = _remote_impl,
     attrs = _test_attrs,

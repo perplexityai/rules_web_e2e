@@ -1,0 +1,40 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+load(":defs.bzl", "test_tools")
+
+test_tools(
+    name = "tools",
+    file = "@test_tools_libmagic//:file",
+    magic = "@test_tools_libmagic//:magic.mgc",
+    pgrep = "@test_tools_procps_ng//:pgrep",
+    toybox = "@test_tools_toybox//:toybox",
+    zip = "@zip//:zip",
+    visibility = ["//:__subpackages__"],
+)
+
+py_binary(
+    name = "compile_magic",
+    srcs = ["compile_magic.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_test(
+    name = "tools_test",
+    size = "small",
+    srcs = ["tools_test.py"],
+    args = ["$(rlocationpaths :tools)"],
+    data = [":tools"],
+    deps = ["@rules_python//python/runfiles"],
+    target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+)
+
+config_setting(
+    name = "linux_x86_64",
+    constraint_values = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "linux_aarch64",
+    constraint_values = ["@platforms//os:linux", "@platforms//cpu:aarch64"],
+    visibility = ["//visibility:public"],
+)
