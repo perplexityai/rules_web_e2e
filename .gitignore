@@ -6,3 +6,5 @@ rules_web_e2e-*.tar.gz
 release_notes.txt
 
 .playwright-browsers/
+
+examples/react/runtime.tar

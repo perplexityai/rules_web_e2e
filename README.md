@@ -2,7 +2,7 @@
 
 Bazel rules for Playwright E2E, component browser tests, and visual regression
 testing (VRT). E2E and component tests use host Playwright browsers; only VRT
-uses Testcontainers and a pinned Linux Chromium image.
+runs in isolated actiond Linux actions with caller-owned browser runtimes.
 Bring compiled tests, your own server, or a built shell/template. Your build
 owns typechecking and bundling; the rules own execution and baseline updates.
 
@@ -33,6 +33,7 @@ component_browser_test(
 
 component_visual_test(
     name = "editor_vrt",
+    browser = ":linux_browser",  # browser_runtime; see docs/browser-runtime.md
     shell = ":editor_shell",
     matching = ":matching",
     baselines = glob(["screenshots/*.png"], allow_empty = True),
@@ -47,7 +48,8 @@ component_visual_test(
 | `server`                    | Compiled adapter returning a ready URL and cleanup callback                                  |
 | `shell`                     | Built HTML/JS/CSS directory plus its entry point; served without a bundler                   |
 | `base_url` / `base_url_env` | Existing application endpoint, replacing `server` or `shell`                                 |
-| `playwright`                | Optional reusable runtime target grouping client packages and a pinned image; minimum 1.63.0 |
+| `playwright`                | Optional reusable runtime target grouping client packages; minimum 1.63.0 |
+| `browser`                  | Required VRT runtime containing declared Linux Chromium, Node, libraries, and fonts |
 | `matching`                  | Compiled VRT comparison policy; render settings stay in `.visual.tsx`                        |
 
 For example, compile this `matching.ts` module:
@@ -74,21 +76,22 @@ attributes; see [migration](docs/getting-started.md#migrating-from-100).
 
 ## Try it
 
-Install Bazelisk and provision host Chromium first (with the locked Playwright version).
-Start Docker and [preload the pinned images](docs/api.md#vrt-image-manifest-and-ci-preloading)
-for VRT. From this checkout:
+Provision host Chromium for interaction tests. For VRT, supply the example's
+`runtime.tar` from your image build and configure a patched actiond worker using
+[the execution guide](docs/actiond.md).
 
 ```sh
 export PLAYWRIGHT_BROWSERS_PATH="$(pwd)/.playwright-browsers"
 pnpm exec playwright install chromium
 cd examples/react
-bazelisk test //:e2e_test //:component_test //:component_visual_test
-bazelisk run //:component_visual_test.update
+bazelisk test //:e2e_test //:component_test
+bazelisk test --config=vrt //:component_visual_test
+bazelisk run --config=vrt //:component_visual_test.update
 ```
 
-Review PNG changes before committing. Browser targets are manual, local, and
-uncached; select them explicitly in CI. Screenshot baselines are validated on
-Linux amd64. Each VRT target owns a separate baseline directory.
+Review PNG changes before committing. Each VRT target owns its baseline directory.
+VRT capture/comparison actions are cacheable; baseline application stays local.
+Host browser targets remain manual, local, and uncached.
 
 See [development and releases](docs/development.md) for build checks, hooks,
 and BCR publishing.

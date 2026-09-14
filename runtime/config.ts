@@ -1,5 +1,4 @@
 import path from 'node:path'
-import {networkTargets} from './network.js'
 import type {PlaywrightTestConfig} from '@playwright/test'
 
 export interface BrowserConfigOptions {
@@ -70,23 +69,11 @@ export function visualConfig({
     ...defaults,
     use: {
       ...defaults.use,
-      ...(process.env.VRT_CHROMIUM_EXECUTABLE
-        ? {
-            launchOptions: {
-              executablePath: process.env.VRT_CHROMIUM_EXECUTABLE,
-              chromiumSandbox: false,
-              args: ['--no-zygote'],
-            },
-          }
-        : {
-            connectOptions: {
-              wsEndpoint: required('VRT_WS_ENDPOINT'),
-              exposeNetwork: networkTargets(
-                required('VRT_APP_URL'),
-                JSON.parse(required('VRT_NETWORK_ORIGINS')) as string[]
-              ),
-            },
-          }),
+      launchOptions: {
+        executablePath: required('VRT_CHROMIUM_EXECUTABLE'),
+        chromiumSandbox: false,
+        args: ['--no-zygote'],
+      },
     },
     testMatch: '**/.rules-visual.spec.ts',
     testIgnore: [],

@@ -43,31 +43,11 @@ const address = server.address()
 assert(address && typeof address !== 'string')
 let stopBrowser: (() => Promise<unknown>) | undefined
 try {
-  const executable = process.env.CAPTURE_CHROMIUM_EXECUTABLE
-  let endpoint: string
-  if (executable) {
-    const browser = await chromium.launchServer({executablePath: executable})
-    endpoint = browser.wsEndpoint()
-    stopBrowser = () => browser.close()
-  } else {
-    const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8')) as {
-      images: {image: string; platform: string | null; roles: string[]}[]
-    }
-    const browserImage = manifest.images.find(image => image.roles.includes('browser'))!
-    const reaperImage = manifest.images.find(image => image.roles.includes('reaper'))!
-    // Match the runner: configure the shared helper pin before importing Testcontainers.
-    for (const key of Object.keys(process.env))
-      if (key.startsWith('TESTCONTAINERS_') || key.startsWith('RYUK_')) delete process.env[key]
-    process.env.RYUK_CONTAINER_IMAGE = reaperImage.image
-    const {startBrowser} = await import('./container.js')
-    const browser = await startBrowser(
-      browserImage.image,
-      path.dirname(createRequire(require.resolve('playwright/package.json')).resolve('playwright-core/package.json')),
-      browserImage.platform!
-    )
-    endpoint = browser.endpoint
-    stopBrowser = browser.stop
-  }
+  const browserServer = await chromium.launchServer({
+    executablePath: process.env.CAPTURE_CHROMIUM_EXECUTABLE,
+  })
+  const endpoint = browserServer.wsEndpoint()
+  stopBrowser = () => browserServer.close()
   fs.writeFileSync(path.join(temp, 'package.json'), '{"type":"module"}')
   fs.mkdirSync(path.join(temp, 'node_modules', '@playwright'), {recursive:true})
   fs.symlinkSync(path.dirname(fs.realpathSync(require.resolve('@playwright/test/package.json'))),

@@ -8,7 +8,6 @@ test('component gallery resolves base paths for host browser launch', () => {
     VRT_APP_URL: 'https://preview.example/app/',
     VRT_OUTPUTS: '/tmp/results',
     VRT_WS_ENDPOINT: 'ws://127.0.0.1:1234',
-    VRT_NETWORK_ORIGINS: '["https://auth.example"]',
   })
   try {
     const config = componentBrowserConfig({
@@ -66,8 +65,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
     VRT_APP_URL: 'http://127.0.0.1:1234/',
     VRT_OUTPUTS: temp,
     VRT_BASELINES: join(temp, 'baselines'),
-    VRT_WS_ENDPOINT: 'ws://127.0.0.1:5678',
-    VRT_NETWORK_ORIGINS: '[]',
+    VRT_CHROMIUM_EXECUTABLE: '/runtime/chromium',
     VRT_TEST_ROOT: temp,
     VRT_CONFIG_OVERRIDE: join(temp, 'custom.js'),
     VRT_MATCHING: join(temp, 'matching.js'),
@@ -102,7 +100,8 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
       [realpathSync(join(temp, 'reporter.js')), {project: 'example'}],
       ['json', {outputFile: 'extra.json'}],
     ])
-    assert.equal(config.use?.connectOptions?.wsEndpoint, 'ws://127.0.0.1:5678')
+    assert.equal(config.use?.connectOptions, undefined)
+    assert.equal(config.use?.launchOptions?.executablePath, '/runtime/chromium')
     assert.deepEqual(config.use?.viewport, {width: 500, height: 300})
     assert.equal(config.expect?.toHaveScreenshot?.maxDiffPixels, 7)
     assert.equal(config.expect?.toHaveScreenshot?.scale, 'device')
@@ -165,8 +164,7 @@ test('compiled component suite preserves remote gallery paths and literal spec f
     VRT_MODE: 'component',
     VRT_APP_URL: 'https://preview.example/app/gallery.html?fixture=1',
     VRT_OUTPUTS: '/outputs',
-    VRT_WS_ENDPOINT: 'ws://127.0.0.1:5678',
-    VRT_NETWORK_ORIGINS: '[]',
+    VRT_CHROMIUM_EXECUTABLE: '/runtime/chromium',
     VRT_TEST_ROOT: '/compiled',
     VRT_TEST_FILES: JSON.stringify([file]),
   })
@@ -233,7 +231,7 @@ test('suite config rejects explicit native discovery instead of broadening selec
   Object.assign(process.env, {
     VRT_MODE: 'e2e', VRT_APP_URL: 'http://localhost:1234',
     VRT_OUTPUTS: temp, VRT_WS_ENDPOINT: 'ws://localhost:5678',
-    VRT_NETWORK_ORIGINS: '[]', VRT_TEST_ROOT: temp,
+    VRT_TEST_ROOT: temp,
     VRT_TEST_FILES: JSON.stringify([join(temp, 'auth.spec.js'), join(temp, 'app.spec.js')]),
   })
   delete process.env.VRT_MATCHING

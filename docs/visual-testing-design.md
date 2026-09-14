@@ -4,7 +4,7 @@ A screenshot is a reviewed assertion about a rendered state. Useful VRT must
 make that state repeatable, distinguish comparison from approval, and leave
 inspectable evidence when it changes.
 
-See [Testcontainers and VRT stability](testcontainers-vrt.md) for container
+See [VRT on actiond](actiond.md) for execution
 lifecycle, readiness, isolation, and reuse decisions.
 
 ## Stable capture
@@ -56,11 +56,9 @@ review the resulting image changes before committing them.
 
 ## Execution and evidence
 
-VRT is an explicit, `manual` test lane because it needs Docker and network
-access. The `external` tag forces each test invocation to execute; `no-cache`
-alone does not prevent reuse of local Bazel test results. Other execution tags
-keep the current runner local and outside the filesystem sandbox. This is a
-controlled rendering environment, not a fully hermetic browser action.
+VRT is an explicit, `manual` lane of cacheable Linux execution actions. Runtime
+files, code, fixture data, and baselines are declared inputs. The local wrapper
+reports downloaded results and applies successful captures on explicit updates.
 
 Keep diagnostics separate from captured baselines. Failed runs retain outputs
 for inspection; successful updates may clean their temporary artifacts. A
@@ -70,7 +68,7 @@ the visual change is intended. Reporting does not depend on a hosted VRT service
 Changes to capture behavior should exercise unchanged comparison, an intentional
 visual mismatch, missing baselines, and explicit update followed by comparison.
 Also verify type errors stop the build, repeated captures remain stable, and
-owned containers are cleaned up. The [React example](../examples/react) is the
+timed-out and cancelled actions release their processes. The [React example](../examples/react) is the
 small integration fixture; larger consumers exercise real application rendering.
 
 ## Reusable visual modules

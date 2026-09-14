@@ -1,7 +1,7 @@
 # Custom servers and UI shells
 
 Server startup and component rendering are independent. The runtime owns input
-staging, environment isolation, host browser setup (VRT containers), artifacts, and teardown.
+staging, environment isolation, host browser setup and Linux VRT actions, artifacts, and teardown.
 Consumers own the server implementation and the React/UI shell.
 
 ```mermaid
@@ -9,7 +9,7 @@ flowchart LR
   Target[Bazel target] --> Runtime[VRT runtime]
   Runtime --> Adapter[Consumer server adapter]
   Adapter --> Server[Existing dev server or fixture server]
-  Runtime --> Browser[Host browser; container for VRT]
+  Runtime --> Browser[Host browser; Linux action for VRT]
   Browser --> Server
   Server --> Entry[Consumer fixture entrypoint]
   Entry --> Shell[Theme, routing, i18n and mock providers]

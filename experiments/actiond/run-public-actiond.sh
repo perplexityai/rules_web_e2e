@@ -2,6 +2,7 @@
 set -euo pipefail
 work=${1:?usage: run-public-actiond.sh ABSOLUTE_WORK_DIRECTORY ENDPOINT}
 endpoint=${2:?missing actiond endpoint}
+scripts=$(cd "$(dirname "$0")" && pwd)
 cd "$work/public"
 collect() {
   mkdir -p "$work/results/public"
@@ -89,3 +90,6 @@ assert result['mode'] == 'compare' and result['exitCode'] != 0, result
 assert list((directory / 'artifacts').rglob('*-diff.png')), 'Missing screenshot diff'
 PY
 cp "$work/native-baseline.png" __actiond_native__/saved.png
+python3 "$scripts/cancel-public.py" "${bazel_cmd[@]}" "${flags[@]}"
+# The same worker must execute another action after cancellation.
+"${bazel_cmd[@]}" test //:actiond_native_test "${flags[@]}" --remote_accept_cached=false --nocache_test_results --test_output=errors

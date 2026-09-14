@@ -2,8 +2,8 @@
 
 Playwright **1.63.0** supplies `mount()` in `@playwright/test`. Use
 `component_browser_test` from `@rules_web_e2e//component:defs.bzl` with a version-matched
-host browser. [Provision it before testing](host-browsers.md); Docker is only
-needed for the separate VRT targets. No experimental React test
+host browser. [Provision it before testing](host-browsers.md); VRT uses a
+separate [actiond execution path](actiond.md). No experimental React test
 package or second bundler is needed. See the [Playwright component guide](https://playwright.dev/docs/test-components).
 
 ```mermaid
