@@ -103,3 +103,22 @@ macOS. A caller with additional native toolchain constraints can set
 platform must still target Linux amd64 and match the runtime's ABI. `data` and
 `$(rootpath ...)` expressions in `env` are evaluated in this configuration,
 including expressions nested inside JSON strings used by fixture servers.
+
+To package selected files from a general-purpose image, `paths` maps image paths
+(relative to `directory`) to runtime output paths. Only selected paths are
+materialized; links still resolve strictly inside the declared image. Use `files`
+for declared configuration files, such as a fontconfig with relative font paths:
+
+```starlark
+browser_runtime_oci(
+    name = "runtime_files",
+    image = ":caller_image",
+    paths = {"usr/bin/node": "bin/node", "usr/share/fonts": "fonts"},
+    files = {":fonts.conf": "etc/fonts/fonts.conf"},
+)
+```
+
+Include the browser, loader, libraries and shell utilities needed by your runtime
+as well. Destination paths must not overlap. Additional files cannot overwrite
+image content. This selects files only; it does not discover library dependencies
+or make arbitrary binaries relocatable.

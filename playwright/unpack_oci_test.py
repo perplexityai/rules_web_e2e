@@ -68,6 +68,47 @@ class OciRuntimeTest(unittest.TestCase):
             self.assertEqual([p.name for p in (output / "fonts").iterdir()], ["current"])
             self.assertEqual((output / "bin/node").stat().st_mode & 0o777, 0o755)
 
+    def test_selected_runtime_ignores_unselected_cycle_and_adds_font_config(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            layout, _ = self.image(root, [[
+                ("usr/bin/node", "node", "file"),
+                ("usr/bin/X11", ".", "link"),
+                ("lib/loader", "/usr/lib/loader", "link"),
+                ("usr/lib/loader", "loader", "file"),
+            ]])
+            font_config = root / "fonts.conf"
+            font_config.write_text("relative fonts")
+            selection = root / "selection.json"
+            selection.write_text(json.dumps({
+                "paths": {"usr/bin/node": "bin/node", "lib/loader": "lib/ld.so"},
+                "files": {str(font_config): "etc/fonts/fonts.conf"},
+            }))
+            output = root / "output"
+            unpack_oci(layout, output, selection_file=selection)
+            self.assertEqual((output / "lib/ld.so").read_text(), "loader")
+            self.assertEqual((output / "bin/node").stat().st_mode & 0o777, 0o755)
+            self.assertEqual((output / "etc/fonts/fonts.conf").read_text(), "relative fonts")
+            self.assertFalse((output / "usr").exists())
+            selection.write_text(json.dumps({"paths": {"usr/bin": "bin"}}))
+            with self.assertRaisesRegex(ValueError, "directory link cycle"):
+                unpack_oci(layout, root / "bad", selection_file=selection)
+
+    def test_selection_rejects_escape_overlap_and_missing_source(self):
+        for paths, message in [
+            ({"../outside": "bin"}, "relative runtime path"),
+            ({"node": "../outside"}, "relative runtime path"),
+            ({"node": "bin", "other": "bin/node"}, "Overlapping"),
+            ({"missing": "bin/node"}, "dangling link"),
+        ]:
+            with self.subTest(paths=paths), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                layout, _ = self.image(root, [[("node", "node", "file")]])
+                selection = root / "selection.json"
+                selection.write_text(json.dumps({"paths": paths}))
+                with self.assertRaisesRegex(ValueError, message):
+                    unpack_oci(layout, root / "output", selection_file=selection)
+
     def test_rejects_wrong_platform_and_corrupt_blob(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

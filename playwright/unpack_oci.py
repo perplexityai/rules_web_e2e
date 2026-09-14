@@ -99,7 +99,13 @@ def apply_layer(root, archive):
             source.extract(entry, root, filter=layer_filter)
 
 
-def unpack_oci(layout, output, directory=".", architecture="amd64"):
+def relative_path(value):
+    if not value or value.startswith("/") or any(part in ("", ".", "..") for part in value.split("/")):
+        raise ValueError(f"Expected a relative runtime path without dot segments: {value}")
+    return value
+
+
+def unpack_oci(layout, output, directory=".", architecture="amd64", selection_file=None):
     layout = Path(layout)
     if json.loads((layout / "oci-layout").read_text()).get("imageLayoutVersion") != "1.0.0":
         raise ValueError("Unsupported OCI image layout version")
@@ -117,7 +123,28 @@ def unpack_oci(layout, output, directory=".", architecture="amd64"):
         selected = root if directory == "." else destination(root, directory)
         if not selected.is_dir():
             raise ValueError(f"Missing runtime directory in OCI image: {directory}")
-        materialize(root, selected, Path(output))
+        selection = json.loads(Path(selection_file).read_text()) if selection_file else {}
+        paths, files = selection.get("paths", {}), selection.get("files", {})
+        destinations = [relative_path(value) for value in [*paths.values(), *files.values()]]
+        for index, value in enumerate(destinations):
+            if any(value == other or value.startswith(other + "/") or other.startswith(value + "/")
+                   for other in destinations[:index]):
+                raise ValueError(f"Overlapping runtime output paths: {value}")
+        if paths:
+            for source, target in sorted(paths.items()):
+                source = selected / relative_path(source)
+                target = Path(output) / target
+                target.parent.mkdir(parents=True, exist_ok=True)
+                materialize(root, source, target)
+        else:
+            materialize(root, selected, Path(output))
+        for source, target in sorted(files.items()):
+            target = Path(output) / target
+            if target.exists():
+                raise ValueError(f"Additional runtime file would overwrite image content: {target}")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, target)
+            target.chmod(0o755 if Path(source).stat().st_mode & 0o111 else 0o644)
 
 
 if __name__ == "__main__":
