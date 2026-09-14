@@ -44,6 +44,7 @@ js_library(
         "config-url.js",
         "isolation.js",
         "host-browser.js",
+        "host-browser-check.js",
         "matching.js",
         "network.js",
         "relocation.js",
@@ -239,4 +240,11 @@ js_test(
         ":typecheck",
     ],
     entry_point = "versions.test.js",
+)
+
+js_test(
+    name = "host_browser_check_test",
+    size = "small",
+    data = ["package.json", ":typecheck"],
+    entry_point = "host-browser-check.test.js",
 )

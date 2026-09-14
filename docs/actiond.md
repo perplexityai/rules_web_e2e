@@ -6,14 +6,13 @@ Callers supply a [declared browser runtime](browser-runtime.md), built from decl
 
 ## Worker and Bazel configuration
 
-The worker currently needs the memory-advice kernel patch in
-[`experiments/actiond`](../experiments/actiond), covered by
-[upstream PR #33](https://github.com/hermeticbuild/actiond/pull/33).
-The production workflow builds actiond with only that patch. No `input-rootfs`,
+Use actiond at commit [`4b767e8`](https://github.com/hermeticbuild/actiond/commit/4b767e852e21c5affa72ea7ebbf4d8a6e5d58136)
+or newer, which enables memory-advice syscalls in both VM kernels.
+The production workflow builds this pinned upstream revision without local patches. No `input-rootfs`,
 `libc`, or `requires-bash` execution properties are needed.
 Linux VM workers require KVM and vhost-vsock.
 
-With a patched worker listening on `127.0.0.1:8980`, put this in the consumer's
+With a pinned worker listening on `127.0.0.1:8980`, put this in the consumer's
 Bazel configuration:
 
 ```text

@@ -11,7 +11,7 @@ and the [API reference](api.md) for all supported attributes.
 ## Try the standalone example
 
 Build `examples/react/runtime.tar` with the [package runtime example](browser-runtime.md#build-the-example-runtime) and configure a
-patched worker with [the actiond guide](actiond.md), then:
+pinned worker with [the actiond guide](actiond.md), then:
 
 ```sh
 cd examples/react

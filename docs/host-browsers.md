@@ -23,7 +23,10 @@ bazel test //path:e2e_test //path:component_test
 Prepare Linux system dependencies in the CI image/setup step (Playwright's
 `install --with-deps chromium` can do this where supported). Tests do not download
 browsers or install system packages. An existing cache with the wrong browser
-revision fails with Playwright's missing-executable error. Do not use `0` for
+revision fails with Playwright's missing-executable error. Before host tests run,
+a setup check launches each project's selected Chromium, validates its reported
+version against Playwright metadata, and closes it. This also rejects stale
+binaries placed into a newer revision's cache directory. Do not use `0` for
 `PLAYWRIGHT_BROWSERS_PATH`; the rules need an explicit provisioned directory.
 
 Bazel tests inherit an absolute `PLAYWRIGHT_BROWSERS_PATH` automatically.

@@ -76,6 +76,8 @@ async function main() {
   fs.writeFileSync(path.join(generated, 'package.json'), '{"type":"module"}')
   for (const name of [
     'suite-config',
+    'host-browser-check',
+    'versions',
     'config',
     'network',
     'matching',
@@ -157,6 +159,7 @@ async function main() {
       ].filter(Boolean).join(' '),
     } : {}),
     VRT_INPUTS: inputs,
+    VRT_PLAYWRIGHT_CORE: core,
     VRT_MODE: required('VRT_MODE'),
     VRT_TEST_ROOT: visual ? testRoot : inputs,
     VRT_TEST_FILES: JSON.stringify(descriptor.tests.map(input)),

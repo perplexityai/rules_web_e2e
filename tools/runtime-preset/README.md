@@ -15,6 +15,6 @@ bazelisk run //tools:update_runtime_preset -- \
 
 Use a new dated preset name when changing a published preset; update its target
 and extension wiring accordingly. Review package/version/checksum changes and run
-both the production VM suite and consumer screenshot comparisons. The exporter
-omits DejaVu's alternative font packages to retain the established Liberation
-font policy. Chromium and Node versions are independent caller-owned downloads.
+both the production VM suite and consumer screenshot comparisons. Export the full
+resolved package set; review and regenerate screenshots when fonts change.
+Chromium and Node versions are independent caller-owned downloads.

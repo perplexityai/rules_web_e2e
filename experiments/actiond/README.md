@@ -60,11 +60,9 @@ in V8's `DiscardSystemPages`. The minimal `kernel-probe.c` action independently
 returns `madvise(MADV_DONTNEED): errno=38 (Function not implemented)`.
 [Failing VM run](https://github.com/perplexityai/rules_web_e2e/actions/runs/34775725126).
 
-Both actiond kernel configs use `allnoconfig` and omit `CONFIG_ADVISE_SYSCALLS`.
-`actiond-advice.patch` enables it for ARM64 and amd64. The prototype workflow
-rebuilds the exact `v0.0.6` kernel source with this patch and passes it to the
-released worker through `--kernel`. It performs all compilation locally on the
-GitHub runner; no BuildBuddy upload or remote build service is used.
+The original probe required enabling `CONFIG_ADVISE_SYSCALLS` in both kernels.
+Upstream commit `4b767e852e21c5affa72ea7ebbf4d8a6e5d58136` now includes this change;
+the current workflows build that revision without local patches.
 
 The patched main-branch kernel also builds locally. The patched release kernel
 passed the syscall probe and screenshot action through real Bazel REAPI execution
@@ -74,7 +72,7 @@ The local host has no `/dev/kvm`; KVM validation ran on GitHub's Ubuntu runner.
 
 ## Production validation
 
-The production workflow builds actiond at `8a42c3d` with the memory-advice patch,
+The production workflow builds actiond at `4b767e8` without local patches,
 starts a Linux amd64 VM, and runs `prepare-public.mjs` / `run-public-actiond.sh`.
 The fixture assembles pinned Ubuntu packages, Chrome for Testing, and Node
 through the public `linux_chromium_runtime` helper in
@@ -94,10 +92,7 @@ The real FormatJS editor gallery also captures, locally applies references, and
 compares all eight screenshots in the actiond process sandbox. That validation
 is separate from the VM fixtures and does not establish a full consumer CI migration.
 
-## Local actiond patches
-
-- `actiond-advice.patch`: enables memory-advice syscalls in both kernel configs;
-  covered by [upstream PR #33](https://github.com/hermeticbuild/actiond/pull/33).
+## Runtime integration
 
 The current VRT runner instead relocates staged executable interpreter paths,
 supplies explicit library/font paths, and directs Node shell launches to declared

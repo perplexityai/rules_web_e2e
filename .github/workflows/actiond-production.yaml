@@ -41,10 +41,9 @@ jobs:
           work="$RUNNER_TEMP/actiond-production"
           bash experiments/actiond/prepare.sh "$work"
           node experiments/actiond/prepare-public.mjs "$work"
-      - name: Build patched actiond
+      - name: Build pinned actiond
         run: |
           work="$RUNNER_TEMP/actiond-production"
-          git -C "$work/actiond" apply "$GITHUB_WORKSPACE/experiments/actiond/actiond-advice.patch"
           cd "$work/actiond"
           bazelisk --output_base="$work/worker-output" build --bes_backend= --remote_executor= --remote_cache= --spawn_strategy=local --jobs=2 //cmd/linux-actiond:linux-actiond_linux_x86_64 > "$work/worker-build.log" 2>&1
           worker=$(bazelisk --output_base="$work/worker-output" cquery --bes_backend= //cmd/linux-actiond:linux-actiond_linux_x86_64 --output=starlark '--starlark:expr=providers(target)["DefaultInfo"].files_to_run.executable.path')

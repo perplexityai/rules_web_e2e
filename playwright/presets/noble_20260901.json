@@ -81,6 +81,22 @@
       ]
     },
     {
+      "name": "fonts-dejavu-core",
+      "version": "2.37-8",
+      "sha256": "40049660c194f3b8a2541fc7369efebb10e9f94bdac836a2f38fafedd10fa73a",
+      "urls": [
+        "https://snapshot.ubuntu.com/ubuntu/20260901T000000Z/pool/main/f/fonts-dejavu/fonts-dejavu-core_2.37-8_all.deb"
+      ]
+    },
+    {
+      "name": "fonts-dejavu-mono",
+      "version": "2.37-8",
+      "sha256": "8a599d6553307db7ecb795d2f0e5a301e03234afc75c7358b0ba43466454c89a",
+      "urls": [
+        "https://snapshot.ubuntu.com/ubuntu/20260901T000000Z/pool/main/f/fonts-dejavu/fonts-dejavu-mono_2.37-8_all.deb"
+      ]
+    },
+    {
       "name": "fonts-freefont-ttf",
       "version": "20211204+svn4273-2",
       "sha256": "c8283ec9ca390e6ad8d2114cb0942182db62bb97f5142c2f955218fc5f2027b4",

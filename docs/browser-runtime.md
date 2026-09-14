@@ -24,7 +24,7 @@ linux_chromium_runtime(
 supplies the executable/loader paths and assembles the default
 `@rules_web_e2e//playwright/presets:noble_20260901` library/font preset. Its package
 URLs and checksums are checked in; consumers do not resolve APT dependencies.
-The preset retains the existing Liberation font policy.
+The preset includes the resolved font packages; font changes may require screenshot regeneration.
 
 Add `fonts = [":brand_fonts"]` for declared font files/directories, or set `system`
 to a custom declared directory containing `lib/`, `bin/bash`, `etc/fonts/`, and
@@ -95,7 +95,7 @@ system paths, interpreters, and complex `env -S` shebangs need caller-owned
 wrappers or packaging changes; arbitrary binaries are not automatically
 relocatable.
 
-Execution currently requires a patched actiond Linux amd64 worker. The remote
+Execution currently requires a pinned actiond Linux amd64 worker. The remote
 actions produce comparison/capture results; the local test command reports their
 status and `.update` applies successful captures. Host E2E/component-browser
 targets continue to use their existing browser setup. Native and component
@@ -139,8 +139,7 @@ are accepted; there is no container image interface.
 Archives are extracted in order into one filesystem. Selected links may resolve
 across packages, but never outside that filesystem. Unselected package contents
 are omitted. `exclude` omits archive-relative files or directories before selection;
-links to excluded targets still fail. This can keep an unwanted alternative font
-package out of a baseline-sensitive runtime. Destination paths must not overlap, and added files cannot overwrite
+links to excluded targets still fail. Destination paths must not overlap, and added files cannot overwrite
 archive content. The assembler does not discover library dependencies or run
 package installation scripts. Preserve the distribution's fontconfig policy files
 alongside a top-level configuration with relative font paths.

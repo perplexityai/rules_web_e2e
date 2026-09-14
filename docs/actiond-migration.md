@@ -25,7 +25,7 @@ migrations have landed.
 
 - Supply `browser` from a declared `browser_runtime`; assemble pinned browser, Node, library,
   and font inputs with `browser_runtime_archive`.
-- Configure a patched amd64 worker using [the execution guide](actiond.md).
+- Configure a pinned amd64 worker using [the execution guide](actiond.md).
   Set `target_platform` when native dependencies need additional ABI constraints.
 - Keep compiled specs, built shells, matching, server data, and baseline ownership.
   `$(rootpath ...)` expands in explicit environment values, including JSON.
@@ -33,7 +33,7 @@ migrations have landed.
   checks stay in host E2E targets; inherited environment and origin exceptions
   do not carry over.
 
-The memory-advice patch is covered by upstream actiond PR #33. VRT now relocates
+The pinned upstream actiond includes memory-advice syscalls. VRT relocates
 declared executable copies and supplies explicit loader, library, and shell paths.
 Native macOS VM execution and cross-architecture
 pixel equivalence remain unvalidated. These baselines require a Linux amd64 worker.

@@ -5,11 +5,12 @@ here=$(cd "$(dirname "$0")" && pwd)
 work=${1:?usage: prepare.sh ABSOLUTE_WORK_DIRECTORY}
 [[ $work = /* ]] || { echo 'Use an absolute work directory' >&2; exit 1; }
 mkdir -p "$work"/{build,workspace}
-actiond_commit=8a42c3d481df3a1bf1b80e95a9bb991a207fc035
+actiond_commit=4b767e852e21c5affa72ea7ebbf4d8a6e5d58136
 zig_sha=70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
 if [[ ! -d $work/actiond/.git ]]; then
   git clone https://github.com/hermeticbuild/actiond.git "$work/actiond"
 fi
+git -C "$work/actiond" fetch origin "$actiond_commit"
 git -C "$work/actiond" checkout --detach "$actiond_commit"
 if [[ ! -f $work/zig.tar.xz ]]; then
   curl -fsSL https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz -o "$work/zig.tar.xz"

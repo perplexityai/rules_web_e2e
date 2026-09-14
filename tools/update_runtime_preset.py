@@ -19,10 +19,6 @@ def export(lockfile, output):
     data = resolved[0]
     packages = {}
     for package in data['packages'].values():
-        # Liberation supplies the fontconfig dependency alternative. Including
-        # DejaVu as well changes established screenshot font matching.
-        if package['name'].startswith('fonts-dejavu-'):
-            continue
         entry = {key: package[key] for key in ['name', 'version', 'sha256']}
         entry['urls'] = [uri + '/' + package['filename'] for uri in data['sources'][package['suite']]['uris']]
         if entry['name'] in packages and packages[entry['name']] != entry:
