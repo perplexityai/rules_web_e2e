@@ -35,6 +35,6 @@ migrations have landed.
   do not carry over.
 
 The memory-advice patch is covered by upstream actiond PR #33. VRT now relocates
-declared executable copies and no longer requires the rootfs patch in actiond
-PR #49. Native macOS VM execution and cross-architecture
+declared executable copies and supplies explicit loader, library, and shell paths.
+Native macOS VM execution and cross-architecture
 pixel equivalence remain unvalidated. These baselines require a Linux amd64 worker.

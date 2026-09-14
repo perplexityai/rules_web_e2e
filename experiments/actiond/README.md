@@ -97,14 +97,6 @@ is separate from the VM fixtures and does not establish a full consumer CI migra
 
 - `actiond-advice.patch`: enables memory-advice syscalls in both kernel configs;
   covered by [upstream PR #33](https://github.com/hermeticbuild/actiond/pull/33).
-- `actiond-input-rootfs.patch`: historical alternative, submitted as
-  [upstream PR #49](https://github.com/hermeticbuild/actiond/pull/49), and no longer
-  applied by production CI. It exposes selected directories from a declared
-  runtime input tree at normal Linux paths, preserving executor-owned devices,
-  `/proc`, temporary storage, and network isolation. `input-rootfs-env` resolves
-  its path from a declared command variable, which supports Bazel output paths.
-  Maintained separately in local actiond commits `66e2dca` and `f713bca` for
-  upstreaming. The full actiond build and both unit-test targets pass.
 
 The current VRT runner instead relocates staged executable interpreter paths,
 supplies explicit library/font paths, and directs Node shell launches to declared
