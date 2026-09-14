@@ -1,0 +1,7 @@
+load("@rules_web_e2e//playwright:browser.bzl", "linux_chromium_runtime")
+
+linux_chromium_runtime(
+    name = "browser",
+    chromium = "@chromium//:files",
+    node = "@node//:bin/node",
+)

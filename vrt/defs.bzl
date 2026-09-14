@@ -1,8 +1,6 @@
 """Component visual tests with explicit baseline updates."""
 
-load("//internal:browser.bzl", "browser_test", _PLAYWRIGHT_IMAGE = "PLAYWRIGHT_IMAGE")
-
-PLAYWRIGHT_IMAGE = _PLAYWRIGHT_IMAGE
+load("//internal:browser.bzl", "browser_test")
 
 def visual_test(name, tests, **kwargs):
     """Run compiled native screenshot specs with matching and owned baseline updates."""

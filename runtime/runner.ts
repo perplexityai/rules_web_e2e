@@ -3,8 +3,8 @@ import os from 'node:os'
 import path from 'node:path'
 import {fileURLToPath, pathToFileURL} from 'node:url'
 import {createRequire} from 'node:module'
-import {validatePlaywrightVersions} from './versions.js'
-import {spawn, type ChildProcess} from 'node:child_process'
+import {validatePlaywrightVersions, validateChromiumVersion} from './versions.js'
+import {spawn, execFileSync, type ChildProcess} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
 import {baselineDestination, updateBaselines} from './baselines.js'
@@ -76,6 +76,8 @@ async function main() {
   fs.writeFileSync(path.join(generated, 'package.json'), '{"type":"module"}')
   for (const name of [
     'suite-config',
+    'host-browser-check',
+    'versions',
     'config',
     'network',
     'matching',
@@ -157,6 +159,7 @@ async function main() {
       ].filter(Boolean).join(' '),
     } : {}),
     VRT_INPUTS: inputs,
+    VRT_PLAYWRIGHT_CORE: core,
     VRT_MODE: required('VRT_MODE'),
     VRT_TEST_ROOT: visual ? testRoot : inputs,
     VRT_TEST_FILES: JSON.stringify(descriptor.tests.map(input)),
@@ -185,6 +188,12 @@ async function main() {
     TEST_TMPDIR: temp,
     TEST_UNDECLARED_OUTPUTS_DIR: outputs,
     PATH: `${path.dirname(node)}:/usr/bin:/bin`,
+  }
+  if (declaredBrowser) {
+    const actual = execFileSync(declaredBrowser.env.VRT_CHROMIUM_EXECUTABLE, ['--version'], {
+      env, encoding: 'utf8', timeout: 15_000,
+    })
+    validateChromiumVersion(JSON.parse(fs.readFileSync(path.join(core, 'browsers.json'), 'utf8')), actual)
   }
   const children: ChildProcess[] = []
   let succeeded = false

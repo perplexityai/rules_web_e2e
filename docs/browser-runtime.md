@@ -7,6 +7,36 @@ and the shell utilities used by fixture launchers (including `dirname`, `uname`,
 and `readlink` for Bazel `js_binary`). These files stay inside the runtime tree;
 they are not installed at system paths.
 
+For the common Linux amd64 case, use the public helper:
+
+```starlark
+load("@rules_web_e2e//playwright:browser.bzl", "linux_chromium_runtime")
+
+linux_chromium_runtime(
+    name = "browser",
+    chromium = "@rules_browsers_chrome_linux//:info",
+    node = "@nodejs_linux_amd64//:node_bin",
+)
+```
+
+`chromium` accepts Chrome for Testing headless-shell files or a declared directory.
+`node` is the actual Linux Node executable, not a launcher script. This helper
+supplies the executable/loader paths and assembles the default
+`@rules_web_e2e//playwright/presets:noble_20260901` library/font preset. Its package
+URLs and checksums are checked in; consumers do not resolve APT dependencies.
+The preset includes the resolved font packages; font changes may require screenshot regeneration.
+
+Add `fonts = [":brand_fonts"]` for declared font files/directories, or set `system`
+to a custom declared directory containing `lib/`, `bin/bash`, `etc/fonts/`, and
+`fonts/` with the same layout. A system preset must not contain Node or Chromium.
+Use `browser_runtime` below for other layouts. The assembled output itself is a
+directory, so it can also be exported by caller-owned packaging rules.
+
+The caller selects Chromium's version through its downloader (`rules_browsers`
+or checksum-pinned archives). The rules do not silently upgrade it. Before VRT,
+the runner compares the actual binary's `--version` to the selected Playwright
+package's `browsers.json` and reports a mismatch with upgrade guidance.
+
 A caller can produce a flattened filesystem tar and unpack it during the Bazel
 build:
 
@@ -45,11 +75,11 @@ with Bazel's downloader using a pinned checksum. Paths above describe the
 prototype's layout; select paths matching the caller's runtime.
 
 Archive extraction uses a Bazel-provided Python interpreter and makes no network
-requests. Absolute image symlinks are resolved within the image root, then links
+requests. Absolute archive symlinks are resolved within the archive root, then links
 are materialized into regular files and directories for the output tree. Missing
 link targets are errors, so runtime packaging cannot silently borrow host files.
 Font configuration must use paths relative to its configuration file, rather
-than absolute image or build-machine paths.
+than absolute system or build-machine paths.
 
 `loader` and `bash` default to the paths shown above. Execution starts the
 declared loader directly. The VRT runner creates `/tmp/rules-web-vrt` inside its
@@ -62,36 +92,10 @@ Executable scripts with ordinary `/bin/sh`, `/bin/bash`, `/usr/bin/env bash`,
 or Node shebangs are redirected to the declared launchers. The VRT subprocess
 adapter supplies Bash for Playwright's `shell: true` launches. Other hardcoded
 system paths, interpreters, and complex `env -S` shebangs need caller-owned
-wrappers or packaging changes; arbitrary OCI images are not automatically
+wrappers or packaging changes; arbitrary binaries are not automatically
 relocatable.
 
-For a caller-owned OCI image layout directory, use `browser_runtime_oci` instead:
-
-```starlark
-load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_oci")
-
-browser_runtime_oci(
-    name = "runtime_files",
-    image = ":caller_image",
-    directory = "runtime",
-)
-```
-
-`image` supplies one declared OCI layout directory, such as an `oci_image`
-output. `directory` selects the runtime subtree after applying layers; use `.`
-when the whole image is a closed browser runtime. Keep the `browser_runtime`
-paths relative to that selected subtree. OCI extraction verifies SHA-256 blob
-digests and sizes, selects one Linux amd64 image, applies layers in order, and
-handles whiteouts before same-layer additions. It supports uncompressed and
-gzip layers; unsupported layer media types fail explicitly. It never fetches
-missing blobs, executes image commands, or contacts a registry.
-
-An image tar produced by `docker save` or `oci_load` is neither a flattened
-filesystem archive nor a layout directory. Pass the image layout target directly.
-The runtime subtree must include every link target it needs within the declared
-image, and must not rely on Docker injecting files such as `/etc/hosts`.
-
-Execution currently requires a patched actiond Linux amd64 worker. The remote
+Execution currently requires a pinned actiond Linux amd64 worker. The remote
 actions produce comparison/capture results; the local test command reports their
 status and `.update` applies successful captures. Host E2E/component-browser
 targets continue to use their existing browser setup. Native and component
@@ -103,3 +107,58 @@ macOS. A caller with additional native toolchain constraints can set
 platform must still target Linux amd64 and match the runtime's ABI. `data` and
 `$(rootpath ...)` expressions in `env` are evaluated in this configuration,
 including expressions nested inside JSON strings used by fixture servers.
+
+To assemble a runtime from distribution packages, use `archives` for package data
+tars and `paths` to select their runtime files. `files` adds declared files or
+single directory outputs, such as a checksum-pinned Chromium download:
+
+```starlark
+browser_runtime_archive(
+    name = "runtime_files",
+    archives = ["@vrt_noble//:packages"],
+    paths = {
+        "usr/bin/bash": "bin/bash",
+        "usr/lib/x86_64-linux-gnu": "lib",
+        "usr/share/fonts": "fonts",
+        "etc/fonts/conf.d": "etc/fonts/conf.d",
+    },
+    files = {
+        ":chromium_directory": "chromium",
+        ":node_binary": "bin/node",
+        ":fonts.conf": "etc/fonts/fonts.conf",
+    },
+)
+```
+
+The caller owns package selection and pins. The [complete example](../examples/browser-runtime)
+uses the public runtime helper with a versioned Ubuntu Noble preset, plus
+checksum-pinned Chrome for Testing and Node downloads. It also includes
+shell utilities for fixture launchers. Only filesystem archives and declared files
+are accepted; there is no container image interface.
+
+Archives are extracted in order into one filesystem. Selected links may resolve
+across packages, but never outside that filesystem. Unselected package contents
+are omitted. `exclude` omits archive-relative files or directories before selection;
+links to excluded targets still fail. Destination paths must not overlap, and added files cannot overwrite
+archive content. The assembler does not discover library dependencies or run
+package installation scripts. Preserve the distribution's fontconfig policy files
+alongside a top-level configuration with relative font paths.
+
+## Build the example runtime
+
+From the repository root, build the Linux amd64 runtime using Bazel 9 and package
+its declared directory for the React example:
+
+```sh
+(
+  cd examples/browser-runtime
+  bazelisk build //:browser
+  runtime_files=$(bazelisk cquery //:browser --output=files)
+  tar -C "$runtime_files" -cf ../react/runtime.tar .
+)
+```
+
+The checked-in preset manifest pins the Ubuntu package closure. Chromium and Node use
+explicit archive checksums. The VRT action itself runs offline; repository
+acquisition happens before execution. Callers can instead pass the assembled
+directory directly to `browser_runtime(root=...)` without this tar export.

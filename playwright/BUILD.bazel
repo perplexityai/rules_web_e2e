@@ -1,6 +1,9 @@
 load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 
-exports_files(["defs.bzl", "archive.bzl"])
+exports_files([
+    "defs.bzl",
+    "archive.bzl",
+])
 
 py_binary(
     name = "unpack_runtime",
@@ -11,19 +14,25 @@ py_binary(
 py_test(
     name = "unpack_runtime_test",
     size = "small",
-    srcs = ["unpack_runtime.py", "unpack_runtime_test.py"],
+    srcs = [
+        "unpack_runtime.py",
+        "unpack_runtime_test.py",
+    ],
     main = "unpack_runtime_test.py",
 )
 
 py_binary(
-    name = "unpack_oci",
-    srcs = ["unpack_oci.py", "unpack_runtime.py"],
-    main = "unpack_oci.py",
+    name = "browser_files",
+    srcs = ["browser_files.py"],
+    main = "browser_files.py",
 )
 
 py_test(
-    name = "unpack_oci_test",
+    name = "browser_files_test",
     size = "small",
-    srcs = ["unpack_oci.py", "unpack_runtime.py", "unpack_oci_test.py"],
-    main = "unpack_oci_test.py",
+    srcs = [
+        "browser_files.py",
+        "browser_files_test.py",
+    ],
+    main = "browser_files_test.py",
 )

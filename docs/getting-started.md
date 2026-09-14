@@ -19,7 +19,7 @@ flowchart LR
 ## Run the example
 
 Install Bazelisk and [provision host Chromium](host-browsers.md) for E2E/component
-tests. For VRT, supply the example runtime archive and configure a patched
+tests. For VRT, supply the example runtime archive and configure a pinned
 [actiond worker](actiond.md); Linux amd64 is the screenshot platform.
 
 ```sh
@@ -96,7 +96,7 @@ The [CI workflow](../.github/workflows/ci.yaml) is a working example.
 | Rejected source inputs      | Pass emitted `.js` specs or a compiled server/config/matching module              |
 | Missing shell entry         | Check the built directory contains the declared HTML and all referenced assets    |
 | Playwright version mismatch | Align compiler dependencies, runtime packages, and pinned browser image           |
-| Worker startup failure (VRT) | Check the patched actiond endpoint, VM devices, and declared runtime           |
+| Worker startup failure (VRT) | Check the pinned actiond endpoint, VM devices, and declared runtime           |
 | Missing imports             | Declare helpers, npm links, module markers, and generated outputs in the producer |
 | Empty visual catalog        | Register a module with at least one visual that does not set `vrt: false`         |
 | Blocked browser request (VRT) | Vendor/mock the resource or serve it inside the action             |

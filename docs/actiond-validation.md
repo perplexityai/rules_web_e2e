@@ -6,7 +6,7 @@ network isolation, failed/empty captures, screenshot diffs, and execution deadli
 The worker uses the two isolated patches in `experiments/actiond`.
 
 [CI run 34782772531](https://github.com/perplexityai/rules_web_e2e/actions/runs/34782772531)
-passes Bazel 8.6 and 9.2 on Linux and macOS, including OCI/archive extraction and
+passes Bazel 8.6 and 9.2 on Linux and macOS, including archive extraction and
 host browser tests. Extraction canonicalizes temporary roots before checking
 image links, covering macOS's symlinked temporary directories.
 

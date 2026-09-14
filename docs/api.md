@@ -104,7 +104,7 @@ are accepted. VRT additionally requires `browser` pointing to a matching
 The runner validates the configured version against both packages and the
 consumer specs' Playwright imports before starting tests. Duplicate staged
 copies of the same test package are unified so Playwright loads one harness.
-Version overrides must keep client packages and the selected host browser or VRT image compatible;
+Version overrides must keep client packages and the selected host browser or VRT runtime compatible;
 only the documented pinned version has been exercised by this repository's CI.
 
 ## VRT matching
@@ -261,7 +261,8 @@ See [custom servers](customization.md) and [remote endpoints](e2e.md#existing-ap
 ## VRT execution
 
 See [actiond setup](actiond.md) and [browser runtime inputs](browser-runtime.md).
-`browser_runtime_oci(image = ":caller_image")` consumes a declared OCI layout;
+`browser_runtime_archive(archives = ["@packages//:packages"], paths = {...}, files = {...})`
+assembles package data tars and declared browser/Node files;
 `browser_runtime_archive(archive = ":runtime_tar")` consumes a flat filesystem
 archive. Both extract files through declared tools without runtime registry access.
 
@@ -273,3 +274,20 @@ only the local `.update` wrapper writes source references.
 
 Host E2E/component tests retain their browser provisioning and command-line
 selection behavior; see [host browsers](host-browsers.md).
+
+
+### Runtime convenience rules
+
+Load from `@rules_web_e2e//playwright:browser.bzl`:
+
+- `linux_chromium_runtime(name, chromium, node, system?, fonts?)` returns a
+  Linux amd64 browser runtime and its assembled directory. The default system is
+  the versioned `noble_20260901` library/font preset. Chromium and Node remain
+  caller-provided.
+- `playwright_browser_installation(name, chromium, ffmpeg, playwright?)` builds
+  the host browser cache using revision metadata from the selected Playwright
+  package. It supports Linux x64 and macOS x64/arm64.
+
+The runner rejects VRT Chromium versions that differ from the selected
+Playwright package's headless-shell version. See [runtime setup](browser-runtime.md)
+and [host provisioning](host-browsers.md) for complete examples and upgrades.

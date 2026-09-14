@@ -8,6 +8,7 @@ on:
       - 'internal/**'
       - 'playwright/**'
       - 'examples/react/**'
+      - 'examples/browser-runtime/**'
       - 'MODULE.bazel'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -37,14 +38,12 @@ jobs:
         run: |
           corepack enable pnpm
           pnpm install --frozen-lockfile
-          docker pull --platform linux/amd64 mcr.microsoft.com/playwright:v1.63.0-noble@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7
           work="$RUNNER_TEMP/actiond-production"
           bash experiments/actiond/prepare.sh "$work"
           node experiments/actiond/prepare-public.mjs "$work"
-      - name: Build patched actiond
+      - name: Build pinned actiond
         run: |
           work="$RUNNER_TEMP/actiond-production"
-          git -C "$work/actiond" apply "$GITHUB_WORKSPACE/experiments/actiond/actiond-advice.patch"
           cd "$work/actiond"
           bazelisk --output_base="$work/worker-output" build --bes_backend= --remote_executor= --remote_cache= --spawn_strategy=local --jobs=2 //cmd/linux-actiond:linux-actiond_linux_x86_64 > "$work/worker-build.log" 2>&1
           worker=$(bazelisk --output_base="$work/worker-output" cquery --bes_backend= //cmd/linux-actiond:linux-actiond_linux_x86_64 --output=starlark '--starlark:expr=providers(target)["DefaultInfo"].files_to_run.executable.path')

@@ -4,7 +4,7 @@ import {
   type PlaywrightTestConfig,
   type ReporterDescription,
 } from '@playwright/test'
-import {pathToFileURL} from 'node:url'
+import {pathToFileURL, fileURLToPath} from 'node:url'
 import {createRequire} from 'node:module'
 import path from 'node:path'
 import {e2eConfig, componentBrowserConfig, visualConfig} from './config.js'
@@ -138,7 +138,10 @@ export default defineConfig(
       ? defaults.snapshotPathTemplate
       : custom.snapshotPathTemplate,
     webServer,
-    globalSetup: lifecycleModules(custom.globalSetup),
+    globalSetup: visual ? lifecycleModules(custom.globalSetup) : [
+      ...(lifecycleModules(custom.globalSetup) ?? []),
+      fileURLToPath(new URL('./host-browser-check.js', import.meta.url)),
+    ],
     globalTeardown: lifecycleModules(custom.globalTeardown),
     use: managedUse,
     ...(merged.projects

@@ -1,7 +1,6 @@
 # Actiond migration
 
-VRT now runs through actiond Linux amd64 actions with caller-owned runtime files
-or OCI images. Testcontainers, Ryuk, the control relay, image manifests, and their
+VRT now runs through actiond Linux amd64 actions with caller-owned runtime files. Testcontainers, Ryuk, the control relay, image manifests, and their
 preload/patch dependencies are removed. Host E2E/component tests retain host
 Chromium and host networking.
 
@@ -24,9 +23,9 @@ migrations have landed.
 
 ## Caller changes
 
-- Supply `browser` from a declared `browser_runtime`; move the former runtime
-  `image` setting into the caller's OCI build and `browser_runtime_oci` target.
-- Configure a patched amd64 worker using [the execution guide](actiond.md).
+- Supply `browser` from a declared `browser_runtime`; assemble pinned browser, Node, library,
+  and font inputs with `browser_runtime_archive`.
+- Configure a pinned amd64 worker using [the execution guide](actiond.md).
   Set `target_platform` when native dependencies need additional ABI constraints.
 - Keep compiled specs, built shells, matching, server data, and baseline ownership.
   `$(rootpath ...)` expands in explicit environment values, including JSON.
@@ -34,7 +33,7 @@ migrations have landed.
   checks stay in host E2E targets; inherited environment and origin exceptions
   do not carry over.
 
-The memory-advice patch is covered by upstream actiond PR #33. VRT now relocates
+The pinned upstream actiond includes memory-advice syscalls. VRT relocates
 declared executable copies and supplies explicit loader, library, and shell paths.
 Native macOS VM execution and cross-architecture
 pixel equivalence remain unvalidated. These baselines require a Linux amd64 worker.

@@ -23,7 +23,10 @@ bazel test //path:e2e_test //path:component_test
 Prepare Linux system dependencies in the CI image/setup step (Playwright's
 `install --with-deps chromium` can do this where supported). Tests do not download
 browsers or install system packages. An existing cache with the wrong browser
-revision fails with Playwright's missing-executable error. Do not use `0` for
+revision fails with Playwright's missing-executable error. Before host tests run,
+a setup check launches each project's selected Chromium, validates its reported
+version against Playwright metadata, and closes it. This also rejects stale
+binaries placed into a newer revision's cache directory. Do not use `0` for
 `PLAYWRIGHT_BROWSERS_PATH`; the rules need an explicit provisioned directory.
 
 Bazel tests inherit an absolute `PLAYWRIGHT_BROWSERS_PATH` automatically.
@@ -42,7 +45,7 @@ inputs. Neither choice provides VRT's controlled OS/fonts rendering environment.
 
 For AGI, keep existing host browser data and `PLAYWRIGHT_BROWSERS_PATH` wiring.
 In the shared component/page VRT wrappers, add `browser` pointing to a
-`browser_runtime` built from the caller's OCI image. Preserve built galleries,
+`browser_runtime` built from the caller's pinned packages and browser archive. Preserve built galleries,
 custom configs, server executables, `data`, matching, and baseline directories.
 The VRT rule expands `$(rootpath ...)` in server environment JSON and configures
 inputs for Linux amd64. Set `target_platform` when native toolchains need
@@ -74,5 +77,35 @@ compared all eight screenshots in actiond's process sandbox with this interface.
 FormatJS CI migration, or macOS worker support.
 
 `playwright_runtime` now groups only matching npm packages and their version.
-Move its former `image` setting into a declared OCI image target consumed by
-`browser_runtime_oci`. Remove `playwright_images` and Ryuk preload jobs.
+Replace its former `image` setting with a declared package/browser runtime assembled
+by `browser_runtime_archive`. Remove `playwright_images` and Ryuk preload jobs.
+
+
+## Assemble an existing browser download
+
+`playwright_browser_installation` accepts caller-owned Chrome for Testing
+headless-shell and FFmpeg downloads. It reads cache revisions from the declared
+Playwright package; no handwritten `chromium_headless_shell-<revision>` paths
+are needed:
+
+```starlark
+load("@rules_web_e2e//playwright:browser.bzl", "playwright_browser_installation")
+
+playwright_browser_installation(
+    name = "browsers",
+    chromium = "@rules_browsers_chrome_linux//:info",
+    ffmpeg = ":downloaded_ffmpeg",
+    playwright = ":playwright",
+)
+```
+
+Use platform `select()` for Linux x64 and macOS x64/arm64 browser/FFmpeg labels.
+Pass this target in test `data` and set
+`PLAYWRIGHT_BROWSERS_PATH = "$(rootpath :browsers)"` as before.
+
+To upgrade, change the caller's Chromium pin and compatible Playwright npm
+packages (including `playwright_runtime(version = ...)`). Update the
+`rules_browsers` catalog pin if necessary. Select the FFmpeg download revision
+listed in the new Playwright package's `browsers.json`; the helper handles its
+cache directory name. Re-run host and VRT suites and review any intentional
+baseline changes. Library/font preset upgrades remain an explicit separate choice.

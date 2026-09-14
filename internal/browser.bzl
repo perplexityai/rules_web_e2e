@@ -1,10 +1,9 @@
 """Execute compiled browser inputs with a reusable Playwright runtime."""
 
 load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
-load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo", "runfile", _PLAYWRIGHT_IMAGE = "PLAYWRIGHT_IMAGE")
+load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo", "runfile")
 load(":remote.bzl", "remote_browser_test")
 
-PLAYWRIGHT_IMAGE = _PLAYWRIGHT_IMAGE
 ShellInfo = provider(fields = ["directory", "entry_point"])
 
 def _shell_impl(ctx):
