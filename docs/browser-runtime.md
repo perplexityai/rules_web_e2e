@@ -45,11 +45,11 @@ with Bazel's downloader using a pinned checksum. Paths above describe the
 prototype's layout; select paths matching the caller's runtime.
 
 Archive extraction uses a Bazel-provided Python interpreter and makes no network
-requests. Absolute image symlinks are resolved within the image root, then links
+requests. Absolute archive symlinks are resolved within the archive root, then links
 are materialized into regular files and directories for the output tree. Missing
 link targets are errors, so runtime packaging cannot silently borrow host files.
 Font configuration must use paths relative to its configuration file, rather
-than absolute image or build-machine paths.
+than absolute system or build-machine paths.
 
 `loader` and `bash` default to the paths shown above. Execution starts the
 declared loader directly. The VRT runner creates `/tmp/rules-web-vrt` inside its
@@ -62,34 +62,8 @@ Executable scripts with ordinary `/bin/sh`, `/bin/bash`, `/usr/bin/env bash`,
 or Node shebangs are redirected to the declared launchers. The VRT subprocess
 adapter supplies Bash for Playwright's `shell: true` launches. Other hardcoded
 system paths, interpreters, and complex `env -S` shebangs need caller-owned
-wrappers or packaging changes; arbitrary OCI images are not automatically
+wrappers or packaging changes; arbitrary binaries are not automatically
 relocatable.
-
-For a caller-owned OCI image layout directory, use `browser_runtime_oci` instead:
-
-```starlark
-load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_oci")
-
-browser_runtime_oci(
-    name = "runtime_files",
-    image = ":caller_image",
-    directory = "runtime",
-)
-```
-
-`image` supplies one declared OCI layout directory, such as an `oci_image`
-output. `directory` selects the runtime subtree after applying layers; use `.`
-when the whole image is a closed browser runtime. Keep the `browser_runtime`
-paths relative to that selected subtree. OCI extraction verifies SHA-256 blob
-digests and sizes, selects one Linux amd64 image, applies layers in order, and
-handles whiteouts before same-layer additions. It supports uncompressed and
-gzip layers; unsupported layer media types fail explicitly. It never fetches
-missing blobs, executes image commands, or contacts a registry.
-
-An image tar produced by `docker save` or `oci_load` is neither a flattened
-filesystem archive nor a layout directory. Pass the image layout target directly.
-The runtime subtree must include every link target it needs within the declared
-image, and must not rely on Docker injecting files such as `/etc/hosts`.
 
 Execution currently requires a patched actiond Linux amd64 worker. The remote
 actions produce comparison/capture results; the local test command reports their
@@ -104,21 +78,39 @@ platform must still target Linux amd64 and match the runtime's ABI. `data` and
 `$(rootpath ...)` expressions in `env` are evaluated in this configuration,
 including expressions nested inside JSON strings used by fixture servers.
 
-To package selected files from a general-purpose image, `paths` maps image paths
-(relative to `directory`) to runtime output paths. Only selected paths are
-materialized; links still resolve strictly inside the declared image. Use `files`
-for declared configuration files, such as a fontconfig with relative font paths:
+To assemble a runtime from distribution packages, use `archives` for package data
+tars and `paths` to select their runtime files. `files` adds declared files or
+single directory outputs, such as a checksum-pinned Chromium download:
 
 ```starlark
-browser_runtime_oci(
+browser_runtime_archive(
     name = "runtime_files",
-    image = ":caller_image",
-    paths = {"usr/bin/node": "bin/node", "usr/share/fonts": "fonts"},
-    files = {":fonts.conf": "etc/fonts/fonts.conf"},
+    archives = ["@vrt_noble//:packages"],
+    paths = {
+        "usr/bin/bash": "bin/bash",
+        "usr/lib/x86_64-linux-gnu": "lib",
+        "usr/share/fonts": "fonts",
+        "etc/fonts/conf.d": "etc/fonts/conf.d",
+    },
+    files = {
+        ":chromium_directory": "chromium",
+        ":node_binary": "bin/node",
+        ":fonts.conf": "etc/fonts/fonts.conf",
+    },
 )
 ```
 
-Include the browser, loader, libraries and shell utilities needed by your runtime
-as well. Destination paths must not overlap. Additional files cannot overwrite
-image content. This selects files only; it does not discover library dependencies
-or make arbitrary binaries relocatable.
+The caller owns package selection and pins. The [complete example](../experiments/actiond/runtime)
+uses `rules_distroless` with a fixed Ubuntu Noble snapshot and commits its package
+lock, plus checksum-pinned Chrome for Testing and Node downloads. It also includes
+shell utilities for fixture launchers. Only filesystem archives and declared files
+are accepted; there is no container image interface.
+
+Archives are extracted in order into one filesystem. Selected links may resolve
+across packages, but never outside that filesystem. Unselected package contents
+are omitted. `exclude` omits archive-relative files or directories before selection;
+links to excluded targets still fail. This can keep an unwanted alternative font
+package out of a baseline-sensitive runtime. Destination paths must not overlap, and added files cannot overwrite
+archive content. The assembler does not discover library dependencies or run
+package installation scripts. Preserve the distribution's fontconfig policy files
+alongside a top-level configuration with relative font paths.

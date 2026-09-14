@@ -19,17 +19,15 @@ for (const name of ['isolation', 'failure'])
   fs.copyFileSync(new URL(`./${name}.visual.spec.ts`, import.meta.url), path.join(destination, `actiond-${name}.visual.spec.ts`))
 const build = path.join(destination, 'BUILD.bazel')
 fs.writeFileSync(build,
-  'load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_oci")\n' +
-  'load("@rules_web_e2e//experiments/actiond:fixture.bzl", "runtime_image")\n' +
+  'load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_archive")\n' +
   'load("@rules_web_e2e//playwright:defs.bzl", "browser_runtime")\n' +
   fs.readFileSync(build, 'utf8') + `
-runtime_image(name = "actiond_image", archive = "runtime.tar")
 js_binary(
     name = "actiond_fixture_server",
     entry_point = "native-server.js",
     data = [":typecheck_project", "package.json"],
 )
-browser_runtime_oci(name = "actiond_runtime_files", image = ":actiond_image")
+browser_runtime_archive(name = "actiond_runtime_files", archive = "runtime.tar")
 browser_runtime(
     name = "actiond_browser",
     root = ":actiond_runtime_files",

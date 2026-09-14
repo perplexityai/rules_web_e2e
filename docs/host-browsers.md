@@ -42,7 +42,7 @@ inputs. Neither choice provides VRT's controlled OS/fonts rendering environment.
 
 For AGI, keep existing host browser data and `PLAYWRIGHT_BROWSERS_PATH` wiring.
 In the shared component/page VRT wrappers, add `browser` pointing to a
-`browser_runtime` built from the caller's OCI image. Preserve built galleries,
+`browser_runtime` built from the caller's pinned packages and browser archive. Preserve built galleries,
 custom configs, server executables, `data`, matching, and baseline directories.
 The VRT rule expands `$(rootpath ...)` in server environment JSON and configures
 inputs for Linux amd64. Set `target_platform` when native toolchains need
@@ -74,5 +74,5 @@ compared all eight screenshots in actiond's process sandbox with this interface.
 FormatJS CI migration, or macOS worker support.
 
 `playwright_runtime` now groups only matching npm packages and their version.
-Move its former `image` setting into a declared OCI image target consumed by
-`browser_runtime_oci`. Remove `playwright_images` and Ryuk preload jobs.
+Replace its former `image` setting with a declared package/browser runtime assembled
+by `browser_runtime_archive`. Remove `playwright_images` and Ryuk preload jobs.

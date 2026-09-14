@@ -10,9 +10,9 @@ Docker socket, or Ryuk is used inside the action.
 
 ## Reproduce
 
-Setup requires Linux amd64, Python 3, curl, Git, Docker, and the repository's
-installed pnpm dependencies. Preload the Playwright image pinned in `prepare.sh`.
-Docker only extracts the image during preparation; the action consumes files.
+Setup requires Linux amd64, Python 3, curl, Git, Bazelisk, and the repository's
+installed pnpm dependencies. Bazel assembles the runtime from pinned package,
+Chromium, and Node downloads in `runtime/`.
 
 ```sh
 bash experiments/actiond/prepare.sh /tmp/actiond-prototype
@@ -76,8 +76,8 @@ The local host has no `/dev/kvm`; KVM validation ran on GitHub's Ubuntu runner.
 
 The production workflow builds actiond at `8a42c3d` with the memory-advice patch,
 starts a Linux amd64 VM, and runs `prepare-public.mjs` / `run-public-actiond.sh`.
-The fixture constructs a caller-owned OCI layout through Bazel and extracts its
-runtime with `browser_runtime_oci`. Public `.update` and test targets execute
+The fixture assembles pinned Ubuntu packages, Chrome for Testing, and Node
+through Bazel in [`runtime`](runtime), using `browser_runtime_archive`. Public `.update` and test targets execute
 capture/comparison actions remotely and consume downloaded results locally.
 Only the temporary example checkout receives baseline updates.
 

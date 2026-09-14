@@ -1,9 +1,1 @@
-load("@rules_python//python:defs.bzl", "py_binary")
-
-exports_files(["fixture.bzl"])
-
-py_binary(
-    name = "fixture_image",
-    srcs = ["fixture_image.py"],
-    main = "fixture_image.py",
-)
+package(default_visibility = ["//visibility:public"])

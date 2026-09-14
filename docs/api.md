@@ -104,7 +104,7 @@ are accepted. VRT additionally requires `browser` pointing to a matching
 The runner validates the configured version against both packages and the
 consumer specs' Playwright imports before starting tests. Duplicate staged
 copies of the same test package are unified so Playwright loads one harness.
-Version overrides must keep client packages and the selected host browser or VRT image compatible;
+Version overrides must keep client packages and the selected host browser or VRT runtime compatible;
 only the documented pinned version has been exercised by this repository's CI.
 
 ## VRT matching
@@ -261,7 +261,8 @@ See [custom servers](customization.md) and [remote endpoints](e2e.md#existing-ap
 ## VRT execution
 
 See [actiond setup](actiond.md) and [browser runtime inputs](browser-runtime.md).
-`browser_runtime_oci(image = ":caller_image")` consumes a declared OCI layout;
+`browser_runtime_archive(archives = ["@packages//:packages"], paths = {...}, files = {...})`
+assembles package data tars and declared browser/Node files;
 `browser_runtime_archive(archive = ":runtime_tar")` consumes a flat filesystem
 archive. Both extract files through declared tools without runtime registry access.
 

@@ -2,8 +2,7 @@
 
 `visual_test` and `component_visual_test` run the fixture server, Playwright,
 Chromium, and screenshot comparison together in an isolated Linux amd64 action.
-Callers supply a [declared browser runtime](browser-runtime.md), optionally built
-from their own OCI image. Host E2E and component tests use host browsers.
+Callers supply a [declared browser runtime](browser-runtime.md), built from declared archives and files. Host E2E and component tests use host browsers.
 
 ## Worker and Bazel configuration
 
@@ -54,8 +53,8 @@ A cancelled build never runs the local update wrapper.
 ## Declared inputs and isolation
 
 The runtime tree contains Node, Chromium, loaders, libraries, fonts, and shell
-commands needed by fixtures. OCI extraction verifies declared blobs and never
-contacts a registry. Acquisition and image construction happen before execution;
+commands needed by fixtures. Bazel downloads checksum-pinned packages and browser
+archives before execution; assembly never contacts the network.
 Docker, registry credentials, Testcontainers, and Ryuk are absent from the action.
 
 The declared ELF loader starts the bootstrap. It prepares a private Node/Bash
@@ -70,7 +69,7 @@ External assets and APIs need local fixtures. Live deployed checks belong in
 host E2E targets. Explicit `env` is supported, including `$(rootpath ...)` inside
 JSON strings; inherited environment and network origin exceptions are rejected.
 
-Pin the runtime image, architecture, browser/client versions, fonts, fixtures,
+Pin the runtime packages, architecture, browser/client versions, fonts, fixtures,
 locale, and timezone. This makes rendering inputs controlled; tests must still
 control time, randomness, animations, and their own application state. The VM
 provides isolation, not a claim that arbitrary screenshot tests are deterministic.
