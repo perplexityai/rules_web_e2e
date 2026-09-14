@@ -36,6 +36,8 @@ for these baselines. The validated CI worker uses 6 GiB RAM for at most two
 concurrent actions; size workers for fixture and staging memory as well as
 Chromium. The macOS native VM backend is not yet validated by these
 checks. Keep VRT's explicit remote strategies and local fallback disabled.
+The bootstrap also rejects ordinary host roots with system shell/loader paths
+before creating temporary runtime launchers.
 
 ```sh
 bazel test --config=vrt //path:visual_test

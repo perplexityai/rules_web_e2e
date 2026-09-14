@@ -34,6 +34,7 @@ migrations have landed.
   checks stay in host E2E targets; inherited environment and origin exceptions
   do not carry over.
 
-The memory-advice patch is upstream PR #48; the declared-rootfs patch remains
-isolated locally for upstreaming. Native macOS VM execution and cross-architecture
+The memory-advice patch is covered by upstream actiond PR #33. VRT now relocates
+declared executable copies and no longer requires the rootfs patch in actiond
+PR #49. Native macOS VM execution and cross-architecture
 pixel equivalence remain unvalidated. These baselines require a Linux amd64 worker.

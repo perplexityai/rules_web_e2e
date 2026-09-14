@@ -48,7 +48,13 @@ def _remote_impl(ctx):
     descriptor = browser.descriptor
     ctx.actions.run(
         executable = root.path + "/" + descriptor["loader"],
-        arguments = [root.path + "/" + descriptor["node"], ctx.file._bootstrap.path, job.path],
+        arguments = [
+            "--library-path",
+            ":".join([root.path + "/" + p for p in descriptor["libraryDirs"]]),
+            root.path + "/" + descriptor["node"],
+            ctx.file._bootstrap.path,
+            job.path,
+        ],
         inputs = depset(files + [root, job, ctx.file._bootstrap]),
         outputs = [output],
         env = {
@@ -56,7 +62,6 @@ def _remote_impl(ctx):
             "TMPDIR": "/tmp",
             "LANG": "C.UTF-8",
             "TZ": "UTC",
-            "LD_LIBRARY_PATH": ":".join([root.path + "/" + p for p in descriptor["libraryDirs"]]),
         },
         execution_requirements = {"no-local": "1"},
         mnemonic = "VrtCapture" if ctx.attr.capture else "VrtCompare",
