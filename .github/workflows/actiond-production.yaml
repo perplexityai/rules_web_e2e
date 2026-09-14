@@ -3,7 +3,7 @@ name: actiond production VRT
 on:
   pull_request:
     paths:
-      - 'experiments/actiond/**'
+      - 'tests/actiond/**'
       - 'runtime/**'
       - 'internal/**'
       - 'playwright/**'
@@ -39,8 +39,8 @@ jobs:
           corepack enable pnpm
           pnpm install --frozen-lockfile
           work="$RUNNER_TEMP/actiond-production"
-          bash experiments/actiond/prepare.sh "$work"
-          node experiments/actiond/prepare-public.mjs "$work"
+          bash tests/actiond/prepare.sh "$work"
+          node tests/actiond/prepare-public.mjs "$work"
       - name: Build pinned actiond
         run: |
           work="$RUNNER_TEMP/actiond-production"
@@ -70,7 +70,7 @@ jobs:
             sleep 1
           done
           "$ready"
-          bash experiments/actiond/run-public-actiond.sh "$work" grpc://127.0.0.1:8980
+          bash tests/actiond/run-public-actiond.sh "$work" grpc://127.0.0.1:8980
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

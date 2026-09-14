@@ -1,4 +1,0 @@
-filegroup(
-    name = "packages",
-    srcs = ["@vrt_noble//:packages"],
-)

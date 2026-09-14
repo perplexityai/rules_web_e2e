@@ -9,7 +9,8 @@ Callers supply a [declared browser runtime](browser-runtime.md), built from decl
 
 Use actiond at commit [`4b767e8`](https://github.com/hermeticbuild/actiond/commit/4b767e852e21c5affa72ea7ebbf4d8a6e5d58136)
 or newer, which enables memory-advice syscalls in both VM kernels.
-The production workflow builds this pinned upstream revision without local patches. VRT needs no runtime mounts. Ordinary native Bazel tests request actiond’s pinned
+The [integration suite](../tests/actiond/README.md) downloads this pinned source
+archive through Bazel and builds the upstream workspace without local patches. VRT needs no runtime mounts. Ordinary native Bazel tests request actiond’s pinned
 static Bash (`requires-bash`) for Bazel’s own test wrapper. Its remaining utilities
 come from checksum-pinned declared packages, supplied through `BASH_ENV`; no host
 packages or system libc are used. No `input-rootfs` or `libc` properties are needed.
