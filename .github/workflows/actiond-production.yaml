@@ -1,18 +1,10 @@
 name: actiond production VRT
 
 on:
+  push:
+    branches: [main]
   pull_request:
-    paths:
-      - 'tests/actiond/**'
-      - 'runtime/**'
-      - 'internal/**'
-      - 'playwright/**'
-      - 'examples/react/**'
-      - 'examples/browser-runtime/**'
-      - 'MODULE.bazel'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/actiond-production.yaml'
+  merge_group:
 
 permissions:
   contents: read
