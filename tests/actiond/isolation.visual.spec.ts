@@ -7,7 +7,7 @@ test('the whole VRT action is offline and can still serve its fixture', async ({
   expect(process.arch).toBe('x64')
   expect(fs.existsSync('/var/run/docker.sock')).toBe(false)
   // No input-rootfs mapping or packaged libc/Bash runtime was requested.
-  for (const file of ['/bin/bash', '/bin/sh', '/usr/bin/env', '/lib64/ld-linux-x86-64.so.2'])
+  for (const file of ['/bin/bash', '/bin/sh', '/usr/bin/env', '/lib64/ld-linux-x86-64.so.2', '/lib/ld-linux-aarch64.so.1'])
     expect(fs.existsSync(file), file).toBe(false)
   const fixture = JSON.parse(process.env.ACTIOND_FIXTURE!)
   expect(JSON.parse(fs.readFileSync(fixture.package, 'utf8')).name).toBeTruthy()

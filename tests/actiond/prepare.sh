@@ -6,6 +6,8 @@ repository=$(cd "$here/../.." && pwd)
 work=${1:?usage: prepare.sh ABSOLUTE_WORK_DIRECTORY}
 [[ $work = /* ]] || { echo 'Use an absolute work directory' >&2; exit 1; }
 bazel_bin=${ACTIOND_BAZEL:-bazelisk}
+arch=${ACTIOND_ARCH:-x64}
+case "$arch" in x64) runtime_target=browser ;; arm64) runtime_target=browser_arm64 ;; *) echo 'ACTIOND_ARCH must be x64 or arm64' >&2; exit 1 ;; esac
 mkdir -p "$work/actiond"
 (
   cd "$repository"
@@ -16,7 +18,7 @@ mkdir -p "$work/actiond"
 )
 (
   cd "$repository/examples/browser-runtime"
-  "$bazel_bin" build //:browser
-  runtime=$("$bazel_bin" cquery //:browser --output=files)
+  "$bazel_bin" build "//:$runtime_target"
+  runtime=$("$bazel_bin" cquery "//:$runtime_target" --output=files)
   tar -C "$runtime" -cf "$work/runtime.tar" .
 )

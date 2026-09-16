@@ -89,7 +89,8 @@ def browser_test(
         base_url_env = None,
         playwright = Label("//runtime:playwright"),
         browser = None,
-        target_platform = Label("//internal:linux_amd64"),
+        target_platform = None,
+        target_arch = "x64",
         config = None,
         matching = None,
         baselines = [],
@@ -106,6 +107,10 @@ def browser_test(
         visual = False,
         component = False):
     """Internal common implementation; public wrappers select the test mode."""
+    if target_arch not in ["x64", "arm64"]:
+        fail("target_arch must be x64 or arm64")
+    if target_platform == None:
+        target_platform = Label("//internal:linux_" + ("amd64" if target_arch == "x64" else "arm64"))
     if any([key.startswith("VRT_") for key in env.keys() + env_inherit + network_origins_env]):
         fail("VRT_* environment names are reserved for the browser runtime")
     if visual and component:
@@ -166,7 +171,7 @@ def browser_test(
         if key not in env and key not in env_inherit
     ]
     if browser:
-        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual)
+        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch)
         return
     js_test(
         name = name,

@@ -36,30 +36,44 @@ class BrowserFilesTest(unittest.TestCase):
                 self.assertEqual((output / "ffmpeg-7654" / ffmpeg.name).read_text(), "video helper")
                 self.assertTrue((installed / "chrome-headless-shell").stat().st_mode & 0o111)
 
-    def test_linux_runtime_composes_custom_system_node_and_fonts(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            system = root / "system"
-            for name in ["lib/ld-linux-x86-64.so.2", "bin/bash", "etc/fonts/fonts.conf", "fonts/default.ttf"]:
-                file = system / name
-                file.parent.mkdir(parents=True, exist_ok=True)
-                file.write_text(name)
-            node = root / "node"
-            node.write_text("caller node")
-            font = root / "brand.ttf"
-            font.write_text("caller font")
-            browser = self.bundle(root / "browser")
-            output = root / "runtime"
-            manifest = {"mode": "linux", "system": str(system), "node": str(node),
-                        "chromium": [str(browser)], "fonts": [str(font)]}
-            assemble(manifest, output)
-            self.assertEqual((output / "bin/node").read_text(), "caller node")
-            self.assertEqual((output / "fonts/custom/0/brand.ttf").read_text(), "caller font")
-            self.assertTrue((output / "fonts/default.ttf").exists())
-            self.assertFalse(any(p.is_symlink() for p in output.rglob("*")))
-            (system / "bin/node").write_text("unexpected node")
-            with self.assertRaisesRegex(ValueError, "must not contain"):
-                assemble(manifest, root / "invalid")
+    def test_linux_runtime_composes_matching_architecture_and_rejects_mixed_binaries(self):
+        for arch, loader, machine in [("x64", "ld-linux-x86-64.so.2", 62), ("arm64", "ld-linux-aarch64.so.1", 183)]:
+            with self.subTest(arch=arch), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                binary = bytearray(64)
+                binary[:6] = b"\x7fELF\x02\x01"
+                binary[18:20] = machine.to_bytes(2, "little")
+                system = root / "system"
+                for name in ["lib/" + loader, "bin/bash", "etc/fonts/fonts.conf", "fonts/default.ttf"]:
+                    file = system / name
+                    file.parent.mkdir(parents=True, exist_ok=True)
+                    file.write_bytes(binary if name.startswith(("lib/", "bin/")) else name.encode())
+                node = root / "node"
+                node.write_bytes(binary)
+                font = root / "brand.ttf"
+                font.write_text("caller font")
+                browser = self.bundle(root / "browser")
+                (browser / "chrome-headless-shell").write_bytes(binary)
+                output = root / "runtime"
+                manifest = {"mode": "linux", "arch": arch, "system": str(system), "node": str(node),
+                            "chromium": [str(browser)], "fonts": [str(font)]}
+                assemble(manifest, output)
+                self.assertEqual((output / "bin/node").read_bytes(), binary)
+                self.assertEqual((output / "fonts/custom/0/brand.ttf").read_text(), "caller font")
+                self.assertTrue((output / "fonts/default.ttf").exists())
+                self.assertFalse(any(p.is_symlink() for p in output.rglob("*")))
+                wrong = bytearray(binary)
+                wrong[18:20] = (183 if machine == 62 else 62).to_bytes(2, "little")
+                node.write_bytes(wrong)
+                with self.assertRaisesRegex(ValueError, "node must be a Linux " + arch):
+                    assemble(manifest, root / "wrong-node")
+                node.write_bytes(binary)
+                (system / "lib" / loader).unlink()
+                with self.assertRaisesRegex(ValueError, "system preset is missing"):
+                    assemble(manifest, root / "missing-loader")
+                (system / "bin/node").write_text("unexpected node")
+                with self.assertRaisesRegex(ValueError, "must not contain"):
+                    assemble(manifest, root / "invalid")
 
     def test_ambiguous_browser_bundle_fails(self):
         with tempfile.TemporaryDirectory() as temporary:

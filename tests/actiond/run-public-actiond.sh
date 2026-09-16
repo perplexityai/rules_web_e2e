@@ -2,6 +2,7 @@
 set -euo pipefail
 work=${1:?usage: run-public-actiond.sh ABSOLUTE_WORK_DIRECTORY ENDPOINT}
 endpoint=${2:?missing actiond endpoint}
+case "${ACTIOND_ARCH:-x64}" in x64|arm64) ;; *) echo 'ACTIOND_ARCH must be x64 or arm64' >&2; exit 1 ;; esac
 scripts=$(cd "$(dirname "$0")" && pwd)
 cd "$work/public"
 collect() {
@@ -13,16 +14,21 @@ collect() {
 trap collect EXIT
 flags=(
   --jobs=2
-  --remote_default_exec_properties="actiond-worker-sha256=$(sha256sum "$work/actiond-worker" | cut -d ' ' -f 1)"
+  --remote_default_exec_properties="actiond-worker-sha256=$(shasum -a 256 "$work/actiond-worker" | cut -d ' ' -f 1)"
   --remote_executor="$endpoint" --remote_cache="$endpoint"
   --spawn_strategy=sandboxed,local --strategy=VrtCapture=remote --strategy=VrtCompare=remote --strategy=TestRunner=remote,local
   --remote_local_fallback=false --remote_upload_local_results=false
   --noremote_cache_compression --remote_download_outputs=all
 )
+if [[ ${ACTIOND_ARCH:-x64} == arm64 ]]; then
+  flags+=(--extra_execution_platforms=@platforms//host:host,@rules_web_e2e//internal:linux_arm64)
+fi
 bazel_cmd=("${ACTIOND_BAZEL:-bazelisk}" --output_base="$work/public-bazel-output")
 # This target is never executed remotely, so it cannot reuse a successful
 # capture from the action cache and accidentally skip the rejection check.
 mkdir -p "$work/results"
+# Host rejection and ordinary test-launcher checks currently require Linux x64.
+if [[ ${ACTIOND_ARCH:-x64} == x64 ]]; then
 if "${bazel_cmd[@]}" build //:actiond_local_rejection_test_capture \
   --remote_executor= --remote_cache= --disk_cache= --spawn_strategy=sandboxed,local \
   > "$work/results/local-rejection.log" 2>&1; then
@@ -72,6 +78,7 @@ if previous.exists():
 previous.write_text(json.dumps(sorted(ids)))
 PYRUNS
 done
+fi
 "${bazel_cmd[@]}" run //:actiond_native_test.update "${flags[@]}"
 "${bazel_cmd[@]}" run //:actiond_gallery_test.update "${flags[@]}"
 test -s __actiond_native__/saved.png

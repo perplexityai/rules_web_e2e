@@ -17,7 +17,7 @@ fs.writeFileSync(path.join(destination, 'MODULE.bazel'), module.replace('path = 
 fs.copyFileSync(path.join(work, 'runtime.tar'), path.join(destination, 'runtime.tar'))
 for (const name of ['isolation', 'failure'])
   fs.copyFileSync(new URL(`./${name}.visual.spec.ts`, import.meta.url), path.join(destination, `actiond-${name}.visual.spec.ts`))
-fs.writeFileSync(path.join(destination, 'actiond-isolation.spec.ts'), fs.readFileSync(new URL('./isolation.visual.spec.ts', import.meta.url), 'utf8').replace("['/bin/bash', '/bin/sh', '/usr/bin/env', '/lib64/ld-linux-x86-64.so.2']", "['/bin/sh', '/lib64/ld-linux-x86-64.so.2']"))
+fs.writeFileSync(path.join(destination, 'actiond-isolation.spec.ts'), fs.readFileSync(new URL('./isolation.visual.spec.ts', import.meta.url), 'utf8').replace("['/bin/bash', '/bin/sh', '/usr/bin/env', '/lib64/ld-linux-x86-64.so.2', '/lib/ld-linux-aarch64.so.1']", "['/bin/sh', '/lib64/ld-linux-x86-64.so.2', '/lib/ld-linux-aarch64.so.1']"))
 fs.writeFileSync(path.join(destination, 'actiond-browser-failure.spec.ts'), `
 import {test} from '@playwright/test'
 test('ordinary failure reaches Bazel', async ({page}) => {
@@ -175,3 +175,12 @@ visual_test(
     execution_timeout_seconds = 90,
 )
 `)
+
+// ARM64 exercises the VRT lane; ordinary isolated tests retain their x64 tools.
+if (process.env.ACTIOND_ARCH === 'arm64') {
+  const isolation = path.join(destination, 'actiond-isolation.visual.spec.ts')
+  fs.writeFileSync(isolation, fs.readFileSync(isolation, 'utf8').replace("expect(process.arch).toBe('x64')", "expect(process.arch).toBe('arm64')"))
+  fs.writeFileSync(build, fs.readFileSync(build, 'utf8')
+    .replace(/((?:component_)?visual_test\(\n)/g, '$1    target_arch = "arm64",\n')
+    .replace(/(browser_runtime\(\n)/g, '$1    arch = "arm64",\n    loader = "lib/ld-linux-aarch64.so.1",\n'))
+}

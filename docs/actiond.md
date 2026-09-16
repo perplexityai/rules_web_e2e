@@ -39,11 +39,12 @@ Include the worker binary SHA256 in the execution platform properties, for examp
 when the worker or embedded kernel changes; otherwise previous action results can
 be reused across execution environments. The worker operator owns this identity.
 
-Use a remote worker address when appropriate. ARM64 clients need an amd64 worker
-for these baselines. The validated CI worker uses 6 GiB RAM for at most two
+Use a remote worker address when appropriate. Existing amd64 baselines use an
+amd64 worker. For validated local Apple Silicon execution, see the
+[macOS ARM64 VRT guide](macos-arm64-vrt.md). The validated CI worker uses 6 GiB RAM for at most two
 concurrent actions; size workers for fixture and staging memory as well as
-Chromium. The macOS native VM backend is not yet validated by these
-checks. Keep VRT's explicit remote strategies and local fallback disabled.
+Chromium. The macOS native VM backend passed the local ARM64 VRT suite;
+CI still uses Linux amd64. Keep VRT's explicit remote strategies and local fallback disabled.
 The bootstrap also rejects ordinary host roots with system shell/loader paths
 before creating temporary runtime launchers.
 

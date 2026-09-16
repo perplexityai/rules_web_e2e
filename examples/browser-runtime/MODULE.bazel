@@ -23,3 +23,19 @@ http_archive(
     strip_prefix = "node-v24.14.0-linux-x64",
     urls = ["https://nodejs.org/dist/v24.14.0/node-v24.14.0-linux-x64.tar.xz"],
 )
+
+http_archive(
+    name = "chromium_arm64",
+    build_file_content = 'filegroup(name = "files", srcs = glob(["**"]), visibility = ["//visibility:public"])',
+    sha256 = "d433c45172c7836e38124fe545f767b02210bfb43a6262f08a297473a8e91c99",
+    strip_prefix = "chrome-headless-shell-linux-arm64",
+    urls = ["https://cdn.playwright.dev/builds/cft/153.0.8010.12/linux-arm64/chrome-headless-shell-linux-arm64.zip"],
+)
+
+http_archive(
+    name = "node_arm64",
+    build_file_content = 'exports_files(["bin/node"])',
+    sha256 = "e7adfca03d9173276114a6f2219df1a7d25e1bfd6bbd771d3f839118a2053094",
+    strip_prefix = "node-v24.14.0-linux-arm64",
+    urls = ["https://nodejs.org/dist/v24.14.0/node-v24.14.0-linux-arm64.tar.xz"],
+)

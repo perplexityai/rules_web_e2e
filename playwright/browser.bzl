@@ -21,6 +21,7 @@ def _linux_impl(ctx):
         fail("system must provide a declared runtime directory")
     output = _assemble(ctx, {
         "mode": "linux",
+        "arch": ctx.attr.arch,
         "chromium": [file.path for file in ctx.files.chromium],
         "node": ctx.file.node.path,
         "system": ctx.file.system.path,
@@ -32,25 +33,37 @@ def _linux_impl(ctx):
             "root": runfile(output),
             "executable": "chromium/chrome-headless-shell",
             "node": "bin/node",
-            "loader": "lib/ld-linux-x86-64.so.2",
+            "loader": "lib/ld-linux-x86-64.so.2" if ctx.attr.arch == "x64" else "lib/ld-linux-aarch64.so.1",
             "bash": "bin/bash",
             "libraryDirs": ["lib"],
             "fontconfig": "etc/fonts",
-            "arch": "x64",
+            "arch": ctx.attr.arch,
         }),
     ]
 
-linux_chromium_runtime = rule(
+_linux_chromium_runtime = rule(
     implementation = _linux_impl,
-    doc = "Assemble a Linux amd64 VRT runtime from caller-pinned Chrome for Testing and Node.",
+    doc = "Assemble a Linux x64 or ARM64 VRT runtime from caller-pinned Chrome for Testing and Node.",
     attrs = {
         "chromium": attr.label(mandatory = True, allow_files = True, doc = "Headless-shell files or directory, e.g. rules_browsers :info."),
-        "node": attr.label(mandatory = True, allow_single_file = True, doc = "Linux amd64 Node ELF, e.g. rules_nodejs :node_bin."),
-        "system": attr.label(default = Label("//playwright/presets:noble_20260901"), allow_single_file = True, doc = "Versioned libraries, shell and font preset; excludes browser and Node."),
+        "node": attr.label(mandatory = True, allow_single_file = True, doc = "Matching Linux Node ELF, e.g. rules_nodejs :node_bin."),
+        "arch": attr.string(default = "x64", values = ["x64", "arm64"]),
+        "system": attr.label(mandatory = True, allow_single_file = True, doc = "Versioned libraries, shell and font preset; excludes browser and Node."),
         "fonts": attr.label_list(allow_files = True, doc = "Additional declared font files/directories."),
         "_assemble": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
     },
 )
+
+def linux_chromium_runtime(name, arch = "x64", system = None, **kwargs):
+    """Assemble a browser with the matching default Linux system preset."""
+    if arch not in ["x64", "arm64"]:
+        fail("arch must be x64 or arm64")
+    _linux_chromium_runtime(
+        name = name,
+        arch = arch,
+        system = system or Label("//playwright/presets:noble_20260901" + ("_arm64" if arch == "arm64" else "")),
+        **kwargs
+    )
 
 def _installation_impl(ctx):
     playwright = ctx.attr.playwright[PlaywrightInfo]
