@@ -26,6 +26,15 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.2.0 (2026-09-16)
+
+## What's Changed
+* fix: run VRT on all CI events by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/38
+* feat: support local ARM64 VRT on macOS by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/40
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.1.0...v3.2.0
+
 ## 3.1.0 (2026-09-14)
 
 ## What's Changed
