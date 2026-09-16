@@ -24,13 +24,14 @@ use_repo(typescript, "npm_typescript")
 
 # Only consumers of the Linux preset download these locked package archives.
 linux_presets = use_extension("//playwright:presets.bzl", "linux_presets")
-use_repo(linux_presets, "rules_web_e2e_noble_20260901")
+use_repo(linux_presets, "rules_web_e2e_noble_20260901", "rules_web_e2e_noble_20260901_arm64")
 
 runtime_tools = use_extension("@bazel_lib//lib:extensions.bzl", "toolchains")
 use_repo(runtime_tools, "zstd_toolchains")
 
 # Used only by worker setup; ordinary browser targets do not fetch this archive.
 http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
 http_file(
     name = "rules_web_e2e_actiond_source",
     downloaded_file_path = "actiond.tar.gz",

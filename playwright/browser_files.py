@@ -14,7 +14,7 @@ def copy_bundle(inputs, output):
     files = declared_files(inputs)
     executables = [file for file in files if file.name == "chrome-headless-shell"]
     if len(executables) != 1:
-        raise ValueError("chromium must contain exactly one Chrome for Testing chrome-headless-shell executable")
+        raise ValueError("chromium must contain exactly one chrome-headless-shell executable")
     root = executables[0].parent
     for file in files:
         if file.is_relative_to(root):
@@ -22,6 +22,15 @@ def copy_bundle(inputs, output):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(file, target)
             target.chmod(0o755 if file.stat().st_mode & 0o111 else 0o644)
+
+
+def check_elf_arch(file, arch):
+    with file.open("rb") as binary:
+        header = binary.read(20)
+    machine = {"x64": 62, "arm64": 183}[arch]
+    if (len(header) != 20 or header[:6] != b"\x7fELF\x02\x01"
+            or int.from_bytes(header[18:20], "little") != machine):
+        raise ValueError(f"{file.name} must be a Linux {arch} ELF64 executable")
 
 
 def assemble(manifest, output):
@@ -43,9 +52,15 @@ def assemble(manifest, output):
             else:
                 target.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(font, target / Path(font).name)
-        for required in ["lib/ld-linux-x86-64.so.2", "bin/bash", "etc/fonts/fonts.conf"]:
+        loaders = {"x64": "lib/ld-linux-x86-64.so.2", "arm64": "lib/ld-linux-aarch64.so.1"}
+        arch = manifest.get("arch", "x64")
+        if arch not in loaders:
+            raise ValueError(f"Unsupported runtime architecture: {arch}")
+        for required in [loaders[arch], "bin/bash", "etc/fonts/fonts.conf"]:
             if not (output / required).is_file():
                 raise ValueError(f"system preset is missing {required}")
+        for executable in [loaders[arch], "bin/bash", "bin/node", "chromium/chrome-headless-shell"]:
+            check_elf_arch(output / executable, arch)
     else:
         metadata = json.loads((Path(manifest["core"]) / "browsers.json").read_text())
         browsers = {entry["name"]: entry for entry in metadata["browsers"]}

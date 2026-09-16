@@ -5,3 +5,11 @@ linux_chromium_runtime(
     chromium = "@chromium//:files",
     node = "@node//:bin/node",
 )
+
+linux_chromium_runtime(
+    name = "browser_arm64",
+    arch = "arm64",
+    chromium = "@chromium_arm64//:files",
+    node = "@node_arm64//:bin/node",
+    system = "@rules_web_e2e//playwright/presets:noble_20260901_arm64",
+)

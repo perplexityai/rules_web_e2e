@@ -1,5 +1,6 @@
 module(name = "component_vrt_example")
 
+bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "rules_web_e2e", version = "0.0.0")
 local_path_override(
     module_name = "rules_web_e2e",

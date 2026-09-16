@@ -97,16 +97,16 @@ system paths, interpreters, and complex `env -S` shebangs need caller-owned
 wrappers or packaging changes; arbitrary binaries are not automatically
 relocatable.
 
-Execution currently requires a pinned actiond Linux amd64 worker. The remote
+Execution requires a pinned actiond worker matching the Linux runtime CPU. The remote
 actions produce comparison/capture results; the local test command reports their
 status and `.update` applies successful captures. Host E2E/component-browser
 targets continue to use their existing browser setup. Native and component
 capture/comparison through the public rules passed the Linux VM workflow.
 
-VRT inputs are configured for Linux amd64 even when the Bazel client runs on
+By default, VRT inputs are configured for Linux amd64 even when the Bazel client runs on
 macOS. A caller with additional native toolchain constraints can set
 `target_platform = "//platforms:linux_x86_64_gnu"` on its visual target. That
-platform must still target Linux amd64 and match the runtime's ABI. `data` and
+platform must target Linux, match `target_arch`, and match the runtime's ABI. `data` and
 `$(rootpath ...)` expressions in `env` are evaluated in this configuration,
 including expressions nested inside JSON strings used by fixture servers.
 
@@ -166,3 +166,13 @@ or package installation scripts run in consuming workspaces. Chromium and Node u
 explicit archive checksums. The VRT action itself runs offline; repository
 acquisition happens before execution. Callers can instead pass the assembled
 directory directly to `browser_runtime(root=...)` without this tar export.
+
+## ARM64 VRT runtimes
+
+`linux_chromium_runtime(arch = "arm64", ...)` selects the ARM64 Noble system
+preset and AArch64 loader. Supply matching Linux ARM64 Chromium and Node archives;
+assembly checks the ELF architecture of Chromium, Node, Bash, and the loader.
+Existing calls default to `arch = "x64"`. Use `target_arch = "arm64"` on the VRT
+target to select matching Linux inputs and worker constraints. See the
+[local Apple Silicon guide](macos-arm64-vrt.md) and the
+[ARM64 example](../examples/browser-runtime/BUILD.bazel).

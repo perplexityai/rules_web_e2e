@@ -9,25 +9,26 @@ def _hub_impl(ctx):
 _hub = repository_rule(implementation = _hub_impl, attrs = {"packages": attr.string_list(), "paths": attr.string_dict()})
 
 def _presets_impl(ctx):
-    manifest = json.decode(ctx.read(Label("//playwright/presets:noble_20260901.json")))
-    labels = {}
-    for package in manifest["packages"]:
-        name = "noble_20260901_" + package["name"].replace("+", "_")
-        http_archive(
-            name = name,
-            urls = package["urls"],
-            sha256 = package["sha256"],
-            build_file_content = "\n".join([
-                'load("@rules_web_e2e//playwright:package.bzl", "package_tar")',
-                'package_tar(name = "data", src = glob(["data.tar*"])[0], visibility = ["//visibility:public"])',
-            ]),
+    for preset in ["noble_20260901", "noble_20260901_arm64"]:
+        manifest = json.decode(ctx.read(Label("//playwright/presets:" + preset + ".json")))
+        labels = {}
+        for package in manifest["packages"]:
+            name = preset + "_" + package["name"].replace("+", "_")
+            http_archive(
+                name = name,
+                urls = package["urls"],
+                sha256 = package["sha256"],
+                build_file_content = "\n".join([
+                    'load("@rules_web_e2e//playwright:package.bzl", "package_tar")',
+                    'package_tar(name = "data", src = glob(["data.tar*"])[0], visibility = ["//visibility:public"])',
+                ]),
+            )
+            labels[package["name"]] = "@" + name + "//:data"
+        _hub(
+            name = "rules_web_e2e_" + preset,
+            packages = [labels[name] for name in manifest["browserPackages"]],
+            paths = manifest["paths"],
         )
-        labels[package["name"]] = "@" + name + "//:data"
-    _hub(
-        name = "rules_web_e2e_noble_20260901",
-        packages = [labels[name] for name in manifest["browserPackages"]],
-        paths = manifest["paths"],
-    )
     return ctx.extension_metadata(reproducible = True)
 
 linux_presets = module_extension(implementation = _presets_impl)

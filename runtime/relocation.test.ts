@@ -33,6 +33,16 @@ test('ELF relocation replaces only the interpreter bytes and rejects invalid seg
   assert.throws(() => relocateExecutable(input.subarray(0, 100)), /program-header/)
 })
 
+test('ARM64 interpreter relocation preserves its shorter segment and machine header', () => {
+  const input = elf('/lib/ld-linux-aarch64.so.1')
+  input.writeUInt16LE(183, 18)
+  const output = relocateExecutable(input)!
+  const end = 128 + '/lib/ld-linux-aarch64.so.1'.length + 1
+  assert.deepEqual(output.subarray(0, 128), input.subarray(0, 128))
+  assert.deepEqual(output.subarray(end), input.subarray(end))
+  assert.equal(output.subarray(128, 128 + runtimeDirectory.length + 7).toString(), `${runtimeDirectory}/ld.so\0`)
+})
+
 test('staging relocates executable ELF and common shebangs without changing data or following links', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-relocation-'))
   try {

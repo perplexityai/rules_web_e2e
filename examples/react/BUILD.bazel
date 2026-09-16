@@ -111,6 +111,9 @@ js_run_binary(
     args = ["assets"],
     out_dirs = ["assets"],
     tool = ":build_shell",
+    # Run the bundler with execution-platform npm bindings when VRT inputs
+    # target a different Linux architecture from the build host.
+    use_execroot_entry_point = False,
 )
 
 browser_shell(

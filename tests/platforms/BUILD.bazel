@@ -1,0 +1,82 @@
+load("//component:defs.bzl", "browser_shell")
+load("//playwright:defs.bzl", "browser_runtime")
+load("//vrt:defs.bzl", "component_visual_test")
+load(":defs.bzl", "capture_test", "directory", "failure_test")
+
+directory(
+    name = "files",
+    tags = ["manual"],
+)
+
+browser_shell(
+    name = "shell",
+    assets = ":files",
+)
+
+[
+    browser_runtime(
+        name = arch + "_browser",
+        arch = arch,
+        executable = "chrome",
+        fontconfig = "fonts",
+        library_dirs = ["lib"],
+        loader = loader,
+        node = "node",
+        root = ":files",
+    )
+    for arch, loader in [
+        ("x64", "ld-linux-x86-64.so.2"),
+        ("arm64", "ld-linux-aarch64.so.1"),
+    ]
+]
+
+[
+    component_visual_test(
+        name = arch,
+        browser = ":" + arch + "_browser",
+        shell = ":shell",
+        target_arch = arch,
+    )
+    for arch in [
+        "x64",
+        "arm64",
+    ]
+]
+
+capture_test(
+    name = "arm64_test",
+    loader = "ld-linux-aarch64.so.1",
+    target_under_test = ":arm64_capture",
+)
+
+capture_test(
+    name = "x64_test",
+    loader = "ld-linux-x86-64.so.2",
+    target_under_test = ":x64_capture",
+)
+
+component_visual_test(
+    name = "wrong_runtime",
+    browser = ":arm64_browser",
+    shell = ":shell",
+)
+
+failure_test(
+    name = "wrong_runtime_test",
+    message = "browser runtime arch must match target_arch",
+    target_under_test = ":wrong_runtime_capture",
+)
+
+component_visual_test(
+    name = "wrong_platform",
+    browser = ":arm64_browser",
+    shell = ":shell",
+    target_arch = "arm64",
+    target_platform = "//internal:linux_amd64",
+)
+
+failure_test(
+    name = "wrong_platform_test",
+    message = "target_platform CPU must match target_arch",
+    target_under_test = ":wrong_platform_capture",
+)

@@ -13,10 +13,30 @@ _linux = transition(
     outputs = ["//command_line_option:platforms"],
 )
 
+LinuxPlatformInfo = provider(fields = ["arch"])
+
+def _platform_impl(ctx):
+    if not ctx.target_platform_has_constraint(ctx.attr._linux[platform_common.ConstraintValueInfo]):
+        fail("VRT target_platform must select Linux")
+    for arch in ["x64", "arm64"]:
+        if ctx.target_platform_has_constraint(getattr(ctx.attr, "_" + arch)[platform_common.ConstraintValueInfo]):
+            return [LinuxPlatformInfo(arch = arch)]
+    fail("VRT target_platform must select x64 or arm64")
+
+linux_platform = rule(
+    implementation = _platform_impl,
+    attrs = {
+        "_linux": attr.label(default = "@platforms//os:linux"),
+        "_x64": attr.label(default = "@platforms//cpu:x86_64"),
+        "_arm64": attr.label(default = "@platforms//cpu:arm64"),
+    },
+)
+
 def _native_test(ctx, root, descriptor, files, job):
     executable = ctx.actions.declare_file(ctx.label.name)
     setup = ctx.actions.declare_file(ctx.label.name + ".bash-env")
     tools = ctx.attr._test_tools[TestToolsInfo]
+
     # Bazel itself invokes /bin/bash before our executable. actiond supplies
     # its pinned static shell; BASH_ENV supplies the wrapper's declared tools.
     ctx.actions.write(setup, "\n".join([
@@ -35,7 +55,9 @@ def _native_test(ctx, root, descriptor, files, job):
         'exec "$root/%s" --library-path "%s" "$root/%s" "$TEST_SRCDIR/%s" "$TEST_SRCDIR/%s" "$@"' % (
             descriptor["loader"],
             ":".join(["$root/" + p for p in descriptor["libraryDirs"]]),
-            descriptor["node"], runfile(ctx.file._bootstrap), runfile(job),
+            descriptor["node"],
+            runfile(ctx.file._bootstrap),
+            runfile(job),
         ),
     ]) + "\n", is_executable = True)
     inputs = files + [root, job, ctx.file._bootstrap, setup] + ctx.attr._test_tools[DefaultInfo].files.to_list()
@@ -56,8 +78,10 @@ def _native_test(ctx, root, descriptor, files, job):
 def _remote_impl(ctx):
     native_test = ctx.attr.mode == "test"
     browser = ctx.attr.browser[0][BrowserRuntimeInfo]
-    if browser.descriptor["arch"] != "x64":
-        fail("Remote VRT currently requires a Linux amd64 runtime and worker")
+    if browser.descriptor["arch"] != ctx.attr.target_arch:
+        fail("browser runtime arch must match target_arch (" + ctx.attr.target_arch + ")")
+    if ctx.attr._platform[0][LinuxPlatformInfo].arch != ctx.attr.target_arch:
+        fail("target_platform CPU must match target_arch")
     root = ctx.file.browser
     output = None if native_test else ctx.actions.declare_directory(ctx.label.name + ".results")
     files = []
@@ -120,6 +144,8 @@ _attrs = {
     "browser": attr.label(mandatory = True, providers = [BrowserRuntimeInfo], allow_single_file = True, cfg = _linux),
     "data": attr.label_list(allow_files = True, cfg = _linux),
     "target_platform": attr.label(mandatory = True),
+    "_platform": attr.label(default = Label("//internal:target_platform"), cfg = _linux),
+    "target_arch": attr.string(mandatory = True, values = ["x64", "arm64"]),
     "env": attr.string_dict(),
     "args": attr.string_list(),
     "mode": attr.string(mandatory = True, values = ["capture", "compare", "test"]),
@@ -140,8 +166,11 @@ _native_browser_test = rule(
     exec_groups = {"test": exec_group(exec_compatible_with = [str(Label("@platforms//os:linux")), str(Label("@platforms//cpu:x86_64"))])},
 )
 
-def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual):
+def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch):
     """Run native browser tests or produce downloadable VRT comparisons/captures."""
+    constraints = [Label("@platforms//os:linux"), Label("@platforms//cpu:" + ("x86_64" if target_arch == "x64" else "arm64"))]
+    if not visual and target_arch == "arm64":
+        fail("ARM64 isolated execution currently supports VRT only; omit browser for host interaction tests")
     if not visual:
         _native_browser_test(
             name = name,
@@ -152,8 +181,9 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             mode = "test",
             data = data,
             target_platform = target_platform,
+            target_arch = target_arch,
             exec_properties = {"requires-bash": ""},
-            exec_compatible_with = [Label("@platforms//os:linux"), Label("@platforms//cpu:x86_64")],
+            exec_compatible_with = constraints,
             tags = ["manual", "browser_test"] + tags,
             timeout = timeout,
         )
@@ -170,7 +200,8 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             mode = mode,
             data = data,
             target_platform = target_platform,
-            exec_compatible_with = [Label("@platforms//os:linux"), Label("@platforms//cpu:x86_64")],
+            target_arch = target_arch,
+            exec_compatible_with = constraints,
             tags = ["manual"],
         )
         common = dict(

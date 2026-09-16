@@ -68,7 +68,7 @@ export function bootstrapRuntime(runtime: {
   // Bazel's no-local requirement does not exclude every local spawn strategy.
   // Reject ordinary host roots before creating the action-private launchers.
   // Native Bazel tests request actiond's pinned static Bash and env shim.
-  for (const file of ['/bin/sh', ...(testWrapper ? [] : ['/usr/bin/env']), '/lib64/ld-linux-x86-64.so.2']) {
+  for (const file of ['/bin/sh', ...(testWrapper ? [] : ['/usr/bin/env']), '/lib64/ld-linux-x86-64.so.2', '/lib/ld-linux-aarch64.so.1']) {
     if (fs.existsSync(file))
       throw new Error('VRT requires an isolated action without system runtimes; select the remote VRT configuration')
   }
