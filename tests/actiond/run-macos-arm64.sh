@@ -5,7 +5,9 @@ set -euo pipefail
   echo 'Run this script on an Apple Silicon Mac with Xcode command-line tools.' >&2
   exit 1
 }
-work=${1:?usage: run-macos-arm64.sh ABSOLUTE_WORK_DIRECTORY}
+work=${1:?usage: run-macos-arm64.sh ABSOLUTE_WORK_DIRECTORY [--build-only]}
+mode=${2:-}
+[[ -z $mode || $mode == --build-only ]] || { echo 'Unknown option' >&2; exit 1; }
 [[ $work = /* && $work != *' '* ]] || { echo 'Use an absolute work directory without spaces' >&2; exit 1; }
 here=$(cd "$(dirname "$0")" && pwd)
 export ACTIOND_ARCH=arm64
@@ -26,8 +28,18 @@ node "$here/prepare-public.mjs" "$work"
     exit 1
   fi
   worker=$("$bazel_bin" --output_base="$work/worker-output" cquery "${flags[@]}" "$target" --output=starlark '--starlark:expr=providers(target)["DefaultInfo"].files_to_run.executable.path')
-  cp "$worker" "$work/actiond-worker"
+  cp -f "$worker" "$work/actiond-worker"
 )
+if [[ $mode == --build-only ]]; then
+  codesign --verify --strict "$work/actiond-worker"
+  cd "$work/public"
+  "$bazel_bin" --output_base="$work/public-bazel-output" build \
+    //:actiond_native_test_capture //:actiond_native_test_compare \
+    //:actiond_gallery_test_capture //:actiond_gallery_test_compare \
+    --output_groups=inputs --jobs=2 \
+    --extra_execution_platforms=@platforms//host:host,@rules_web_e2e//internal:linux_arm64
+  exit 0
+fi
 # The upstream target signs the executable with the virtualization entitlement.
 # Port 8980 must be free: do not accidentally test an unrelated worker.
 python3 - <<'PY'

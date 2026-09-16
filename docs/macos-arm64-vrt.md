@@ -5,10 +5,23 @@ Chromium, Node, libraries, fonts, and fixture inputs are declared files. No Dock
 or OCI extraction is involved. The same remote capture/comparison protocol is
 used as on amd64; `remote` here points to a worker on localhost.
 
-Linux validation passed both runtime builds, the complete ARM64 fixture input
-build, ARM64 capture/comparison action analysis, and all 23 repository tests. The Apple
-Virtualization VM and complete screenshot suite still require validation on a
-physical Apple Silicon Mac. Do not treat this as a validated macOS release yet.
+Validated on Apple Silicon with macOS 26.6.2 on 2026-09-16. The signed upstream
+worker booted its Linux ARM64 VM and passed the complete VRT integration suite:
+native and gallery capture/comparison, network isolation, empty/failed update
+protection, deadlines, screenshot diffs, cancellation, and worker reuse afterward.
+Repository checks passed 22 test targets; the Linux x64 utilities test was skipped
+as intended. Linux validation previously passed all 23 targets.
+
+The validated worker used actiond `4b767e8`, without patches, with SHA256
+`9a4a666543311a5ebc6e894b9157ae8e1cf0e72df21c522b966c3c2d35320a05`.
+This verifies local ARM64 VRT; pixel equivalence with amd64 remains unverified.
+
+The macOS GitHub Actions workflow builds the ARM64 runtime, signed worker, and
+native/gallery capture and comparison inputs on every PR. GitHub-hosted Macs
+[do not support nested virtualization](https://docs.github.com/en/actions/reference/runners/github-hosted-runners),
+so this is a build smoke check. Running the VM suite in CI requires a physical
+Apple Silicon runner. Reproduce the hosted check with the script's `--build-only`
+option.
 
 ## Run the integration suite
 
@@ -36,7 +49,7 @@ this ARM64 lane; their native test-launcher tools currently target amd64.
 The worker source is pinned in `MODULE.bazel` to actiond `4b767e8`. This already
 includes the memory-advice kernel fix required by Node/V8. No additional upstream
 patch is included. The upstream macOS target supplies the virtualization signing
-entitlement. Any further VM-specific fixes require evidence from the Mac run.
+entitlement. No additional upstream fixes were needed for the Mac validation.
 
 ## Use it in a consumer
 

@@ -16,6 +16,6 @@ execution, isolation, failures, repeated runs, retries, VRT comparison/capture,
 empty and failed capture protection, deadlines, and cancellation recovery.
 The VM and its CAS are shared across these actions, while test state is isolated.
 
-For the experimental local Apple Silicon VRT lane, run
+For the validated local Apple Silicon VRT lane, run
 `bash tests/actiond/run-macos-arm64.sh /tmp/rules-web-vrt-arm64` from the repository
 root. See [setup and validation limits](../../docs/macos-arm64-vrt.md).
