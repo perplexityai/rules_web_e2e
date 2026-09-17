@@ -26,6 +26,14 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.3.0 (2026-09-17)
+
+## What's Changed
+* feat: accept declarative VRT matching options by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/41
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.2.0...v3.3.0
+
 ## 3.2.0 (2026-09-16)
 
 ## What's Changed
