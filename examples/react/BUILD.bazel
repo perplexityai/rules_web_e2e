@@ -44,6 +44,7 @@ visual_test(
         allow_empty = True,
     ),
     config = ":native_config",
+    matching = {"threshold": "0.1", "maxDiffPixels": "0"},
     tests = ":native_visual_specs",
 )
 
@@ -160,7 +161,7 @@ component_visual_test(
         ["__screenshots__/*.png"],
         allow_empty = True,
     ),
-    matching = ":matching",
+    matching = {"threshold": "0.1", "maxDiffPixels": "0"},
     shell = ":app_shell",
 )
 

@@ -71,7 +71,8 @@ see the [React gallery](../examples/react/gallery.tsx).
 
 ## VRT matching and updates
 
-Compile a module exporting `VisualMatching` and pass it as `matching`.
+Pass declared options such as `matching = {"maxDiffPixelRatio": "0.01"}`,
+or compile a module exporting `VisualMatching` and pass its label as `matching`.
 Use `threshold` for per-pixel color tolerance, and either `maxDiffPixels` or
 `maxDiffPixelRatio` for the allowed mismatch budget. Defaults are threshold
 0.1 and zero mismatched pixels. See the [matching reference](api.md#vrt-matching).

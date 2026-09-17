@@ -1,6 +1,7 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//internal:matching.bzl", "matching_config")
 load("//playwright:defs.bzl", "playwright_runtime")
 
 ts_project(
@@ -211,6 +212,27 @@ js_test(
         ":typecheck",
     ],
     entry_point = "built-inputs.test.js",
+)
+
+MATCHING_FIXTURES = {
+    "matching_defaults": {},
+    "matching_ratio": {"threshold": "0.2", "maxDiffPixelRatio": "1e-2"},
+    "matching_count": {"maxDiffPixels": "5"},
+    "matching_empty": {"threshold": ""},
+    "matching_nonfinite": {"threshold": "1e999"},
+    "matching_null": {"threshold": "null"},
+    "matching_out_of_range": {"maxDiffPixelRatio": "1.1"},
+    "matching_fractional_count": {"maxDiffPixels": "0.5"},
+    "matching_conflicting_budgets": {"maxDiffPixels": "1", "maxDiffPixelRatio": "0.01"},
+}
+
+[matching_config(name = name, options = options, testonly = True) for name, options in MATCHING_FIXTURES.items()]
+
+js_test(
+    name = "matching_config_test",
+    size = "small",
+    data = ["package.json", ":typecheck"] + [":" + name for name in MATCHING_FIXTURES],
+    entry_point = "matching-config.test.js",
 )
 
 

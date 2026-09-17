@@ -35,7 +35,7 @@ component_visual_test(
     name = "editor_vrt",
     browser = ":linux_browser",  # browser_runtime; see docs/browser-runtime.md
     shell = ":editor_shell",
-    matching = ":matching",
+    matching = {"threshold": "0.1", "maxDiffPixels": "0"},
     baselines = glob(["screenshots/*.png"], allow_empty = True),
     baseline_dir = "screenshots",
 )
@@ -50,9 +50,15 @@ component_visual_test(
 | `base_url` / `base_url_env` | Existing application endpoint, replacing `server` or `shell`                                 |
 | `playwright`                | Optional reusable runtime target grouping client packages; minimum 1.63.0 |
 | `browser`                  | Required VRT runtime containing declared Linux Chromium, Node, libraries, and fonts |
-| `matching`                  | Compiled VRT comparison policy; render settings stay in `.visual.tsx`                        |
+| `matching`                  | Declared comparison options or a compiled policy module; render settings stay in `.visual.tsx` |
 
-For example, compile this `matching.ts` module:
+Both component and page VRT accept the same `matching` dictionary. Values are
+JSON numeric strings because Starlark has no floating-point values; for example,
+`matching = {"maxDiffPixelRatio": "0.01"}` allows a one-percent mismatch budget.
+The options are declared action inputs, without an environment adapter or a
+TypeScript compilation target. See the [matching reference](docs/api.md#vrt-matching).
+
+Existing compiled `matching.ts` modules remain supported:
 
 ```ts
 import type {VisualMatching} from '@rules-web-e2e/vrt'
