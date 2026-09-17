@@ -2,6 +2,7 @@
 
 load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo", "runfile")
+load(":matching.bzl", "matching_config")
 load(":remote.bzl", "remote_browser_test")
 
 ShellInfo = provider(fields = ["directory", "entry_point"])
@@ -123,7 +124,7 @@ def browser_test(
         fail("Remote browser tests require explicit env values instead of env_inherit")
     if browser and base_url_env and base_url_env not in env:
         fail("Remote browser base_url_env must have an explicit env value")
-    if not visual and matching:
+    if not visual and matching != None:
         fail("matching is only supported by visual targets")
     if execution_timeout_seconds <= 0:
         fail("execution_timeout_seconds must be positive")
@@ -138,6 +139,13 @@ def browser_test(
         fail("base_url must not be empty")
     if base_url_env and base_url_env not in env and base_url_env not in env_inherit:
         env_inherit = env_inherit + [base_url_env]
+    if type(matching) == "dict":
+        matching_config(
+            name = name + "_matching",
+            options = matching,
+            tags = tags,
+        )
+        matching = ":" + name + "_matching"
     js_library(name = name + "_sources", srcs = baselines, data = data)
     _inputs(
         name = name + "_inputs",

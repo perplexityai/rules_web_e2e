@@ -2,6 +2,7 @@ load(":remote.bzl", "linux_platform")
 
 exports_files([
     "browser.bzl",
+    "matching.bzl",
     "remote.bzl",
 ])
 

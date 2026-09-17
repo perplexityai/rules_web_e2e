@@ -47,7 +47,8 @@ The consumer build owns strict typechecking, transpilation, providers, CSS,
 fonts, and generated assets. The runner does not compile the application.
 See [the complete example](../examples/react/BUILD.bazel).
 
-A compiled `matching` module exports `VisualMatching`: configure per-pixel
+`matching` accepts a dictionary of JSON numeric strings or a compiled module
+exporting `VisualMatching`, just like page VRT: configure per-pixel
 `threshold` and either `maxDiffPixels` or `maxDiffPixelRatio`. Defaults use
 Playwright's pixelmatch comparator with threshold 0.1 and zero mismatched pixels.
 Viewport, language, theme, density, and capture hooks remain visual options.

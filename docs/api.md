@@ -46,7 +46,7 @@ Both `component_visual_test` and `visual_test` accept:
 
 | Attribute      | Default             | Contract                                                           |
 | -------------- | ------------------- | ------------------------------------------------------------------ |
-| `matching`     | Exact pixel budget  | Compiled module exporting `VisualMatching`                         |
+| `matching`     | Exact pixel budget  | Dictionary of JSON numeric strings, or compiled `VisualMatching` module |
 | `baselines`    | `[]`                | Existing PNG input labels                                          |
 | `baseline_dir` | `"__screenshots__"` | Package-relative directory exclusively owned by this visual target |
 
@@ -109,6 +109,24 @@ Version overrides must keep client packages and the selected host browser or VRT
 only the documented pinned version has been exercised by this repository's CI.
 
 ## VRT matching
+
+Both `component_visual_test` and `visual_test` accept declared comparison
+options directly:
+
+```starlark
+matching = {"threshold": "0.1", "maxDiffPixelRatio": "0.01"}
+```
+
+Use JSON numeric strings for all dictionary values (Starlark has no floats).
+The rule generates a dependency-free ESM policy included in the action's
+runfiles. Each target can supply its own options without reading ambient
+environment variables or compiling an adapter. Omitted options retain the
+defaults below; `matching = {}` uses those defaults too. String contents are
+parsed as JSON, never evaluated as JavaScript, and go through the same numeric
+validation as compiled policies. Malformed or invalid values fail before capture.
+
+For policies that need a compiled module, the existing label form remains
+supported:
 
 ```ts
 import type {VisualMatching} from '@rules-web-e2e/vrt'
