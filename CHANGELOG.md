@@ -26,6 +26,14 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.3.1 (2026-09-20)
+
+## What's Changed
+* fix: replace procps-ng with Toybox process probes by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/43
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.3.0...v3.3.1
+
 ## 3.3.0 (2026-09-17)
 
 ## What's Changed
