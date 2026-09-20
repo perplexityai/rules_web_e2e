@@ -5,10 +5,9 @@ test_tools(
     name = "tools",
     file = "@test_tools_libmagic//:file",
     magic = "@test_tools_libmagic//:magic.mgc",
-    pgrep = "@test_tools_procps_ng//:pgrep",
     toybox = "@test_tools_toybox//:toybox",
-    zip = "@zip//:zip",
     visibility = ["//:__subpackages__"],
+    zip = "@zip//:zip",
 )
 
 py_binary(
@@ -23,18 +22,27 @@ py_test(
     srcs = ["tools_test.py"],
     args = ["$(rlocationpaths :tools)"],
     data = [":tools"],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
     deps = ["@rules_python//python/runfiles"],
-    target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
 )
 
 config_setting(
     name = "linux_x86_64",
-    constraint_values = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
     visibility = ["//visibility:public"],
 )
 
 config_setting(
     name = "linux_aarch64",
-    constraint_values = ["@platforms//os:linux", "@platforms//cpu:aarch64"],
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
     visibility = ["//visibility:public"],
 )
