@@ -1,1 +1,4 @@
-exports_files(["libmagic.patch", "procps-ng.patch", "toybox.patch"])
+exports_files([
+    "libmagic.patch",
+    "toybox.patch",
+])

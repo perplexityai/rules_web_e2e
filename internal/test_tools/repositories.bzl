@@ -34,20 +34,6 @@ def _sources_impl(_ctx):
         patches = ["//internal/test_tools/patches:toybox.patch"],
     )
     http_archive(
-        name = "test_tools_procps_ng",
-        urls = ["https://gitlab.com/procps-ng/procps/-/archive/v4.0.5/procps-v4.0.5.tar.gz"],
-        integrity = "sha256-LG1+2fKs3h1N1GAsYXL+Vu/4aVP+hjm9Yz29IswY9ds=",
-        strip_prefix = "procps-v4.0.5",
-        remote_file_urls = {
-            "BUILD": [_BCR + "/procps-ng/4.0.5/overlay/BUILD"],
-        },
-        remote_file_integrity = {
-            "BUILD": "sha256-g/zOMIvfZisLKcYxUGyco/iglnwU+Iz4vnXkvEKPw3g=",
-        },
-        patch_args = ["-p1"],
-        patches = ["//internal/test_tools/patches:procps-ng.patch"],
-    )
-    http_archive(
         name = "test_tools_libmagic",
         urls = ["https://github.com/file/file/archive/refs/tags/FILE5_47.tar.gz"],
         integrity = "sha256-NU1t+k3eAvy8de/yvM+vCRCDejWHTFJLRv83TE+wR0I=",

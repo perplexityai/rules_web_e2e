@@ -43,10 +43,7 @@ def _native_test(ctx, root, descriptor, files, job):
         "unset BASH_ENV",
         'if [[ -e /bin/sh || -e /lib64/ld-linux-x86-64.so.2 ]]; then echo "Browser tests require isolated actiond execution" >&2; exit 1; fi',
         'case "$TEST_SRCDIR" in /*) ;; *) export TEST_SRCDIR="$PWD/$TEST_SRCDIR" ;; esac',
-        'export MAGIC="$TEST_SRCDIR/%s"' % runfile(tools.magic),
-    ] + [
-        '%s() { "$TEST_SRCDIR/%s" %s "$@"; }; export -f %s' % (command, runfile(binary), " ".join(args), command)
-        for command, (binary, args) in tools.commands.items()
+        'source "$TEST_SRCDIR/%s"' % runfile(tools.shell_setup),
     ]) + "\n")
     ctx.actions.write(executable, "\n".join([
         "#!/bin/bash",

@@ -3,7 +3,6 @@
 import base64
 import os
 from pathlib import Path
-import signal
 import struct
 import subprocess
 import sys
@@ -25,11 +24,13 @@ class TestTools(unittest.TestCase):
         self.env = dict(os.environ, PATH="", MAGIC=_FILES["magic.mgc"], LC_ALL="C")
 
     def run_tool(self, command, *args):
-        prefix = [_FILES[command]] if command in ("file", "pgrep", "zip") else [_FILES["toybox"], command]
-        return subprocess.check_output(prefix + list(args), cwd=self.root, env=self.env, text=True)
+        return subprocess.check_output(
+            ["/bin/bash", "-c", 'source "$1"; shift; "$@"', "tools", _FILES["tools.bash-env"], command, *args],
+            cwd=self.root, env=self.env, text=True,
+        )
 
     def test_static_elf(self):
-        for name in ("toybox", "file", "pgrep", "zip"):
+        for name in ("toybox", "file", "zip"):
             with self.subTest(name=name):
                 data = Path(_FILES[name]).read_bytes()
                 self.assertEqual(data[:6], b"\x7fELF\x02\x01")
@@ -69,13 +70,29 @@ class TestTools(unittest.TestCase):
         self.assertTrue(self.run_tool("date", "+%F %T %Z").strip())
 
     def test_process_group_monitoring(self):
-        process = subprocess.Popen([_FILES["toybox"], "sleep", "60"], env=self.env, start_new_session=True)
+        leader = subprocess.Popen([_FILES["toybox"], "sleep", "60"], env=self.env, process_group=0)
+        member = None
         try:
-            self.assertIn(str(process.pid), self.run_tool("ps", "-p", str(process.pid)))
-            self.assertIn(str(process.pid), self.run_tool("pgrep", "-a", "-g", str(process.pid)))
+            member = subprocess.Popen([_FILES["toybox"], "sleep", "60"], env=self.env, process_group=leader.pid)
+            group = str(leader.pid)
+            self.assertIn(group, self.run_tool("ps", "-p", group, "-o", "PID=").split())
+            self.assertIn(group, self.run_tool("ps", "-g", str(os.getgid()), "-o", "PID=").split())
+            self.assertEqual(set(self.run_tool("pgrep", "-a", "-g", group).split()), {group, str(member.pid)})
+            leader.terminate()
+            leader.wait(timeout=5)
+            # The group is still alive after its leader exits: cleanup must wait.
+            self.assertEqual(self.run_tool("pgrep", "-a", "-g", group).strip(), str(member.pid))
+            member.terminate()
+            member.wait(timeout=5)
+            with self.assertRaises(subprocess.CalledProcessError) as failure:
+                self.run_tool("pgrep", "-a", "-g", group)
+            self.assertEqual(failure.exception.returncode, 1)
+            self.assertEqual(failure.exception.output, "")
         finally:
-            os.killpg(process.pid, signal.SIGTERM)
-            process.wait(timeout=5)
+            for process in (leader, member):
+                if process is not None and process.poll() is None:
+                    process.terminate()
+                    process.wait(timeout=5)
 
     def test_screenshot_mime_and_zip(self):
         png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZ1kAAAAASUVORK5CYII=")

@@ -1,3 +1,4 @@
+diff --git a/toys/pending/syslogd.c b/toys/pending/syslogd.c
 --- a/toys/pending/syslogd.c
 +++ b/toys/pending/syslogd.c
 @@ -31,6 +31,12 @@
@@ -13,3 +14,40 @@
  
  #define FOR_syslogd
  #include "toys.h"
+diff --git a/toys/posix/ps.c b/toys/posix/ps.c
+--- a/toys/posix/ps.c
++++ b/toys/posix/ps.c
+@@ -463,10 +463,10 @@
+ }
+ 
+ // process match filter for top/ps/pgrep: Return 0 to discard, nonzero to keep
+-static int shared_match_process(long long *slot)
++static int match_process_with_group(long long *slot, int group_slot)
+ {
+   struct ps_ptr_len match[] = {
+-    {&TT.gg, SLOT_gid}, {&TT.GG, SLOT_rgid}, {&TT.pp, SLOT_pid},
++    {&TT.gg, group_slot}, {&TT.GG, SLOT_rgid}, {&TT.pp, SLOT_pid},
+     {&TT.PP, SLOT_ppid}, {&TT.ss, SLOT_sid}, {&TT.tt, SLOT_ttynr},
+     {&TT.uu, SLOT_uid}, {&TT.UU, SLOT_ruid}
+   };
+@@ -484,6 +484,11 @@
+   }
+ 
+   return ll ? 0 : -1;
++}
++
++static int shared_match_process(long long *slot)
++{
++  return match_process_with_group(slot, SLOT_gid);
+ }
+ 
+ // process match filter for ps: Return 0 to discard, nonzero to keep
+@@ -1945,7 +1950,7 @@
+ 
+ static int pgrep_match_process(long long *slot)
+ {
+-  return !FLAG(v) == !!shared_match_process(slot);
++  return !FLAG(v) == !!match_process_with_group(slot, SLOT_pgrp);
+ }
+ 
+ void pgrep_main(void)
