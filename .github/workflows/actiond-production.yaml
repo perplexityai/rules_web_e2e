@@ -29,15 +29,12 @@ jobs:
       - name: Prepare production suites and caller runtime
         run: |
           work="$RUNNER_TEMP/actiond-production"
-          bash tests/actiond/prepare.sh "$work"
+          ACTIOND_SKIP_WORKER_SOURCE=1 bash tests/actiond/prepare.sh "$work"
           node tests/actiond/prepare-public.mjs "$work"
-      - name: Build pinned actiond
+      - name: Materialize the published worker supervisor
         run: |
           work="$RUNNER_TEMP/actiond-production"
-          cd "$work/actiond"
-          bazelisk --output_base="$work/worker-output" build --bes_backend= --remote_executor= --remote_cache= --spawn_strategy=local --jobs=2 //cmd/linux-actiond:linux-actiond_linux_x86_64 > "$work/worker-build.log" 2>&1
-          worker=$(bazelisk --output_base="$work/worker-output" cquery --bes_backend= //cmd/linux-actiond:linux-actiond_linux_x86_64 --output=starlark '--starlark:expr=providers(target)["DefaultInfo"].files_to_run.executable.path')
-          cp "$worker" "$work/actiond-worker"
+          bazelisk run --script_path="$work/run-web-e2e" //worker:runner
       - name: Enable KVM and vhost-vsock
         run: |
           test -c /dev/kvm
@@ -50,22 +47,11 @@ jobs:
           ACTIOND_BAZEL: bazelisk
         run: |
           work="$RUNNER_TEMP/actiond-production"
-          "$work/actiond-worker" serve-vm --root="$work/vm" --listen=127.0.0.1:8980 --memory-mib=6144 --cpus=2 --cas-image-size-mib=4096 > "$work/vm.log" 2>&1 &
-          worker_pid=$!
-          trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
-          ready=false
-          for attempt in $(seq 1 90); do
-            kill -0 "$worker_pid"
-            if (echo > /dev/tcp/127.0.0.1/8980) 2>/dev/null; then ready=true; break; fi
-            sleep 1
-          done
-          "$ready"
-          bash tests/actiond/run-public-actiond.sh "$work" grpc://127.0.0.1:8980
+          "$work/run-web-e2e" --log-dir="$work/supervisor" exec -- bash tests/actiond/run-public-actiond.sh "$work"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: actiond-production-vrt
           path: |
             ${{ runner.temp }}/actiond-production/results/
-            ${{ runner.temp }}/actiond-production/vm.log
-            ${{ runner.temp }}/actiond-production/worker-build.log
+            ${{ runner.temp }}/actiond-production/supervisor/
