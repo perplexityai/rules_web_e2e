@@ -49,3 +49,7 @@ bazel_dep(name = "ncurses", version = "6.4.20221231.bcr.4")
 
 test_tool_sources = use_extension("//internal/test_tools:repositories.bzl", "sources")
 use_repo(test_tool_sources, "test_tools_libmagic", "test_tools_toybox")
+
+# Fetched only when materializing the optional worker supervisor.
+workers = use_extension("//worker:repositories.bzl", "workers")
+use_repo(workers, "actiond_linux_amd64")

@@ -5,6 +5,11 @@ Chromium, and screenshot comparison together in an isolated Linux amd64 action.
 E2E and component tests also use this execution path when supplied a `browser`.
 Callers supply a [declared browser runtime](browser-runtime.md), built from declared archives and files. Without `browser`, E2E and component tests use host browsers.
 
+For the supported Linux amd64 path, use the [worker preset](worker-preset.md).
+It downloads the compatible worker, generates execution settings, and supervises
+startup and cleanup for a local command or CI bucket. The manual configuration
+below remains available for custom worker operators.
+
 ## Worker and Bazel configuration
 
 Use actiond at commit [`4b767e8`](https://github.com/hermeticbuild/actiond/commit/4b767e852e21c5affa72ea7ebbf4d8a6e5d58136)

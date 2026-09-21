@@ -9,13 +9,15 @@ bazel_bin=${ACTIOND_BAZEL:-bazelisk}
 arch=${ACTIOND_ARCH:-x64}
 case "$arch" in x64) runtime_target=browser ;; arm64) runtime_target=browser_arm64 ;; *) echo 'ACTIOND_ARCH must be x64 or arm64' >&2; exit 1 ;; esac
 mkdir -p "$work/actiond"
-(
-  cd "$repository"
-  "$bazel_bin" build //tests/actiond:worker_source
-  archive=$("$bazel_bin" cquery //tests/actiond:worker_source --output=files)
-  execution_root=$("$bazel_bin" info execution_root)
-  tar -xf "$execution_root/$archive" --strip-components=1 -C "$work/actiond"
-)
+if [[ ${ACTIOND_SKIP_WORKER_SOURCE:-0} != 1 ]]; then
+  (
+    cd "$repository"
+    "$bazel_bin" build //tests/actiond:worker_source
+    archive=$("$bazel_bin" cquery //tests/actiond:worker_source --output=files)
+    execution_root=$("$bazel_bin" info execution_root)
+    tar -xf "$execution_root/$archive" --strip-components=1 -C "$work/actiond"
+  )
+fi
 (
   cd "$repository/examples/browser-runtime"
   "$bazel_bin" build "//:$runtime_target"
