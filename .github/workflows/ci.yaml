@@ -42,6 +42,11 @@ jobs:
           bazelisk build @rules_web_e2e//:distribution //...
           bazelisk test //...
 
+      - name: Build and execute the external Linux browser preset
+        if: runner.os == 'Linux'
+        working-directory: examples/preset
+        run: bazelisk test //... --test_output=errors
+
   host-browser:
     name: host browser tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

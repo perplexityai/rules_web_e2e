@@ -19,7 +19,9 @@ flowchart LR
 ## Run the example
 
 Install Bazelisk and [provision host Chromium](host-browsers.md) for E2E/component
-tests. For VRT, supply the example runtime archive and configure a pinned
+tests. For new Linux amd64 consumers, the [versioned browser preset](browser-runtime.md)
+provides Chromium, Node, libraries, and fonts from one module declaration.
+For the React example, supply the example runtime archive and configure a pinned
 [actiond worker](actiond.md); Linux amd64 is the screenshot platform.
 
 ```sh
