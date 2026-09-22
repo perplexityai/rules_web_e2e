@@ -1,0 +1,23 @@
+load("@rules_python//python:defs.bzl", "py_test")
+
+alias(
+    name = "browser",
+    actual = "@web_browser//:browser",
+)
+
+py_test(
+    name = "runtime_test",
+    srcs = ["runtime_test.py"],
+    args = [
+        "$(rootpath :browser)",
+        "$(rootpath @web_browser//:manifest.json)",
+    ],
+    data = [
+        ":browser",
+        "@web_browser//:manifest.json",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)

@@ -7,7 +7,26 @@ and the shell utilities used by fixture launchers (including `dirname`, `uname`,
 and `readlink` for Bazel `js_binary`). These files stay inside the runtime tree;
 they are not installed at system paths.
 
-For the common Linux amd64 case, use the public helper:
+For a complete versioned Linux amd64 environment, select the opt-in preset in
+`MODULE.bazel`:
+
+```starlark
+browsers = use_extension("@rules_web_e2e//playwright:extensions.bzl", "browser_presets")
+browsers.linux_amd64(name = "web_browser", release = "20260921")
+use_repo(browsers, "web_browser")
+```
+
+Set `browser = "@web_browser//:browser"` on visual or isolated interaction targets.
+Release `20260921` pins Chromium 153.0.8010.12, Node 24.14.0, and the Noble
+`20260901` libraries/fonts; use Playwright 1.63.0 in the consuming project.
+`@web_browser//:manifest.json` records the selected versions and archive checksums.
+New environments get new release identifiers; existing presets do not move.
+The binaries are downloaded only when their targets are needed. Test/app inputs
+and actiond worker setup remain caller-owned. The
+[standalone consumer](../examples/preset) builds and executes the runtime binaries
+without repository-local configuration in Linux CI on Bazel 8 and 9.
+
+For custom Chromium, Node, or fonts, use the public assembly helper:
 
 ```starlark
 load("@rules_web_e2e//playwright:browser.bzl", "linux_chromium_runtime")

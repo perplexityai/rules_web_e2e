@@ -3,6 +3,7 @@ load("@rules_web_e2e_noble_20260901_arm64//:paths.bzl", ARM64_BROWSER_PATHS = "B
 load("//playwright:archive.bzl", "browser_runtime_archive")
 
 exports_files([
+    "linux_amd64_20260921.json",
     "noble_20260901.json",
     "noble_20260901_arm64.json",
 ])
