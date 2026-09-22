@@ -26,6 +26,14 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.4.1 (2026-09-22)
+
+## What's Changed
+* fix: declare worker package import root by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/48
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.4.0...v3.4.1
+
 ## 3.4.0 (2026-09-22)
 
 ## What's Changed
