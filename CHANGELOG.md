@@ -26,6 +26,15 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.4.0 (2026-09-22)
+
+## What's Changed
+* feat: add versioned Linux amd64 browser preset by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/45
+* feat: add a pinned Linux actiond worker supervisor by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/46
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.3.1...v3.4.0
+
 ## 3.3.1 (2026-09-20)
 
 ## What's Changed
