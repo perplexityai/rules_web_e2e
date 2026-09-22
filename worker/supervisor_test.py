@@ -40,6 +40,7 @@ if mode == "exit":
 if mode == "stall":
     time.sleep(30)
 with socket.socket() as listener:
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     host, port = args["listen"].split(":")
     listener.bind((host, int(port)))
     listener.listen()
@@ -85,11 +86,28 @@ sys.exit(7)
     def test_occupied_port_never_launches_or_adopts_worker(self):
         checksum = self.make_worker()
         with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             listener.bind(("127.0.0.1", self.port))
             listener.listen()
             with self.assertRaises(OSError):
                 supervise(self.worker, checksum, lambda config: ["never"], self.logs, self.port, 1)
         self.assertFalse(self.record.exists())
+
+    def test_recently_closed_connection_does_not_block_new_worker(self):
+        checksum = self.make_worker()
+        # Close the server side first, leaving its local port in TCP TIME_WAIT.
+        with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(("127.0.0.1", self.port))
+            listener.listen()
+            with socket.create_connection(listener.getsockname()) as client:
+                connection, _ = listener.accept()
+                connection.close()
+                self.assertEqual(client.recv(1), b"")
+        status = supervise(self.worker, checksum,
+            lambda config: [sys.executable, "-c", "raise SystemExit(23)"], self.logs, self.port, 2)
+        self.assertEqual(status, 23)
+        self.assert_cleaned()
 
     def test_startup_failure_and_timeout_do_not_launch_command(self):
         for mode in ("exit", "stall"):

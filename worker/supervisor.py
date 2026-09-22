@@ -67,6 +67,8 @@ def stop(process):
 def supervise(worker, worker_sha256, command, log_dir, port=8980, startup_timeout=90):
     # Refuse to attach to an existing listener, including another supervisor.
     with socket.socket() as probe:
+        # Match actiond: TIME_WAIT is reusable, but an active listener is not.
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         probe.bind(("127.0.0.1", port))
     log_dir.mkdir(parents=True, exist_ok=True)
     logs = Path(tempfile.mkdtemp(prefix="run-", dir=log_dir)).resolve()

@@ -41,10 +41,10 @@ server base path. Most consumers need no Playwright config. Pass an optional
 compiled config for custom fixtures, timeouts, global setup, or E2E projects.
 
 ```sh
-# Standalone example
+# After materializing the launcher in Getting started
 cd examples/react
-bazel test //:e2e_test
-bazel test //:e2e_test --test_arg=--grep=save
+.web-e2e/run test //:e2e_test
+.web-e2e/run test //:e2e_test --test_arg=--grep=save
 ```
 
 Selection flags `--grep`, `--grep-invert`, `--project`, and `--shard` are forwarded

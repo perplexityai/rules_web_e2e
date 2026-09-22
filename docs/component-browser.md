@@ -1,10 +1,9 @@
 # Native component browser tests
 
 Playwright **1.63.0** supplies `mount()` in `@playwright/test`. Use
-`component_browser_test` from `@rules_web_e2e//component:defs.bzl` with a version-matched
-host browser. [Provision it before testing](host-browsers.md); VRT uses a
-separate [actiond execution path](actiond.md). No experimental React test
-package or second bundler is needed. See the [Playwright component guide](https://playwright.dev/docs/test-components).
+`component_browser_test` with a [preset browser](getting-started.md) for isolated
+Linux execution, or omit `browser` and [provision a host browser](host-browsers.md).
+No experimental React package or second bundler is needed.
 
 ```mermaid
 flowchart LR
@@ -49,10 +48,12 @@ VRT consumes the **same visual modules and gallery** through `component_visual_t
 visual's `vrt` options and capture hooks. There are no separate consumer screenshot
 specs. Independent VRT targets must own separate baseline directories.
 
+After [materializing the launcher](getting-started.md#run-the-example):
+
 ```sh
 cd examples/react
-bazel test //:component_test //:component_visual_test
-bazel run //:component_visual_test.update
+.web-e2e/run test //:component_test //:component_visual_test
+.web-e2e/run run //:component_visual_test.update
 ```
 
 ## Migrating experimental component tests
@@ -81,6 +82,7 @@ load("@rules_web_e2e//component:defs.bzl", "browser_shell", "component_browser_t
 browser_shell(name = "gallery", assets = ":built_gallery", entry_point = "gallery.html")
 component_browser_test(
     name = "component_test",
+    browser = "@web_browser//:browser",
     tests = ":compiled_browser_specs",
     shell = ":gallery",
 )

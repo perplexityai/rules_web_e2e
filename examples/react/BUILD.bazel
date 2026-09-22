@@ -1,11 +1,10 @@
-load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_archive")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_binary", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_link_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@rules_web_e2e//component:defs.bzl", "browser_shell", "component_browser_test")
 load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_test")
-load("@rules_web_e2e//playwright:defs.bzl", "browser_runtime", "playwright_runtime")
+load("@rules_web_e2e//playwright:defs.bzl", "playwright_runtime")
 load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test", "visual_test")
 
 npm_link_all_packages(name = "node_modules")
@@ -31,20 +30,24 @@ js_library(
 
 web_e2e_test(
     name = "native_config_test",
+    browser = "@web_browser//:browser",
     config = ":native_config",
     tests = ":native_specs",
 )
 
 visual_test(
-    browser = ":browser",
     name = "native_visual_test",
     baseline_dir = "__native_screenshots__",
     baselines = glob(
         ["__native_screenshots__/*.png"],
         allow_empty = True,
     ),
+    browser = "@web_browser//:browser",
     config = ":native_config",
-    matching = {"threshold": "0.1", "maxDiffPixels": "0"},
+    matching = {
+        "threshold": "0.1",
+        "maxDiffPixels": "0",
+    },
     tests = ":native_visual_specs",
 )
 
@@ -155,30 +158,34 @@ js_library(
 )
 
 component_visual_test(
-    browser = ":browser",
     name = "visual_test",
     baselines = glob(
         ["__screenshots__/*.png"],
         allow_empty = True,
     ),
-    matching = {"threshold": "0.1", "maxDiffPixels": "0"},
+    browser = "@web_browser//:browser",
+    matching = {
+        "threshold": "0.1",
+        "maxDiffPixels": "0",
+    },
     shell = ":app_shell",
 )
 
 component_visual_test(
-    browser = ":browser",
     name = "component_visual_test",
     baseline_dir = "__component_screenshots__",
     baselines = glob(
         ["__component_screenshots__/*.png"],
         allow_empty = True,
     ),
+    browser = "@web_browser//:browser",
     matching = ":matching",
     shell = ":component_shell",
 )
 
 component_browser_test(
     name = "component_test",
+    browser = "@web_browser//:browser",
     playwright = ":playwright",
     shell = ":component_shell",
     tests = ":component_specs",
@@ -186,6 +193,7 @@ component_browser_test(
 
 web_e2e_test(
     name = "e2e_test",
+    browser = "@web_browser//:browser",
     shell = ":app_shell",
     tests = ":e2e_specs",
 )
@@ -241,7 +249,6 @@ js_library(
     data = ["package.json"],
 )
 
-
 js_library(
     name = "isolation_specs",
     srcs = ["isolation.spec.js"],
@@ -250,20 +257,29 @@ js_library(
 
 # VRT runs in a Linux action with loopback-only networking.
 visual_test(
-    browser = ":browser",
     name = "network_isolation_test",
-    tests = ":isolation_specs",
-    shell = ":app_shell",
     baseline_dir = "__isolation_screenshots__",
+    browser = "@web_browser//:browser",
+    shell = ":app_shell",
+    tests = ":isolation_specs",
 )
 
-# Supply this declared archive from your own image build; see docs/browser-runtime.md.
-browser_runtime_archive(name = "runtime_files", archive = "runtime.tar")
-browser_runtime(
-    name = "browser",
-    root = ":runtime_files",
-    executable = "chromium/chrome-headless-shell",
-    node = "bin/node",
-    library_dirs = ["lib"],
-    fontconfig = "etc/fonts",
+# Host variants for live-service checks and machines without a Linux VM worker.
+web_e2e_test(
+    name = "host_e2e_test",
+    shell = ":app_shell",
+    tests = ":e2e_specs",
+)
+
+component_browser_test(
+    name = "host_component_test",
+    playwright = ":playwright",
+    shell = ":component_shell",
+    tests = ":component_specs",
+)
+
+web_e2e_test(
+    name = "host_native_config_test",
+    config = ":native_config",
+    tests = ":native_specs",
 )

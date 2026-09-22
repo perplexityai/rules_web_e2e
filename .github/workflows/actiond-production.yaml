@@ -38,16 +38,27 @@ jobs:
       - name: Enable KVM and vhost-vsock
         run: |
           test -c /dev/kvm
-          sudo chmod a+rw /dev/kvm
           if [[ ! -e /dev/vhost-vsock ]]; then sudo modprobe vhost_vsock; fi
           test -c /dev/vhost-vsock
-          sudo chmod a+rw /dev/vhost-vsock
+          # Keep access across device events between supervisor invocations.
+          printf 'KERNEL=="kvm", MODE="0666"\nKERNEL=="vhost-vsock", MODE="0666"\n' | sudo tee /etc/udev/rules.d/99-actiond-ci.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm settle
+          sudo chmod a+rw /dev/kvm /dev/vhost-vsock
+          test -r /dev/vhost-vsock && test -w /dev/vhost-vsock
       - name: Capture and compare in the VM
         env:
           ACTIOND_BAZEL: bazelisk
         run: |
           work="$RUNNER_TEMP/actiond-production"
           "$work/run-web-e2e" --log-dir="$work/supervisor" exec -- bash tests/actiond/run-public-actiond.sh "$work"
+      - name: Run the documented React preset example
+        working-directory: examples/react
+        run: |
+          mkdir -p .web-e2e
+          bazelisk run --script_path="$PWD/.web-e2e/run" @rules_web_e2e//worker:runner
+          .web-e2e/run --bazel=bazelisk doctor
+          .web-e2e/run --bazel=bazelisk test //:e2e_test //:component_test //:native_config_test //:visual_test //:component_visual_test //:native_visual_test
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -55,3 +66,5 @@ jobs:
           path: |
             ${{ runner.temp }}/actiond-production/results/
             ${{ runner.temp }}/actiond-production/supervisor/
+            examples/react/.web-e2e/logs/
+            examples/react/bazel-testlogs/

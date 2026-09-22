@@ -7,4 +7,4 @@ release_notes.txt
 
 .playwright-browsers/
 
-examples/react/runtime.tar
+.web-e2e/
