@@ -16,5 +16,5 @@ uses this module's `:browser` target for real isolated browser and VRT tests.
 In an application, pass `browser = "@web_browser//:browser"` to visual or isolated
 interaction test targets and use Playwright 1.63.0. Supply your own compiled tests
 and application assets. See [runtime setup](../../docs/browser-runtime.md) and
-[worker execution](../../docs/actiond.md). This preset does not provision hardware
+[worker preset](../../docs/worker-preset.md). This preset does not provision hardware
 or grant tests network access.

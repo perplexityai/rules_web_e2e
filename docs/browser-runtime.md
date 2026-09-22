@@ -1,14 +1,8 @@
-# Declared browser runtimes
+# Browser runtimes
 
-The actiond migration accepts caller-owned Linux runtime files through
-`browser_runtime`. The runtime must contain Chromium, Node, their ELF loader and
-shared libraries, and the fonts/fontconfig used for screenshots. Include Bash
-and the shell utilities used by fixture launchers (including `dirname`, `uname`,
-and `readlink` for Bazel `js_binary`). These files stay inside the runtime tree;
-they are not installed at system paths.
+## Basic: versioned preset
 
-For a complete versioned Linux amd64 environment, select the opt-in preset in
-`MODULE.bazel`:
+In `MODULE.bazel`:
 
 ```starlark
 browsers = use_extension("@rules_web_e2e//playwright:extensions.bzl", "browser_presets")
@@ -21,12 +15,14 @@ Release `20260921` pins Chromium 153.0.8010.12, Node 24.14.0, and the Noble
 `20260901` libraries/fonts; use Playwright 1.63.0 in the consuming project.
 `@web_browser//:manifest.json` records the selected versions and archive checksums.
 New environments get new release identifiers; existing presets do not move.
-The binaries are downloaded only when their targets are needed. Test/app inputs
-and actiond worker setup remain caller-owned. The
-[standalone consumer](../examples/preset) builds and executes the runtime binaries
+Downloads are lazy. Use the [worker preset](worker-preset.md) for execution;
+your build supplies specs and app assets. The [standalone consumer](../examples/preset)
+builds and executes the runtime binaries
 without repository-local configuration in Linux CI on Bazel 8 and 9.
 
-For custom Chromium, Node, or fonts, use the public assembly helper:
+## Advanced: custom binaries and fonts
+
+Use the assembly helper:
 
 ```starlark
 load("@rules_web_e2e//playwright:browser.bzl", "linux_chromium_runtime")
@@ -43,10 +39,6 @@ linux_chromium_runtime(
 supplies the executable/loader paths and assembles the default
 `@rules_web_e2e//playwright/presets:noble_20260901` library/font preset. Its package
 URLs and checksums are checked in; consumers do not resolve APT dependencies.
-The preset includes libatomic for Node 26. The optional preset selects an explicit shared-library closure, five shell
-executables, and the existing font/fontconfig policy. It excludes unrelated OS
-packages and graphics drivers. Font changes may require screenshot regeneration.
-
 Add `fonts = [":brand_fonts"]` for declared font files/directories, or set `system`
 to a custom declared directory containing `lib/`, `bin/bash`, `etc/fonts/`, and
 `fonts/` with the same layout. A system preset must not contain Node or Chromium.
@@ -58,8 +50,9 @@ or checksum-pinned archives). The rules do not silently upgrade it. Before VRT,
 the runner compares the actual binary's `--version` to the selected Playwright
 package's `browsers.json` and reports a mismatch with upgrade guidance.
 
-A caller can produce a flattened filesystem tar and unpack it during the Bazel
-build:
+## Advanced: custom runtime layout
+
+Unpack a declared filesystem archive:
 
 ```starlark
 load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_archive")
@@ -102,25 +95,10 @@ link targets are errors, so runtime packaging cannot silently borrow host files.
 Font configuration must use paths relative to its configuration file, rather
 than absolute system or build-machine paths.
 
-`loader` and `bash` default to the paths shown above. Execution starts the
-declared loader directly. The VRT runner creates `/tmp/rules-web-vrt` inside its
-isolated action, copies the loader/Node/Bash there, and rewrites staged ELF64
-interpreter paths to that loader. This retains executable identity for Chromium
-subprocesses. Interpreter segments too short for the replacement are rejected.
-Original declared inputs are never modified.
-
-Executable scripts with ordinary `/bin/sh`, `/bin/bash`, `/usr/bin/env bash`,
-or Node shebangs are redirected to the declared launchers. The VRT subprocess
-adapter supplies Bash for Playwright's `shell: true` launches. Other hardcoded
-system paths, interpreters, and complex `env -S` shebangs need caller-owned
-wrappers or packaging changes; arbitrary binaries are not automatically
-relocatable.
-
-Execution requires a pinned actiond worker matching the Linux runtime CPU. The remote
-actions produce comparison/capture results; the local test command reports their
-status and `.update` applies successful captures. Host E2E/component-browser
-targets continue to use their existing browser setup. Native and component
-capture/comparison through the public rules passed the Linux VM workflow.
+The declared loader starts execution. The runner stages private executable copies
+and redirects supported shell/Node launchers to declared tools. Other hardcoded
+system paths or complex shebangs need caller wrappers; arbitrary binaries are not
+automatically relocatable. See [execution details](actiond.md).
 
 By default, VRT inputs are configured for Linux amd64 even when the Bazel client runs on
 macOS. A caller with additional native toolchain constraints can set
@@ -167,24 +145,18 @@ alongside a top-level configuration with relative font paths.
 
 ## Build the example runtime
 
-From the repository root, build the Linux amd64 runtime using Bazel 9 and package
-its declared directory for the React example:
+The [custom assembly example](../examples/browser-runtime/BUILD.bazel) supplies
+its own pinned Chromium and Node archives:
 
 ```sh
-(
-  cd examples/browser-runtime
-  bazelisk build //:browser
-  runtime_files=$(bazelisk cquery //:browser --output=files)
-  tar -C "$runtime_files" -cf ../react/runtime.tar .
-)
+cd examples/browser-runtime
+bazel build //:browser
+bazel cquery //:browser --output=files
 ```
 
-The checked-in preset manifest pins only the packages supplying selected runtime
-files. Bazel `http_archive` downloads and verifies every package; no apt resolver
-or package installation scripts run in consuming workspaces. Chromium and Node use
-explicit archive checksums. The VRT action itself runs offline; repository
-acquisition happens before execution. Callers can instead pass the assembled
-directory directly to `browser_runtime(root=...)` without this tar export.
+Pass its declared directory to `browser_runtime(root=...)` when composing a
+runtime. The [React example](../examples/react/README.md) uses the complete preset
+instead and needs no tar export.
 
 ## ARM64 VRT runtimes
 

@@ -1,7 +1,9 @@
 module(name = "component_vrt_example")
 
 bazel_dep(name = "platforms", version = "1.1.0")
-bazel_dep(name = "rules_web_e2e", version = "0.0.0")
+bazel_dep(name = "rules_web_e2e", version = "3.4.0")
+
+# Test this checkout; omit the override in a consuming project.
 local_path_override(
     module_name = "rules_web_e2e",
     path = "../..",
@@ -21,3 +23,10 @@ bazel_dep(name = "aspect_rules_ts", version = "3.10.1")
 typescript = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
 typescript.deps(ts_version = "7.0.2")
 use_repo(typescript, "npm_typescript")
+
+browsers = use_extension("@rules_web_e2e//playwright:extensions.bzl", "browser_presets")
+browsers.linux_amd64(
+    name = "web_browser",
+    release = "20260921",
+)
+use_repo(browsers, "web_browser")

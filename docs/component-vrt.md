@@ -10,13 +10,12 @@ and the [API reference](api.md) for all supported attributes.
 
 ## Try the standalone example
 
-Build `examples/react/runtime.tar` with the [package runtime example](browser-runtime.md#build-the-example-runtime) and configure a
-pinned worker with [the actiond guide](actiond.md), then:
+Follow the [preset setup](getting-started.md#run-the-example), then:
 
 ```sh
 cd examples/react
-bazelisk test --config=vrt //:visual_test
-bazelisk run --config=vrt //:visual_test.update
+.web-e2e/run test //:visual_test
+.web-e2e/run run //:visual_test.update
 ```
 
 Bazel installs the locked npm dependencies. The update command replaces this

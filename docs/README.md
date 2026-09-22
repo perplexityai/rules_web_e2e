@@ -1,28 +1,28 @@
 # Documentation
 
-## User guides
+## Setup
 
-| Document                                         | Read it for                                                            |
-| ------------------------------------------------ | ---------------------------------------------------------------------- |
-| [Getting started](getting-started.md)            | Dependencies, Bazel wiring, strict typechecks, and running tests       |
-| [API reference](api.md)                          | Public macros, configuration helpers, visual modules, and server types |
-| [End-to-end tests](e2e.md)                       | Click/navigation specs, filtering, and existing application URLs       |
-| [Component browser tests](component-browser.md)  | Native mounts, prop updates, and browser assertions                    |
-| [Component VRT](component-vrt.md)                | Generated captures, baselines, updates, and artifacts                  |
-| [Custom servers and UI shells](customization.md) | Existing servers, providers, assets, and fixtures                      |
-| [Dependency versions](dependencies.md)           | Pinned versions and compatibility boundaries                           |
+| Guide | Purpose |
+| --- | --- |
+| [Getting started](getting-started.md) | Basic presets, runnable example, advanced options |
+| [Worker preset](worker-preset.md) | Launcher, CI buckets, prerequisites, logs |
+| [Browser runtimes](browser-runtime.md) | Versioned preset or custom browsers, libraries, fonts |
+| [Manual actiond setup](actiond.md) | Custom worker operation and execution configuration |
+| [Host browsers](host-browsers.md) | E2E/component tests against host or deployed services |
+| [ARM64 VRT](macos-arm64-vrt.md) | Custom ARM64 runtime and Apple Silicon worker |
 
-## Design and maintenance
+## API and tests
 
-| Document                                                  | Read it for                                                   |
-| --------------------------------------------------------- | ------------------------------------------------------------- |
-| [Architecture](architecture.md)                           | Ownership, input staging, and runtime boundaries              |
-| [VRT on actiond](actiond.md) | Worker setup, declared runtimes, and isolation limits    |
-| [Visual testing design](visual-testing-design.md)         | Shared visual modules, capture phases, and baseline ownership |
-| [Scope and roadmap](oss-browser-testing-plan.md)          | Implemented capabilities and possible extensions              |
-| [Development and releases](development.md)                | Repository checks, hooks, and release automation              |
+| Guide | Purpose |
+| --- | --- |
+| [API reference](api.md) | Attributes, defaults, TypeScript contracts |
+| [E2E](e2e.md) | Navigation specs, filtering, existing URLs |
+| [Component tests](component-browser.md) | Mounts, updates, assertions |
+| [Component VRT](component-vrt.md) | Visual cases, baselines, diffs |
+| [Customization](customization.md) | Servers, providers, fixtures |
+| [Dependencies](dependencies.md) | Version compatibility |
 
-See [host browser provisioning and AGI/FormatJS migration](host-browsers.md) for
-host provisioning and the VRT actiond migration.
+## Maintainers
 
-- [Linux amd64 worker preset](worker-preset.md): pinned worker, generated execution settings, and lifecycle management.
+[Architecture](architecture.md) · [Visual design](visual-testing-design.md) ·
+[Roadmap](oss-browser-testing-plan.md) · [Development and releases](development.md)

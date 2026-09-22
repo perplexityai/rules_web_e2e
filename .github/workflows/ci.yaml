@@ -68,6 +68,6 @@ jobs:
           npx --yes "playwright@$version" install --with-deps chromium
       - name: Run host browser suites without Docker
         working-directory: examples/react
-        run: bazelisk test //:e2e_test //:component_test //:remote_integration_test //:native_config_test --test_output=errors
+        run: bazelisk test //:host_e2e_test //:host_component_test //:remote_integration_test //:host_native_config_test --test_output=errors
       - name: Verify generated capture bounds and pixels
         run: bazelisk test //runtime:capture_browser_test --test_output=errors

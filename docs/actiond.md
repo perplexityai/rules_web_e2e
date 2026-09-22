@@ -1,4 +1,4 @@
-# VRT on actiond
+# Manual actiond setup
 
 `visual_test` and `component_visual_test` run the fixture server, Playwright,
 Chromium, and screenshot comparison together in an isolated Linux amd64 action.
@@ -12,14 +12,12 @@ below remains available for custom worker operators.
 
 ## Worker and Bazel configuration
 
-Use actiond at commit [`4b767e8`](https://github.com/hermeticbuild/actiond/commit/4b767e852e21c5affa72ea7ebbf4d8a6e5d58136)
-or newer, which enables memory-advice syscalls in both VM kernels.
-The [integration suite](../tests/actiond/README.md) downloads this pinned source
-archive through Bazel and builds the upstream workspace without local patches. VRT needs no runtime mounts. Ordinary native Bazel tests request actiond’s pinned
-static Bash (`requires-bash`) for Bazel’s own test wrapper. Its remaining utilities
-are [built from pinned sources](../internal/test_tools/README.md) with hermetic
-LLVM and musl, supplied through `BASH_ENV`; no host packages or system libc are used. No `input-rootfs` or `libc` properties are needed.
-Linux VM workers require KVM and vhost-vsock.
+Pin a compatible actiond worker. The preset uses release **0.0.7** (source
+[`4b767e8`](https://github.com/hermeticbuild/actiond/commit/4b767e852e21c5affa72ea7ebbf4d8a6e5d58136)),
+including its VM kernel. Linux workers require KVM and vhost-vsock.
+Native Bazel tests request the worker's static Bash (`requires-bash`); the rules
+supply [hermetic launcher utilities](../internal/test_tools/README.md).
+No runtime mounts, `input-rootfs`, or `libc` properties are needed.
 
 With a pinned worker listening on `127.0.0.1:8980`, put this in the consumer's
 Bazel configuration:

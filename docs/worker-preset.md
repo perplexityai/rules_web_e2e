@@ -1,10 +1,8 @@
 # Linux amd64 worker preset
 
-The optional worker supervisor supplies checksum-pinned actiond 0.0.7 (including
-its VM kernel), execution settings, readiness checks, logs, and cleanup. It runs
-one private worker for one Bazel invocation or CI bucket. Browser runtimes remain
-explicit inputs on test targets; this worker supports the documented Linux amd64
-Chromium runtime and Playwright 1.63.0 integration suite.
+The supervisor supplies pinned actiond 0.0.7, execution flags, startup, logs,
+and cleanup. Use it with the [browser preset](browser-runtime.md) or a compatible
+custom Linux amd64 runtime. It owns one worker per command or CI bucket.
 
 ## Materialize once, run outside Bazel
 
@@ -47,38 +45,24 @@ bazel --bazelrc="$RULES_WEB_E2E_BAZELRC" test --config=web-e2e //ui:component_te
 bazel --bazelrc="$RULES_WEB_E2E_BAZELRC" test --config=web-e2e //ui:visual_test
 ```
 
-The generated rc includes the worker's SHA256 as an execution property. It routes
-capture/comparison remotely, and lets Bazel choose remote versus local TestRunner
-execution from each rule's requirements: native browser tests prohibit local
-execution, while VRT report wrappers prohibit remote execution. Remote failure
-fallback is disabled. Include only isolated browser/VRT targets in this profile;
-live-service tests and unrelated unit tests belong in their own jobs. Do not
-override these execution settings when using the preset.
+The generated profile keys results by worker SHA256, routes isolated tests and
+VRT actions remotely, and keeps VRT report wrappers local. Host fallback is
+disabled. Use it only for isolated browser/VRT targets; keep live-service and
+unrelated unit tests in separate jobs. Do not override its execution settings.
 
-Bazel's usual result caching remains enabled. Use `--nocache_test_results` to
-rerun native browser tests. To force VRT capture/comparison actions as well, add
-`--remote_accept_cached=false`. The preset does not change global workspace flags.
+Caching stays enabled. `--nocache_test_results` reruns native browser tests;
+add `--remote_accept_cached=false` to force VRT actions too.
 
 ## Ownership and failure behavior
 
-The default listener is `127.0.0.1:8980`; `--port` selects another loopback port.
-An occupied port is an error. The supervisor never reuses another process's
-listener and never binds to a remote interface. This unauthenticated endpoint is
-for a trusted, single-user worker host, not a shared multi-tenant remote service.
+- Listens on `127.0.0.1:8980`; change it with `--port`. An occupied port fails.
+  The unauthenticated endpoint is for a trusted single-user host.
+- Uses private temporary VM/CAS storage per invocation and persistent logs under
+  `.web-e2e/logs/` or `--log-dir`. `--startup-timeout` defaults to 90 seconds.
+- Preserves command exit status. Worker death fails the command. SIGINT/SIGTERM
+  stop owned process groups; cleanup removes VM state and retains logs/config.
+- The worker gets a minimal environment. Test inputs and environment remain
+  explicitly declared; the supervisor grants no secrets or external network access.
 
-Each invocation gets private temporary VM/CAS storage and a separate persistent
-log directory below `.web-e2e/logs/` (or `--log-dir`). Worker startup has a 90-second
-timeout, configurable with `--startup-timeout`. TCP readiness is followed by the
-real Bazel operation; it is not proof of a healthy VM.
-
-Command failure preserves its exit status. Worker death stops the command and
-fails the invocation. SIGINT/SIGTERM stop both owned process groups; VM/CAS state
-is removed afterward. Worker logs and the generated rc remain for CI artifacts.
-The worker process receives a minimal environment; application/test environment
-still follows the test rule's explicit input contract. The supervisor does not
-supply cloud credentials, secrets, or access to external services inside actions.
-
-The [production integration workflow](../.github/workflows/actiond-production.yaml)
-uses the published worker through this same launcher and exercises native tests,
-VRT updates, isolation, retries, timeouts, and cancellation. Generic lifecycle
-coverage uses real subprocesses and loopback sockets without requiring KVM.
+The [VM integration workflow](../.github/workflows/actiond-production.yaml)
+exercises this launcher, the React example, retries, updates, timeouts, and cancellation.
