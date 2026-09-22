@@ -1,0 +1,36 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+
+exports_files(["linux_amd64.json"])
+
+py_library(
+    name = "supervisor",
+    srcs = ["supervisor.py"],
+    deps = ["@rules_python//python/runfiles"],
+)
+
+py_binary(
+    name = "runner",
+    srcs = ["main.py"],
+    args = [
+        "--worker-runfile=$(rlocationpath @actiond_linux_amd64//file)",
+        "--manifest-runfile=$(rlocationpath :linux_amd64.json)",
+    ],
+    data = [
+        "linux_amd64.json",
+        "@actiond_linux_amd64//file",
+    ],
+    main = "main.py",
+    visibility = ["//visibility:public"],
+    deps = [":supervisor"],
+)
+
+py_test(
+    name = "supervisor_test",
+    size = "small",
+    srcs = ["supervisor_test.py"],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [":supervisor"],
+)

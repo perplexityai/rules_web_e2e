@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 work=${1:?usage: run-public-actiond.sh ABSOLUTE_WORK_DIRECTORY ENDPOINT}
-endpoint=${2:?missing actiond endpoint}
+endpoint=${2:-${RULES_WEB_E2E_ENDPOINT:?missing actiond endpoint}}
 case "${ACTIOND_ARCH:-x64}" in x64|arm64) ;; *) echo 'ACTIOND_ARCH must be x64 or arm64' >&2; exit 1 ;; esac
 scripts=$(cd "$(dirname "$0")" && pwd)
 cd "$work/public"
@@ -12,18 +12,23 @@ collect() {
   done
 }
 trap collect EXIT
-flags=(
-  --jobs=2
-  --remote_default_exec_properties="actiond-worker-sha256=$(shasum -a 256 "$work/actiond-worker" | cut -d ' ' -f 1)"
-  --remote_executor="$endpoint" --remote_cache="$endpoint"
-  --spawn_strategy=sandboxed,local --strategy=VrtCapture=remote --strategy=VrtCompare=remote --strategy=TestRunner=remote,local
-  --remote_local_fallback=false --remote_upload_local_results=false
-  --noremote_cache_compression --remote_download_outputs=all
-)
+if [[ -n ${RULES_WEB_E2E_BAZELRC:-} ]]; then
+  flags=(--config=web-e2e)
+else
+  flags=(
+    --jobs=2
+    --remote_default_exec_properties="actiond-worker-sha256=$(shasum -a 256 "$work/actiond-worker" | cut -d ' ' -f 1)"
+    --remote_executor="$endpoint" --remote_cache="$endpoint"
+    --spawn_strategy=sandboxed,local --strategy=VrtCapture=remote --strategy=VrtCompare=remote --strategy=TestRunner=remote,local
+    --remote_local_fallback=false --remote_upload_local_results=false
+    --noremote_cache_compression --remote_download_outputs=all
+  )
+fi
 if [[ ${ACTIOND_ARCH:-x64} == arm64 ]]; then
   flags+=(--extra_execution_platforms=@platforms//host:host,@rules_web_e2e//internal:linux_arm64)
 fi
 bazel_cmd=("${ACTIOND_BAZEL:-bazelisk}" --output_base="$work/public-bazel-output")
+if [[ -n ${RULES_WEB_E2E_BAZELRC:-} ]]; then bazel_cmd+=("--bazelrc=$RULES_WEB_E2E_BAZELRC"); fi
 # This target is never executed remotely, so it cannot reuse a successful
 # capture from the action cache and accidentally skip the rejection check.
 mkdir -p "$work/results"
@@ -150,6 +155,6 @@ assert result['mode'] == 'compare' and result['exitCode'] != 0, result
 assert list((directory / 'artifacts').rglob('*-diff.png')), 'Missing screenshot diff'
 PY
 cp "$work/native-baseline.png" __actiond_native__/saved.png
-python3 "$scripts/cancel-public.py" "${bazel_cmd[@]}" "${flags[@]}"
+python3 "$scripts/cancel-public.py" "${bazel_cmd[@]}" -- "${flags[@]}"
 # The same worker must execute another action after cancellation.
 "${bazel_cmd[@]}" test //:actiond_native_test "${flags[@]}" --remote_accept_cached=false --nocache_test_results --test_output=errors

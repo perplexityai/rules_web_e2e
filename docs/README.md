@@ -24,3 +24,5 @@
 
 See [host browser provisioning and AGI/FormatJS migration](host-browsers.md) for
 host provisioning and the VRT actiond migration.
+
+- [Linux amd64 worker preset](worker-preset.md): pinned worker, generated execution settings, and lifecycle management.

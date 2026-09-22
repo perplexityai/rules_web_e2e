@@ -23,8 +23,9 @@ if Path(bazel).name == "bazelisk":
     search_path = next(line.removeprefix("PATH=") for line in environment.splitlines() if line.startswith("PATH="))
     bazel = shutil.which("bazel", path=search_path)
     assert bazel is not None, "Bazelisk did not expose its selected Bazel binary"
+separator = sys.argv.index("--", 2)
 command = [
-    bazel, sys.argv[2], "run", "//:actiond_cancel_test.update", *sys.argv[3:],
+    bazel, *sys.argv[2:separator], "run", "//:actiond_cancel_test.update", *sys.argv[separator + 1:],
     "--progress_report_interval=1", "--curses=no", "--color=no",
 ]
 with log.open("w") as output:
