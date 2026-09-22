@@ -5,6 +5,7 @@ exports_files(["linux_amd64.json"])
 py_library(
     name = "supervisor",
     srcs = ["supervisor.py"],
+    imports = [".."],
     deps = ["@rules_python//python/runfiles"],
 )
 
