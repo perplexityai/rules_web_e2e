@@ -44,17 +44,21 @@ jobs:
           sudo udevadm settle
           sudo chmod a+rw /dev/kvm /dev/vhost-vsock
           test -r /dev/vhost-vsock && test -w /dev/vhost-vsock
+          stat -c "DEVICE before-suite %F %a %u:%g %i" /dev/vhost-vsock
       - name: Capture and compare in the VM
         env:
           ACTIOND_BAZEL: bazelisk
         run: |
           work="$RUNNER_TEMP/actiond-production"
           "$work/run-web-e2e" --log-dir="$work/supervisor" exec -- bash tests/actiond/run-public-actiond.sh "$work"
+          stat -c "DEVICE after-suite %F %a %u:%g %i" /dev/vhost-vsock
       - name: Run the documented React preset example
         working-directory: examples/react
         run: |
+          stat -c "DEVICE before-launcher %F %a %u:%g %i" /dev/vhost-vsock
           mkdir -p .web-e2e
           bazelisk run --script_path="$PWD/.web-e2e/run" @rules_web_e2e//worker:runner
+          stat -c "DEVICE after-launcher %F %a %u:%g %i" /dev/vhost-vsock
           .web-e2e/run --bazel=bazelisk doctor
           .web-e2e/run --bazel=bazelisk test //:e2e_test //:component_test //:native_config_test //:visual_test //:component_visual_test //:native_visual_test
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
