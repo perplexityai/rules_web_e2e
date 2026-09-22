@@ -38,10 +38,12 @@ jobs:
       - name: Enable KVM and vhost-vsock
         run: |
           test -c /dev/kvm
-          sudo chmod a+rw /dev/kvm
           if [[ ! -e /dev/vhost-vsock ]]; then sudo modprobe vhost_vsock; fi
           test -c /dev/vhost-vsock
-          sudo chmod a+rw /dev/vhost-vsock
+          # Finish device rules before chmod so udev cannot reset access later.
+          sudo udevadm settle
+          sudo chmod a+rw /dev/kvm /dev/vhost-vsock
+          test -r /dev/vhost-vsock && test -w /dev/vhost-vsock
       - name: Capture and compare in the VM
         env:
           ACTIOND_BAZEL: bazelisk
