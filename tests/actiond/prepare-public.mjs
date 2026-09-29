@@ -15,7 +15,7 @@ for (const name of fs.readdirSync(example)) {
 const module = fs.readFileSync(path.join(destination, 'MODULE.bazel'), 'utf8')
 fs.writeFileSync(path.join(destination, 'MODULE.bazel'), module.replace('path = "../.."', `path = ${JSON.stringify(repository)}`))
 fs.copyFileSync(path.join(work, 'runtime.tar'), path.join(destination, 'runtime.tar'))
-for (const name of ['isolation', 'failure'])
+for (const name of ['isolation', 'failure', 'npm'])
   fs.copyFileSync(new URL(`./${name}.visual.spec.ts`, import.meta.url), path.join(destination, `actiond-${name}.visual.spec.ts`))
 fs.writeFileSync(path.join(destination, 'actiond-isolation.spec.ts'), fs.readFileSync(new URL('./isolation.visual.spec.ts', import.meta.url), 'utf8').replace("['/bin/bash', '/bin/sh', '/usr/bin/env', '/lib64/ld-linux-x86-64.so.2', '/lib/ld-linux-aarch64.so.1']", "['/bin/sh', '/lib64/ld-linux-x86-64.so.2', '/lib/ld-linux-aarch64.so.1']"))
 fs.writeFileSync(path.join(destination, 'actiond-browser-failure.spec.ts'), `
@@ -35,11 +35,34 @@ test('Bazel launches a new browser for each run', async ({page}) => {
   console.log('BROWSER_EXECUTION ' + await page.evaluate(() => crypto.randomUUID()))
 })
 `)
+for (const name of ['npm-fixtures.bzl', 'npm-server.ts'])
+  fs.copyFileSync(new URL('./' + name, import.meta.url), path.join(destination, name))
 const build = path.join(destination, 'BUILD.bazel')
 fs.writeFileSync(build,
+  'load(":npm-fixtures.bzl", "npm_fixtures")\n' +
   'load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_archive")\n' +
   'load("@rules_web_e2e//playwright:defs.bzl", "browser_runtime")\n' +
   fs.readFileSync(build, 'utf8') + `
+npm_fixtures(name = "npm_inputs")
+js_library(
+    name = "actiond_npm_server",
+    srcs = ["npm-server.js"],
+    deps = [":typecheck_project"],
+)
+js_library(
+    name = "actiond_npm_specs",
+    srcs = ["actiond-npm.visual.spec.js"],
+    deps = [":typecheck_project"],
+)
+visual_test(
+    name = "actiond_npm_test",
+    browser = ":actiond_browser",
+    server = ":actiond_npm_server",
+    tests = ":actiond_npm_specs",
+    data = [":npm_inputs"],
+    baseline_dir = "__actiond_npm__",
+    baselines = glob(["__actiond_npm__/*.png"], allow_empty = True),
+)
 js_library(
     name = "actiond_rerun_specs",
     srcs = ["actiond-rerun.spec.js"],

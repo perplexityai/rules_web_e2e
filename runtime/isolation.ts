@@ -8,8 +8,7 @@ export function stageRunfiles(manifest: string, destination: string): void {
       /\\([snb])/g,
       (_, code: string) => ({s: ' ', n: '\n', b: '\\'})[code]!
     )
-  for (let line of fs.readFileSync(manifest, 'utf8').split('\n')) {
-    if (!line) continue
+  const entries = fs.readFileSync(manifest, 'utf8').split('\n').filter(Boolean).map(line => {
     const escaped = line.startsWith(' ')
     if (escaped) line = line.slice(1)
     const separator = line.indexOf(' ')
@@ -19,6 +18,21 @@ export function stageRunfiles(manifest: string, destination: string): void {
     const source = escaped
       ? decode(line.slice(separator + 1))
       : line.slice(separator + 1)
+    return {name, source}
+  })
+  const sources = new Map(entries.map(({name, source}) => [path.resolve(destination, name), source]))
+  // Check declarations, not copy order: a package-store target may appear later.
+  const sameDeclaredFile = (target: string, source: string) => {
+    const realSource = fs.realpathSync(source)
+    for (let parent = target; parent.startsWith(destination + path.sep); parent = path.dirname(parent)) {
+      const declared = sources.get(parent)
+      if (!declared || !path.isAbsolute(declared)) continue
+      const candidate = path.join(declared, path.relative(parent, target))
+      if (fs.existsSync(candidate) && fs.realpathSync(candidate) === realSource) return true
+    }
+    return false
+  }
+  for (const {name, source} of entries) {
     const target = path.resolve(destination, name)
     if (!target.startsWith(destination + path.sep))
       throw new Error(`Invalid runfile: ${name}`)
@@ -38,7 +52,7 @@ export function stageRunfiles(manifest: string, destination: string): void {
       const link = fs.existsSync(source) && fs.lstatSync(source).isSymbolicLink()
         ? fs.readlinkSync(source)
         : null
-      if (link && !path.isAbsolute(link) && path.resolve(path.dirname(target), link).startsWith(destination + path.sep))
+      if (link && !path.isAbsolute(link) && sameDeclaredFile(path.resolve(path.dirname(target), link), source))
         fs.symlinkSync(link, target)
       else fs.cpSync(source, target, {recursive: true, dereference: true})
     }

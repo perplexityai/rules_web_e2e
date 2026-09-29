@@ -126,3 +126,15 @@ test('cleanup removes staged read-only directories without following links', t =
   assert.equal(fs.existsSync(temp), false)
   assert.equal(fs.readFileSync(external, 'utf8'), 'keep')
 })
+
+test('staging materializes a valid alias whose destination is not declared', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-alias-runfile-'))
+  t.after(() => fs.rmSync(root, {recursive: true, force: true}))
+  fs.writeFileSync(path.join(root, 'actual.cjs'), 'module.exports = "alias works"')
+  fs.symlinkSync('actual.cjs', path.join(root, 'alias.cjs'))
+  const manifest = path.join(root, 'MANIFEST')
+  fs.writeFileSync(manifest, `_main/alias.cjs ${root}/alias.cjs\n`)
+  const staged = path.join(root, 'staged')
+  stageRunfiles(manifest, staged)
+  assert.equal(createRequire(path.join(staged, '_main/entry.cjs'))('./alias.cjs'), 'alias works')
+})
