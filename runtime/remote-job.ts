@@ -15,6 +15,9 @@ export interface RemoteJob {
 
 /** Preserve child failure reports as build outputs for the local result consumer. */
 export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.ProcessEnv = {}) {
+  const timeoutMs = Number(job.env.VRT_TIMEOUT_MS)
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0)
+    throw new Error('Remote VRT job requires a positive VRT_TIMEOUT_MS')
   const output = path.resolve(job.output)
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-action-'))
   const artifacts = job.mode === 'test' ? output : path.join(output, 'artifacts')
@@ -26,6 +29,10 @@ export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.P
   const result = spawnSync(node, [
     path.resolve(job.runner), ...job.args, ...(job.mode === 'capture' ? ['--update'] : []),
   ], {
+    // Galleries can run discovery and comparison separately. Bound both phases
+    // even if the runner's own timeout cannot reap a stuck child.
+    timeout: timeoutMs * 2 + Math.max(1000, Math.ceil(timeoutMs / 10)),
+    killSignal: 'SIGKILL',
     env: {
       ...process.env,
       ...job.env,
