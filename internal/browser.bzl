@@ -62,7 +62,7 @@ def _inputs_impl(ctx):
         if target:
             inputs = inputs.merge(target[DefaultInfo].default_runfiles)
             inputs = inputs.merge(ctx.runfiles(transitive_files = target[DefaultInfo].files))
-            if OutputGroupInfo in target and hasattr(target[OutputGroupInfo], "transitive_typecheck"):
+            if ctx.attr.include_typecheck and OutputGroupInfo in target and hasattr(target[OutputGroupInfo], "transitive_typecheck"):
                 inputs = inputs.merge(ctx.runfiles(transitive_files = target[OutputGroupInfo].transitive_typecheck))
     return [DefaultInfo(files = depset([result]), runfiles = inputs)]
 
@@ -78,6 +78,7 @@ _inputs = rule(
         "browser": attr.label(providers = [BrowserRuntimeInfo]),
         "sources": attr.label(),
         "mode": attr.string(),
+        "include_typecheck": attr.bool(default = True),
     },
 )
 
@@ -106,7 +107,8 @@ def browser_test(
         execution_timeout_seconds = 180,
         args = [],
         visual = False,
-        component = False):
+        component = False,
+        include_typecheck = True):
     """Internal common implementation; public wrappers select the test mode."""
     if target_arch not in ["x64", "arm64"]:
         fail("target_arch must be x64 or arm64")
@@ -158,6 +160,7 @@ def browser_test(
         matching = matching,
         sources = ":" + name + "_sources",
         mode = "visual-spec" if visual and tests else "visual" if visual else "component" if component else "e2e",
+        include_typecheck = include_typecheck,
     )
     common = dict(
         copy_data_to_bin = False,

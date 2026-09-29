@@ -24,6 +24,7 @@ bundling. Start with [preset setup](getting-started.md).
 | `shell` | Unset | `browser_shell` target |
 | `base_url` / `base_url_env` | Unset | Existing HTTP(S) URL or its environment-variable name |
 | `config` | Generated | Compiled ESM Playwright config |
+| `include_typecheck` | `True` | Include available `transitive_typecheck` outputs in browser test inputs; set `False` when typechecks run as separate Bazel tests |
 | `data` | `[]` | Additional runtime inputs |
 | `env` / `env_inherit` | `{}` / `[]` | Explicit values / inherited names; inheritance is host-only |
 | `network_origins` / `network_origins_env` | `[]` / `[]` | Extra allowed origins / env names containing them; host-only |
@@ -38,9 +39,10 @@ Choose one of `server`, `shell`, `base_url`, or `base_url_env`. Alternatively,
 use a config-only target with `use.baseURL` and optional `webServer`.
 For isolated tests, URLs must be action-local and environment values explicit.
 
-Spec producers must include typechecking, module markers, imports, and generated
-files in their build graph. The rules request available `transitive_typecheck`
-outputs; shell producers must depend on their own typecheck action.
+Spec producers must include module markers, imports, and generated files in their
+build graph. By default, the rules request available `transitive_typecheck`
+outputs; shell producers must depend on their own typecheck action. Set
+`include_typecheck = False` only when typechecks are selected separately in CI.
 
 E2E/component tests accept `--grep`, `--grep-invert`, `--project`, `--shard`,
 declared spec paths, and `--pass-with-no-tests` in `args` or `--test_arg`.

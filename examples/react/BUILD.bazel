@@ -185,6 +185,7 @@ component_visual_test(
 
 component_browser_test(
     name = "component_test",
+    include_typecheck = False,
     browser = "@web_browser//:browser",
     playwright = ":playwright",
     shell = ":component_shell",
