@@ -2,14 +2,13 @@ import path from 'node:path'
 import fs from 'node:fs'
 import {fileURLToPath} from 'node:url'
 import {build} from 'vite'
-import config from './vite.config.js'
+import react from '@vitejs/plugin-react'
 
 const root = fs.realpathSync(fileURLToPath(new URL('.', import.meta.url)))
 await build({
-  ...config,
+  plugins: [react()],
   root,
   resolve: {
-    ...config.resolve,
     preserveSymlinks: true,
     alias: ['react', 'react-dom'].map(name => ({
       find: name,
@@ -24,7 +23,7 @@ await build({
     emptyOutDir: true,
     minify: false,
     rolldownOptions: {
-      input: [path.join(root, 'index.html'), path.join(root, 'gallery.html')],
+      input: [path.join(root, 'gallery.html')],
     },
   },
 })

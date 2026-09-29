@@ -1,0 +1,19 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# CI's root build checks the scripts that Node 24 executes directly.
+ts_project(
+    name = "harness",
+    srcs = glob(["*.ts"]),
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = {"compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "rewriteRelativeImportExtensions": True,
+        "strict": True,
+        "skipLibCheck": True,
+        "types": ["node"],
+    }},
+    deps = ["//:node_modules/@types/node"],
+)

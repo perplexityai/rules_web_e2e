@@ -1,6 +1,5 @@
 import type {ComponentVisualModule} from '@rules-web-e2e/vrt/visual'
 import type {ReactNode} from 'react'
-import {TestShell} from './shell'
 import {useState, type ReactElement} from 'react'
 
 export function Counter({title = 'Counter'}: {title?: string}): ReactElement {
@@ -21,7 +20,7 @@ export function Broken(): never {
 const visualModule: ComponentVisualModule<ReactNode> = {
   id: 'Counter',
   title: 'Counter',
-  renderShell: children => <TestShell>{children}</TestShell>,
+  renderShell: children => <div lang="en" dir="ltr" style={{fontFamily: 'sans-serif'}}>{children}</div>,
   visuals: [
     {
       visualId: 'Default',
@@ -42,4 +41,26 @@ const visualModule: ComponentVisualModule<ReactNode> = {
     },
   ],
 }
-export default visualModule
+
+import {flushSync} from 'react-dom'
+import {createRoot, type Root} from 'react-dom/client'
+import {installVisualGallery} from '@rules-web-e2e/vrt/visual'
+
+let root: Root | undefined
+let renderError: unknown
+installVisualGallery([visualModule], {
+  render(node) {
+    renderError = undefined
+    root ??= createRoot(document.getElementById('root')!, {
+      onUncaughtError(error) {
+        renderError = error
+      },
+    })
+    flushSync(() => root!.render(node))
+    if (renderError) throw renderError
+  },
+  unmount() {
+    root?.unmount()
+    root = undefined
+  },
+})

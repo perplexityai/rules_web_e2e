@@ -30,7 +30,7 @@ jobs:
         run: |
           work="$RUNNER_TEMP/actiond-production"
           ACTIOND_SKIP_WORKER_SOURCE=1 bash e2e-tests/actiond/prepare.sh "$work"
-          node e2e-tests/actiond/prepare-public.mjs "$work"
+          node e2e-tests/run.ts prepare "$work"
       - name: Materialize the published worker supervisor
         run: |
           work="$RUNNER_TEMP/actiond-production"
@@ -51,7 +51,7 @@ jobs:
           ACTIOND_BAZEL: bazelisk
         run: |
           work="$RUNNER_TEMP/actiond-production"
-          "$work/run-web-e2e" --log-dir="$work/supervisor" exec -- bash e2e-tests/actiond/run-public-actiond.sh "$work"
+          "$work/run-web-e2e" --log-dir="$work/supervisor" exec -- node e2e-tests/vm.ts "$work"
       - name: Run the documented React preset example
         working-directory: examples/react
         run: |
