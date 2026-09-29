@@ -14,10 +14,10 @@ From the repository root on a Linux KVM/vsock host:
 
 ```sh
 work=/tmp/rules-web-e2e-consumer
-ACTIOND_SKIP_WORKER_SOURCE=1 bash tests/actiond/prepare.sh "$work"
-node tests/actiond/prepare-public.mjs "$work"
+ACTIOND_SKIP_WORKER_SOURCE=1 bash e2e-tests/actiond/prepare.sh "$work"
+node e2e-tests/actiond/prepare-public.mjs "$work"
 bazelisk run --script_path="$work/run-web-e2e" //worker:runner
-"$work/run-web-e2e" exec -- bash tests/actiond/run-public-actiond.sh "$work"
+"$work/run-web-e2e" exec -- bash e2e-tests/actiond/run-public-actiond.sh "$work"
 ```
 
 The harness runs `bazel test` and `bazel run` inside the copied module with its own
