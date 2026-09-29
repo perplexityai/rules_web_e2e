@@ -8,7 +8,7 @@ import {spawn, execFileSync, type ChildProcess} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
 import {baselineDestination, materializeSnapshots, updateBaselines} from './baselines.js'
-import {removeScratch, testEnvironment} from './isolation.js'
+import {browserTempRoot, removeScratch, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
 import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
 
@@ -32,9 +32,7 @@ async function main() {
         required('VRT_BASELINE_RELATIVE')
       )
     : undefined
-  const temp = fs.mkdtempSync(
-    path.join(process.env.TEST_TMPDIR || os.tmpdir(), 'vrt-')
-  )
+  const temp = fs.realpathSync(fs.mkdtempSync(path.join(browserTempRoot(fs.realpathSync(process.env.TEST_TMPDIR || os.tmpdir())), 'vrt-')))
   const outputs =
     process.env.TEST_UNDECLARED_OUTPUTS_DIR || path.join(temp, 'artifacts')
   fs.mkdirSync(outputs, {recursive: true})
