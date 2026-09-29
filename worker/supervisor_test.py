@@ -33,7 +33,7 @@ class SupervisorTest(unittest.TestCase):
 import json, os, socket, sys, time
 from pathlib import Path
 args = dict(arg[2:].split("=", 1) for arg in sys.argv[2:])
-Path(__file__).with_suffix(".json").write_text(json.dumps({{"pid": os.getpid(), "root": args["root"], "env": dict(os.environ)}}))
+Path(__file__).with_suffix(".json").write_text(json.dumps({{"pid": os.getpid(), "root": args["root"], "memory_mib": args["memory-mib"], "cas_image_size_mib": args["cas-image-size-mib"], "env": dict(os.environ)}}))
 mode = {mode!r}
 if mode == "exit":
     sys.exit(17)
@@ -73,7 +73,7 @@ sys.exit(7)
 '''
         with patch.dict(os.environ, {"SECRET_FOR_TEST": "not-for-worker"}):
             status = supervise(self.worker, checksum,
-                lambda config: [sys.executable, "-c", script, str(output)], self.logs, self.port, 2)
+                lambda config: [sys.executable, "-c", script, str(output)], self.logs, self.port, 2, 12288, 32768)
         self.assertEqual(status, 7)
         result = json.loads(output.read_text())
         self.assertEqual(result["endpoint"], f"grpc://127.0.0.1:{self.port}")
@@ -81,6 +81,8 @@ sys.exit(7)
         self.assertIn("--remote_default_exec_properties=actiond-worker-sha256=" + checksum, result["config"])
         self.assertIn("--remote_local_fallback=false", result["config"])
         self.assertNotIn("SECRET_FOR_TEST", json.loads(self.record.read_text())["env"])
+        self.assertEqual(json.loads(self.record.read_text())["memory_mib"], "12288")
+        self.assertEqual(json.loads(self.record.read_text())["cas_image_size_mib"], "32768")
         self.assert_cleaned()
 
     def test_occupied_port_never_launches_or_adopts_worker(self):
