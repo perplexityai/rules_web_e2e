@@ -26,6 +26,19 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.5.0 (2026-09-29)
+
+## What's Changed
+* fix(vrt): allow empty remote artifact trees by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/61
+* feat: execute caller packages without runfile repair by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/63
+* feat(worker): allow sizing actiond VM and CAS by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/56
+* fix(runtime): bound remote VRT child lifetime by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/57
+* fix(runtime): keep Chromium profile sockets under short temp root by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/58
+* feat(vrt): support real pointer hover before capture by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/59
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.4.3...v3.5.0
+
 ## 3.4.3 (2026-09-29)
 
 ## What's Changed
