@@ -36,6 +36,18 @@ export function stageRunfiles(manifest: string, destination: string): void {
   }
 }
 
+/** Remove staged copies, including directories copied from read-only CAS inputs. */
+export function removeStagedTemp(directory: string): void {
+  const mode = fs.statSync(directory).mode
+  if ((mode & 0o300) !== 0o300) fs.chmodSync(directory, mode | 0o300)
+  for (const entry of fs.readdirSync(directory, {withFileTypes: true})) {
+    const child = path.join(directory, entry.name)
+    if (entry.isDirectory()) removeStagedTemp(child)
+    else fs.unlinkSync(child)
+  }
+  fs.rmdirSync(directory)
+}
+
 /** Caller variables reach fixtures only when explicitly declared by the target. */
 export function testEnvironment(
   source: NodeJS.ProcessEnv,
