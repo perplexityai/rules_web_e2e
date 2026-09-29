@@ -7,7 +7,7 @@ scripts=$(cd "$(dirname "$0")" && pwd)
 cd "$work/public"
 collect() {
   mkdir -p "$work/results/public"
-  for item in __actiond_native__ __actiond_gallery__ __actiond_failed__ __actiond_isolation__ bazel-testlogs/actiond_*_test bazel-bin/actiond_*_test_*.results; do
+  for item in __actiond_native__ __actiond_platform__ __actiond_gallery__ __actiond_failed__ __actiond_isolation__ bazel-testlogs/actiond_*_test bazel-bin/actiond_*_test_*.results; do
     if [[ -e $item ]]; then cp -RL "$item" "$work/results/public/"; fi
   done
 }
@@ -86,6 +86,9 @@ done
 fi
 "${bazel_cmd[@]}" run //:actiond_native_test.update "${flags[@]}"
 "${bazel_cmd[@]}" run //:actiond_gallery_test.update "${flags[@]}"
+"${bazel_cmd[@]}" run //:actiond_platform_test.update "${flags[@]}" --remote_accept_cached=false
+test -s __actiond_platform__/platform.png
+"${bazel_cmd[@]}" test //:actiond_platform_test "${flags[@]}" --remote_accept_cached=false --nocache_test_results --test_output=errors
 test -s __actiond_native__/saved.png
 test -s __actiond_gallery__/counter.png
 "${bazel_cmd[@]}" test //:actiond_native_test //:actiond_gallery_test //:actiond_isolation_test "${flags[@]}" --test_output=errors
