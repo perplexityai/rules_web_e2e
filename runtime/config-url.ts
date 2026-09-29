@@ -2,7 +2,7 @@ import {pathToFileURL} from 'node:url'
 import type {PlaywrightTestConfig} from '@playwright/test'
 import {remoteAppUrl} from './network.js'
 
-// Inspect in the same staged environment used by Playwright. Native webServer
+// Inspect in the same declared environment used by Playwright. Native webServer
 // startup and teardown remain owned by Playwright, including multi-server setups.
 const config = (
   await import(pathToFileURL(process.env.VRT_CONFIG_OVERRIDE!).href)

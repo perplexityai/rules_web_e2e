@@ -15,9 +15,10 @@ below remains available for custom worker operators.
 Pin a compatible actiond worker. The preset uses release **0.0.7** (source
 [`4b767e8`](https://github.com/hermeticbuild/actiond/commit/4b767e852e21c5affa72ea7ebbf4d8a6e5d58136)),
 including its VM kernel. Linux workers require KVM and vhost-vsock.
-Native Bazel tests request the worker's static Bash (`requires-bash`); the rules
-supply [hermetic launcher utilities](../internal/test_tools/README.md).
-No runtime mounts, `input-rootfs`, or `libc` properties are needed.
+Browser actions request `libc=glibc2.39` and `requires-bash`. The worker supplies
+standard ELF interpreter paths and its pinned libc; browser-specific libraries
+and fonts remain declared inputs. Native Bazel tests also use the rules'
+[hermetic launcher utilities](../internal/test_tools/README.md).
 
 With a pinned worker listening on `127.0.0.1:8980`, put this in the consumer's
 Bazel configuration:
@@ -45,11 +46,12 @@ be reused across execution environments. The worker operator owns this identity.
 Use a remote worker address when appropriate. Existing amd64 baselines use an
 amd64 worker. For validated local Apple Silicon execution, see the
 [macOS ARM64 VRT guide](macos-arm64-vrt.md). The validated CI worker uses 6 GiB RAM for at most two
-concurrent actions; size workers for fixture and staging memory as well as
+concurrent actions; size workers for fixture memory as well as
 Chromium. The macOS native VM backend passed the local ARM64 VRT suite;
 CI still uses Linux amd64. Keep VRT's explicit remote strategies and local fallback disabled.
-The bootstrap also rejects ordinary host roots with system shell/loader paths
-before creating temporary runtime launchers.
+The bootstrap also rejects ordinary host roots containing `/bin/sh`; the pinned
+worker supplies `/bin/bash` but no `/bin/sh`. This check is specific to worker
+0.0.7. Changing workers requires revalidating the execution contract.
 
 ```sh
 bazel test --config=vrt //path:visual_test
@@ -75,11 +77,26 @@ commands needed by fixtures. Bazel downloads checksum-pinned packages and browse
 archives before execution; assembly never contacts the network.
 Docker, registry credentials, Testcontainers, and Ryuk are absent from the action.
 
-The declared ELF loader starts the bootstrap. It prepares a private Node/Bash
-launcher in the action's temporary directory, then relocates executable copies
-in the staged inputs. Libraries and fonts use explicit paths. An isolated-browser Node
-preload directs `spawn(..., {shell: true})` to declared Bash, preserving native
-Playwright `webServer` behavior without `/bin/sh`. Host tests do not load it.
+The caller owns compilation, typechecking, bundling, executable permissions, and
+its complete dependency layout. Native tests use Bazel's runfile tree directly.
+VRT build actions map logical runfile names to declared artifacts with symlinks;
+they do not copy packages, repair npm links, scan executables, or rewrite ELF
+interpreters and shebangs. Missing required dependencies fail at the caller's
+import or launch. Unused platform artifacts are not inspected.
+
+Node and Chromium run unchanged using the worker's glibc 2.39. Worker libc paths
+precede caller library paths so the loader and libc remain paired. Executables
+must target this Linux ABI. The current worker's `/usr/bin/env` supports only
+`bash` and `sh`, and `/bin/sh` is absent: use `/bin/bash` or explicit declared
+executables. A TypeScript preload adapts Node's `spawn(..., {shell: true})` to
+`/bin/bash` for Playwright `webServer`. It does not rewrite caller files. Removing
+this adapter requires an upstream worker with standard shell/env support.
+
+Generated Playwright configuration, caches, and working snapshots live in private
+scratch directories. An explicit `playwright_runtime` must reference the same
+physical test/core packages used by the caller's specs and config. When omitted,
+the runner selects the package resolved by the first spec/config and checks that
+all modules agree. It never replaces a dependency to force agreement.
 
 The action has loopback-only networking. Start fixture services inside it using
 `server` or native Playwright `webServer`, and declare their files in `data`.

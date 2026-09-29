@@ -10,6 +10,13 @@ export interface BrowserRuntime {
   arch: 'x64' | 'arm64'
 }
 
+// actiond mounts its checksum-pinned glibc 2.39 at standard ELF paths. Prefer
+// those libraries to any libc bundled with the browser, so loader and libc match.
+export const workerLibraryPath = [
+  '/lib/x86_64-linux-gnu', '/lib/aarch64-linux-gnu', '/lib64', '/lib',
+  '/usr/lib/x86_64-linux-gnu', '/usr/lib/aarch64-linux-gnu', '/usr/lib',
+].join(path.delimiter)
+
 /** Resolve only declared runtime files; never fall back to a host browser. */
 export function browserRuntime(inputs: string, runtime: BrowserRuntime) {
   if (process.platform !== 'linux' || process.arch !== runtime.arch)
@@ -27,7 +34,7 @@ export function browserRuntime(inputs: string, runtime: BrowserRuntime) {
     node: resolve(runtime.node),
     env: {
       VRT_CHROMIUM_EXECUTABLE: resolve(runtime.executable),
-      LD_LIBRARY_PATH: runtime.libraryDirs.map(resolve).join(path.delimiter),
+      LD_LIBRARY_PATH: workerLibraryPath + path.delimiter + runtime.libraryDirs.map(resolve).join(path.delimiter),
       FONTCONFIG_PATH: resolve(runtime.fontconfig),
     },
   }

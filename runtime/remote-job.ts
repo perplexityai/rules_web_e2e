@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {spawnSync} from 'node:child_process'
+import {linkRunfiles} from './isolation.js'
 
 export interface RemoteJob {
   runfiles: Record<string, string>
@@ -18,11 +19,10 @@ export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.P
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-action-'))
   const artifacts = job.mode === 'test' ? output : path.join(output, 'artifacts')
   fs.mkdirSync(artifacts, {recursive: true})
-  const escape = (value: string) => value.replaceAll('\\', '\\b').replaceAll(' ', '\\s').replaceAll('\n', '\\n')
-  const manifest = path.join(temp, 'MANIFEST')
-  fs.writeFileSync(manifest, Object.entries(job.runfiles).map(([name, source]) =>
-    ` ${escape(name)} ${escape(path.resolve(source))}\n`
-  ).join(''))
+  // Native tests already have Bazel's runfile tree. Build actions only need a
+  // logical-name mapping; packages remain at their declared execution paths.
+  const runfiles = job.mode === 'test' ? process.env.TEST_SRCDIR! : path.join(temp, 'runfiles')
+  if (job.mode !== 'test') linkRunfiles(job.runfiles, runfiles)
   const result = spawnSync(node, [
     path.resolve(job.runner), ...job.args, ...(job.mode === 'capture' ? ['--update'] : []),
   ], {
@@ -30,8 +30,8 @@ export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.P
       ...process.env,
       ...job.env,
       ...environment,
-      RUNFILES_DIR: temp,
-      RUNFILES_MANIFEST_FILE: manifest,
+      RUNFILES_DIR: runfiles,
+      RUNFILES_MANIFEST_FILE: '',
       JS_BINARY__NODE_BINARY: node,
       TEST_TMPDIR: temp,
       TEST_UNDECLARED_OUTPUTS_DIR: artifacts,

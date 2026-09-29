@@ -19,7 +19,7 @@ def _capture_impl(ctx):
     env = analysistest.begin(ctx)
     actions = [action for action in analysistest.target_actions(env) if action.mnemonic == "VrtCapture"]
     asserts.equals(env, 1, len(actions))
-    asserts.true(env, actions[0].argv[0].endswith(ctx.attr.loader))
+    asserts.true(env, actions[0].argv[0].endswith("/node"))
     return analysistest.end(env)
 
 capture_test = analysistest.make(

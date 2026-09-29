@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
-import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
+import {browserRuntime, workerLibraryPath, type BrowserRuntime} from './browser-runtime.js'
 
 test('declared browser resolution refuses host fallback and escaping files', {
   skip: process.platform !== 'linux',
@@ -22,7 +22,7 @@ test('declared browser resolution refuses host fallback and escaping files', {
       node: path.join(root, 'node'),
       env: {
         VRT_CHROMIUM_EXECUTABLE: path.join(root, 'chrome'),
-        LD_LIBRARY_PATH: path.join(root, 'lib'),
+        LD_LIBRARY_PATH: workerLibraryPath + path.delimiter + path.join(root, 'lib'),
         FONTCONFIG_PATH: path.join(root, 'fonts'),
       },
     })

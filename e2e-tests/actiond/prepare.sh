@@ -12,8 +12,8 @@ mkdir -p "$work/actiond"
 if [[ ${ACTIOND_SKIP_WORKER_SOURCE:-0} != 1 ]]; then
   (
     cd "$repository"
-    "$bazel_bin" build //tests/actiond:worker_source
-    archive=$("$bazel_bin" cquery //tests/actiond:worker_source --output=files)
+    "$bazel_bin" build //e2e-tests/actiond:worker_source
+    archive=$("$bazel_bin" cquery //e2e-tests/actiond:worker_source --output=files)
     execution_root=$("$bazel_bin" info execution_root)
     tar -xf "$execution_root/$archive" --strip-components=1 -C "$work/actiond"
   )

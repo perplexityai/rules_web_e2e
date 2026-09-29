@@ -32,6 +32,15 @@ linux_platform = rule(
     },
 )
 
+# Prefer worker glibc to bundled libc so its loader and libraries stay paired.
+_WORKER_LIBRARIES = ":".join([
+    "/lib/x86_64-linux-gnu", "/lib/aarch64-linux-gnu", "/lib64", "/lib",
+    "/usr/lib/x86_64-linux-gnu", "/usr/lib/aarch64-linux-gnu", "/usr/lib",
+])
+
+def _library_path(root, descriptor):
+    return _WORKER_LIBRARIES + ":" + ":".join([root + "/" + p for p in descriptor["libraryDirs"]])
+
 def _native_test(ctx, root, descriptor, files, job):
     executable = ctx.actions.declare_file(ctx.label.name)
     setup = ctx.actions.declare_file(ctx.label.name + ".bash-env")
@@ -41,7 +50,6 @@ def _native_test(ctx, root, descriptor, files, job):
     # its pinned static shell; BASH_ENV supplies the wrapper's declared tools.
     ctx.actions.write(setup, "\n".join([
         "unset BASH_ENV",
-        'if [[ -e /bin/sh || -e /lib64/ld-linux-x86-64.so.2 ]]; then echo "Browser tests require isolated actiond execution" >&2; exit 1; fi',
         'case "$TEST_SRCDIR" in /*) ;; *) export TEST_SRCDIR="$PWD/$TEST_SRCDIR" ;; esac',
         'source "$TEST_SRCDIR/%s"' % runfile(tools.shell_setup),
     ]) + "\n")
@@ -49,9 +57,8 @@ def _native_test(ctx, root, descriptor, files, job):
         "#!/bin/bash",
         "set -euo pipefail",
         'root="$TEST_SRCDIR/%s"' % runfile(root),
-        'exec "$root/%s" --library-path "%s" "$root/%s" "$TEST_SRCDIR/%s" "$TEST_SRCDIR/%s" "$@"' % (
-            descriptor["loader"],
-            ":".join(["$root/" + p for p in descriptor["libraryDirs"]]),
+        'export LD_LIBRARY_PATH="%s"' % _library_path("$root", descriptor),
+        'exec "$root/%s" "$TEST_SRCDIR/%s" "$TEST_SRCDIR/%s" "$@"' % (
             descriptor["node"],
             runfile(ctx.file._bootstrap),
             runfile(job),
@@ -100,7 +107,7 @@ def _remote_impl(ctx):
     env["VRT_DESCRIPTOR"] = runfile(ctx.file.inputs)
     job = ctx.actions.declare_file(ctx.label.name + ".job.json")
     ctx.actions.write(job, json.encode({
-        "runfiles": {key: key for key in manifest} if native_test else manifest,
+        "runfiles": {} if native_test else manifest,
         "runner": runfile(ctx.file._runner) if native_test else ctx.file._runner.path,
         "env": env,
         "args": [] if native_test else [ctx.expand_location(value, targets = locations) for value in ctx.attr.args],
@@ -112,17 +119,15 @@ def _remote_impl(ctx):
     if native_test:
         return _native_test(ctx, root, descriptor, files, job)
     ctx.actions.run(
-        executable = root.path + "/" + descriptor["loader"],
+        executable = root.path + "/" + descriptor["node"],
         arguments = [
-            "--library-path",
-            ":".join([root.path + "/" + p for p in descriptor["libraryDirs"]]),
-            root.path + "/" + descriptor["node"],
             ctx.file._bootstrap.path,
             job.path,
         ],
         inputs = depset(files + [root, job, ctx.file._bootstrap]),
         outputs = [output],
         env = {
+            "LD_LIBRARY_PATH": _library_path(root.path, descriptor),
             "HOME": "/tmp",
             "TMPDIR": "/tmp",
             "LANG": "C.UTF-8",
@@ -179,7 +184,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             data = data,
             target_platform = target_platform,
             target_arch = target_arch,
-            exec_properties = {"requires-bash": ""},
+            exec_properties = {"libc": "glibc2.39", "requires-bash": ""},
             exec_compatible_with = constraints,
             tags = ["manual", "browser_test"] + tags,
             timeout = timeout,
@@ -199,6 +204,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             target_platform = target_platform,
             target_arch = target_arch,
             exec_compatible_with = constraints,
+            exec_properties = {"libc": "glibc2.39", "requires-bash": ""},
             tags = ["manual"],
         )
         common = dict(

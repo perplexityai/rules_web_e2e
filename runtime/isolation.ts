@@ -1,48 +1,31 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-/** Materialize exactly the runfiles manifest, preserving npm's internal links. */
-export function stageRunfiles(manifest: string, destination: string): void {
-  const decode = (value: string) =>
-    value.replace(
-      /\\([snb])/g,
-      (_, code: string) => ({s: ' ', n: '\n', b: '\\'})[code]!
-    )
-  for (let line of fs.readFileSync(manifest, 'utf8').split('\n')) {
-    if (!line) continue
-    const escaped = line.startsWith(' ')
-    if (escaped) line = line.slice(1)
-    const separator = line.indexOf(' ')
-    const name = escaped
-      ? decode(line.slice(0, separator))
-      : line.slice(0, separator)
-    const source = escaped
-      ? decode(line.slice(separator + 1))
-      : line.slice(separator + 1)
+/** Map logical names to declared artifacts without copying or repairing packages. */
+export function linkRunfiles(files: Record<string, string>, destination: string): void {
+  destination = path.resolve(destination)
+  fs.mkdirSync(destination, {recursive: true})
+  for (const [name, source] of Object.entries(files)) {
     const target = path.resolve(destination, name)
     if (!target.startsWith(destination + path.sep))
       throw new Error(`Invalid runfile: ${name}`)
+    // Never create entries through a link into a caller-owned directory.
+    for (let parent = path.dirname(target); parent !== destination; parent = path.dirname(parent)) {
+      if (fs.existsSync(parent) && fs.lstatSync(parent).isSymbolicLink())
+        throw new Error(`Overlapping runfile declarations: ${name}`)
+    }
     fs.mkdirSync(path.dirname(target), {recursive: true})
-    if (!source) fs.writeFileSync(target, '')
-    else if (!path.isAbsolute(source)) {
-      if (
-        !path
-          .resolve(path.dirname(target), source)
-          .startsWith(destination + path.sep)
-      )
-        throw new Error(`Runfile link escapes staged inputs: ${name}`)
-      fs.symlinkSync(source, target)
-    } else fs.cpSync(source, target, {recursive: true, dereference: true})
+    fs.symlinkSync(path.resolve(source), target)
   }
 }
 
-/** Remove staged copies, including directories copied from read-only CAS inputs. */
-export function removeStagedTemp(directory: string): void {
+/** Remove private scratch space without following links into declared inputs. */
+export function removeScratch(directory: string): void {
   const mode = fs.statSync(directory).mode
   if ((mode & 0o300) !== 0o300) fs.chmodSync(directory, mode | 0o300)
   for (const entry of fs.readdirSync(directory, {withFileTypes: true})) {
     const child = path.join(directory, entry.name)
-    if (entry.isDirectory()) removeStagedTemp(child)
+    if (entry.isDirectory()) removeScratch(child)
     else fs.unlinkSync(child)
   }
   fs.rmdirSync(directory)

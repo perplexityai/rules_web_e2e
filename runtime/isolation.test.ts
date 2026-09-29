@@ -3,9 +3,9 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
-import {removeStagedTemp, stageRunfiles, testEnvironment} from './isolation.js'
+import {removeScratch, linkRunfiles, testEnvironment} from './isolation.js'
 
-test('staging excludes adjacent files and preserves a single npm package identity', t => {
+test('runfile mapping preserves declared artifact identity and excludes adjacent files', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-staging-'))
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))
   const source = path.join(root, 'bin')
@@ -17,16 +17,11 @@ test('staging excludes adjacent files and preserves a single npm package identit
     path.join(source, 'package', 'index.js'),
     'module.exports = {}'
   )
-  const manifest = path.join(root, 'MANIFEST')
-  fs.writeFileSync(
-    manifest,
-    [
-      `_main/config.ts ${source}/config.ts`,
-      `_main/node_modules/.store/pkg ${source}/package`,
-      '_main/node_modules/pkg .store/pkg',
-    ].join('\n')
-  )
-  stageRunfiles(manifest, staged)
+  linkRunfiles({
+    '_main/config.ts': `${source}/config.ts`,
+    '_main/node_modules/.store/pkg': `${source}/package`,
+    '_main/node_modules/pkg': `${source}/package`,
+  }, staged)
   assert.equal(
     fs.readFileSync(path.join(staged, '_main/config.ts'), 'utf8'),
     'declared'
@@ -39,7 +34,7 @@ test('staging excludes adjacent files and preserves a single npm package identit
   fs.writeFileSync(path.join(source, 'config.ts'), 'changed after staging')
   assert.equal(
     fs.readFileSync(path.join(staged, '_main/config.ts'), 'utf8'),
-    'declared'
+    'changed after staging'
   )
 })
 
@@ -76,7 +71,7 @@ test('cleanup removes staged read-only directories without following links', t =
   fs.chmodSync(staged, 0o555)
   fs.chmodSync(path.dirname(staged), 0o555)
 
-  removeStagedTemp(temp)
+  removeScratch(temp)
 
   assert.equal(fs.existsSync(temp), false)
   assert.equal(fs.readFileSync(external, 'utf8'), 'keep')

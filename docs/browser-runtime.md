@@ -95,10 +95,11 @@ link targets are errors, so runtime packaging cannot silently borrow host files.
 Font configuration must use paths relative to its configuration file, rather
 than absolute system or build-machine paths.
 
-The declared loader starts execution. The runner stages private executable copies
-and redirects supported shell/Node launchers to declared tools. Other hardcoded
-system paths or complex shebangs need caller wrappers; arbitrary binaries are not
-automatically relocatable. See [execution details](actiond.md).
+Execution uses the pinned worker's glibc 2.39 and standard ELF interpreter paths.
+The runner executes declared Node/Chromium and caller programs unchanged; it does
+not repair executable layouts. The legacy `loader` and `bash` descriptor fields
+remain accepted for source compatibility, but execution no longer uses them.
+See [execution details and shell limitations](actiond.md).
 
 By default, VRT inputs are configured for Linux amd64 even when the Bazel client runs on
 macOS. A caller with additional native toolchain constraints can set
