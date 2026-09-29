@@ -107,7 +107,7 @@ def _remote_impl(ctx):
     env["VRT_DESCRIPTOR"] = runfile(ctx.file.inputs)
     job = ctx.actions.declare_file(ctx.label.name + ".job.json")
     ctx.actions.write(job, json.encode({
-        "runfiles": {key: key for key in manifest} if native_test else manifest,
+        "runfiles": {} if native_test else manifest,
         "runner": runfile(ctx.file._runner) if native_test else ctx.file._runner.path,
         "env": env,
         "args": [] if native_test else [ctx.expand_location(value, targets = locations) for value in ctx.attr.args],

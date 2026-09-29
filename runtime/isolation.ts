@@ -1,24 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-/** Map logical runfile names to declared artifacts without copying or repairing packages. */
-export function linkRunfiles(manifest: string, destination: string): void {
-  const decode = (value: string) =>
-    value.replace(
-      /\\([snb])/g,
-      (_, code: string) => ({s: ' ', n: '\n', b: '\\'})[code]!
-    )
-  for (let line of fs.readFileSync(manifest, 'utf8').split('\n')) {
-    if (!line) continue
-    const escaped = line.startsWith(' ')
-    if (escaped) line = line.slice(1)
-    const separator = line.indexOf(' ')
-    const name = escaped
-      ? decode(line.slice(0, separator))
-      : line.slice(0, separator)
-    const source = escaped
-      ? decode(line.slice(separator + 1))
-      : line.slice(separator + 1)
+/** Map logical names to declared artifacts without copying or repairing packages. */
+export function linkRunfiles(files: Record<string, string>, destination: string): void {
+  destination = path.resolve(destination)
+  fs.mkdirSync(destination, {recursive: true})
+  for (const [name, source] of Object.entries(files)) {
     const target = path.resolve(destination, name)
     if (!target.startsWith(destination + path.sep))
       throw new Error(`Invalid runfile: ${name}`)
@@ -28,16 +15,7 @@ export function linkRunfiles(manifest: string, destination: string): void {
         throw new Error(`Overlapping runfile declarations: ${name}`)
     }
     fs.mkdirSync(path.dirname(target), {recursive: true})
-    if (!source) fs.writeFileSync(target, '')
-    else if (!path.isAbsolute(source)) {
-      if (
-        !path
-          .resolve(path.dirname(target), source)
-          .startsWith(destination + path.sep)
-      )
-        throw new Error(`Runfile link escapes staged inputs: ${name}`)
-      fs.symlinkSync(source, target)
-    } else fs.symlinkSync(source, target)
+    fs.symlinkSync(path.resolve(source), target)
   }
 }
 

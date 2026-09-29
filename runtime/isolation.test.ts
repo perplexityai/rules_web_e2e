@@ -17,16 +17,11 @@ test('runfile mapping preserves declared artifact identity and excludes adjacent
     path.join(source, 'package', 'index.js'),
     'module.exports = {}'
   )
-  const manifest = path.join(root, 'MANIFEST')
-  fs.writeFileSync(
-    manifest,
-    [
-      `_main/config.ts ${source}/config.ts`,
-      `_main/node_modules/.store/pkg ${source}/package`,
-      '_main/node_modules/pkg .store/pkg',
-    ].join('\n')
-  )
-  linkRunfiles(manifest, staged)
+  linkRunfiles({
+    '_main/config.ts': `${source}/config.ts`,
+    '_main/node_modules/.store/pkg': `${source}/package`,
+    '_main/node_modules/pkg': `${source}/package`,
+  }, staged)
   assert.equal(
     fs.readFileSync(path.join(staged, '_main/config.ts'), 'utf8'),
     'declared'

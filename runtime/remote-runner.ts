@@ -10,7 +10,6 @@ if (job.mode === 'test') {
   const runfiles = process.env.TEST_SRCDIR
   const output = process.env.TEST_UNDECLARED_OUTPUTS_DIR
   if (!runfiles || !output) throw new Error('Browser tests must run through bazel test')
-  job.runfiles = Object.fromEntries(Object.entries(job.runfiles).map(([name, file]) => [name, path.join(runfiles, file)]))
   job.runner = path.join(runfiles, job.runner)
   job.runtime.path = path.join(runfiles, job.runtime.path)
   job.output = output

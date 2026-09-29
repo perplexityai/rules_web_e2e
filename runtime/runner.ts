@@ -57,7 +57,7 @@ async function main() {
   }
   const testFiles = descriptor.tests.map(name => fs.realpathSync(input(name)))
   let discoveryRoot = testFiles.length ? path.dirname(testFiles[0]) : inputs
-  while (testFiles.some(file => !file.startsWith(discoveryRoot + path.sep)))
+  while (testFiles.some(file => path.relative(discoveryRoot, file).split(path.sep)[0] === '..'))
     discoveryRoot = path.dirname(discoveryRoot)
   const selectors = testArguments(visual, args, descriptor.tests)
   if (visual && !descriptor.browser) throw new Error("VRT requires a declared browser runtime")
@@ -146,16 +146,20 @@ async function main() {
   fs.mkdirSync(baselines)
   if (!update && baselineInputs && fs.existsSync(baselineInputs))
     fs.cpSync(baselineInputs, baselines, {recursive: true, dereference: true})
+  const fixtureEnv = testEnvironment(
+    process.env,
+    [...JSON.parse(required('VRT_ENV_NAMES')) as string[], 'TEST_RUN_NUMBER', 'TEST_RANDOM_SEED'],
+    temp
+  )
   const env = {
-    ...testEnvironment(
-      process.env,
-      [...JSON.parse(required('VRT_ENV_NAMES')) as string[], 'TEST_RUN_NUMBER', 'TEST_RANDOM_SEED'],
-      temp
-    ),
+    ...fixtureEnv,
     ...hostEnv,
     ...declaredBrowser?.env,
     ...(declaredBrowser ? {
-      NODE_OPTIONS: `--import=${JSON.stringify(fileURLToPath(new URL('./process-shell.js', import.meta.url)))}`,
+      NODE_OPTIONS: [
+        fixtureEnv.NODE_OPTIONS || '',
+        `--import=${JSON.stringify(fileURLToPath(new URL('./process-shell.js', import.meta.url)))}`,
+      ].filter(Boolean).join(' '),
     } : {}),
     VRT_INPUTS: inputs,
     VRT_PLAYWRIGHT_CORE: core,
