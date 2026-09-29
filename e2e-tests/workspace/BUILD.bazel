@@ -334,3 +334,15 @@ web_e2e_test(
     data = [":caller_package", "package-tool.sh", "unused-elf32"],
     env = {"REQUIRE_MISSING_PACKAGE": "1"},
 )
+
+js_library(
+    name = "actiond_capacity_specs",
+    srcs = ["actiond-capacity.spec.js"],
+    deps = [":typecheck_project"],
+)
+web_e2e_test(
+    name = "actiond_capacity_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_capacity_specs",
+)

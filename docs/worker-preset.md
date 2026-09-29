@@ -28,6 +28,9 @@ The worker host must be Linux amd64 with readable/writable `/dev/kvm` and
 changes device permissions or provisions a machine. `doctor` checks the platform,
 devices, and executable checksum; only an actual test validates VM startup and
 execution. Missing prerequisites fail with an actionable error, without host fallback.
+For large VRT buckets, pass `--memory-mib=12288 --cas-image-size-mib=32768`
+before the operation and reserve enough host memory and disk for the guest,
+Bazel, and CAS. The defaults remain 6144 MiB of memory and 4096 MiB of CAS.
 
 ## CI buckets
 

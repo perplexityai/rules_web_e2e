@@ -64,7 +64,7 @@ def stop(process):
     process.wait()
 
 
-def supervise(worker, worker_sha256, command, log_dir, port=8980, startup_timeout=90):
+def supervise(worker, worker_sha256, command, log_dir, port=8980, startup_timeout=90, memory_mib=6144, cas_image_size_mib=4096):
     # Refuse to attach to an existing listener, including another supervisor.
     with socket.socket() as probe:
         # Match actiond: TIME_WAIT is reusable, but an active listener is not.
@@ -87,7 +87,7 @@ def supervise(worker, worker_sha256, command, log_dir, port=8980, startup_timeou
             try:
                 worker_process = subprocess.Popen([
                     str(worker), "serve-vm", f"--root={state}/vm", f"--listen=127.0.0.1:{port}",
-                    "--memory-mib=6144", "--cpus=2", "--cas-image-size-mib=4096",
+                    f"--memory-mib={memory_mib}", "--cpus=2", f"--cas-image-size-mib={cas_image_size_mib}",
                 ], stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
                     env={"PATH": os.defpath, "HOME": state, "TMPDIR": state})
                 deadline = time.monotonic() + startup_timeout
@@ -130,6 +130,8 @@ def main():
     parser.add_argument("--port", type=int, default=8980)
     parser.add_argument("--log-dir", type=Path, default=Path(".web-e2e/logs"))
     parser.add_argument("--startup-timeout", type=float, default=90)
+    parser.add_argument("--memory-mib", type=int, default=6144, help="actiond guest memory in MiB")
+    parser.add_argument("--cas-image-size-mib", type=int, default=4096, help="actiond guest CAS image size in MiB")
     parser.add_argument("operation", choices=["doctor", "build", "test", "run", "exec"])
     parser.add_argument("arguments", nargs=argparse.REMAINDER)
     args = parser.parse_args()
@@ -145,8 +147,8 @@ def main():
         if args.operation == "doctor":
             print(f"Linux amd64 devices and actiond {manifest['version']} checksum verified; run a browser test to validate VM startup")
             return
-        if not 1 <= args.port <= 65535 or args.startup_timeout <= 0:
-            raise RuntimeError("port must be 1..65535 and startup timeout must be positive")
+        if not 1 <= args.port <= 65535 or args.startup_timeout <= 0 or args.memory_mib <= 0 or args.cas_image_size_mib <= 0:
+            raise RuntimeError("port must be 1..65535, startup timeout, guest memory, and CAS image size must be positive")
         arguments = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments
         if not arguments:
             raise RuntimeError("Supply explicit targets or an exec command")
@@ -154,6 +156,6 @@ def main():
             command = lambda config: arguments
         else:
             command = lambda config: [args.bazel, "--noblock_for_lock", f"--bazelrc={config}", args.operation, "--config=web-e2e", *arguments]
-        sys.exit(supervise(worker, manifest["sha256"], command, args.log_dir, args.port, args.startup_timeout))
+        sys.exit(supervise(worker, manifest["sha256"], command, args.log_dir, args.port, args.startup_timeout, args.memory_mib, args.cas_image_size_mib))
     except (OSError, RuntimeError) as error:
         parser.exit(1, f"{error}\n")

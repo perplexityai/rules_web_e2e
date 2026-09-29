@@ -40,3 +40,5 @@ and carries an unused foreign ELF. The VM suite captures and compares its page.
 
 The two shell scripts under `actiond/` only provision the Linux runtime and macOS
 worker; browser assertions and process supervision are TypeScript.
+
+The Linux VM workflow also runs `capacity.ts` under a second supervisor with 8192 MiB RAM and an 8192 MiB CAS disk. It verifies the actual disk size, guest-visible memory, and a browser screenshot.
