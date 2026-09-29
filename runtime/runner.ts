@@ -8,7 +8,7 @@ import {spawn, execFileSync, type ChildProcess} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
 import {baselineDestination, updateBaselines} from './baselines.js'
-import {stageRunfiles, testEnvironment} from './isolation.js'
+import {removeStagedTemp, stageRunfiles, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
 import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
 import {relocateInputs, runtimeDirectory} from './relocation.js'
@@ -347,7 +347,7 @@ async function main() {
       )
     )
     if (interrupted) process.exitCode = 143
-    if (succeeded) fs.rmSync(temp, {recursive: true, force: true})
+    if (succeeded) removeStagedTemp(temp)
     process.removeListener('SIGTERM', onSignal)
     process.removeListener('SIGINT', onSignal)
   }
