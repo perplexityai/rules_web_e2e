@@ -169,6 +169,9 @@ def browser_test(
         entry_point = Label("//runtime:runner_entry"),
         data = [":" + name + "_inputs", Label("//runtime:files")] + data,
         env = env | {
+            # Nested js_binary callers may export this flag even when our
+            # patch_node_fs attribute is false. Resolve real artifacts consistently.
+            "JS_BINARY__PATCH_NODE_FS": "0",
             "VRT_DESCRIPTOR": "$(rlocationpath :%s_inputs)" % name,
             "VRT_BASE_URL": base_url or "",
             "VRT_BASE_URL_ENV": base_url_env or "",
