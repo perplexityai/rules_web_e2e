@@ -70,6 +70,24 @@ test('staging preserves nested npm links so packages resolve declared dependenci
   assert.equal(createRequire(path.join(staged, '_main/node_modules/.store/package/node_modules/package/index.js'))('./index.js'), 'declared')
 })
 
+test('staging copies relative links that would escape staged inputs', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-external-link-'))
+  t.after(() => fs.rmSync(root, {recursive: true, force: true}))
+  const source = path.join(root, 'one/two/package')
+  const staged = path.join(root, 'inputs')
+  fs.mkdirSync(source, {recursive: true})
+  fs.writeFileSync(path.join(root, 'dependency.js'), 'module.exports = "declared"')
+  fs.symlinkSync('../../../dependency.js', path.join(source, 'dependency.js'))
+  const manifest = path.join(root, 'MANIFEST')
+  fs.writeFileSync(manifest, `_main/package/dependency.js ${source}/dependency.js\n`)
+
+  stageRunfiles(manifest, staged)
+
+  const dependency = path.join(staged, '_main/package/dependency.js')
+  assert.equal(fs.lstatSync(dependency).isSymbolicLink(), false)
+  assert.equal(fs.readFileSync(dependency, 'utf8'), 'module.exports = "declared"')
+})
+
 test('undeclared shell variables cannot change compare versus update', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-env-'))
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))
