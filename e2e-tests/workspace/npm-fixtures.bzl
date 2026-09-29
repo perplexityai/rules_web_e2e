@@ -3,14 +3,16 @@
 def _impl(ctx):
     packages = []
     for name, source in [("app", ctx.file.app), ("middle", ctx.file.middle), ("leaf", ctx.file.leaf)]:
-        directory = ctx.actions.declare_directory("npm-fixture/.store/%s/node_modules/%s" % (name, name))
+        index = ctx.actions.declare_file("npm-fixture/.store/%s/node_modules/%s/index.js" % (name, name))
         ctx.actions.run_shell(
             inputs = [source],
-            outputs = [directory],
-            arguments = [directory.path, source.path],
-            command = "mkdir -p \"$1\"; cp \"$2\" \"$1/index.js\"; ln -s index.js \"$1/linked.js\"",
+            outputs = [index],
+            arguments = [source.path, index.path],
+            command = "cp \"$1\" \"$2\"",
         )
-        packages.append(directory)
+        linked = ctx.actions.declare_symlink("npm-fixture/.store/%s/node_modules/%s/linked.js" % (name, name))
+        ctx.actions.symlink(output = linked, target_path = "index.js")
+        packages.extend([index, linked])
     links = []
     for owner, dependency in [("app", "middle"), ("middle", "leaf")]:
         link = ctx.actions.declare_symlink("npm-fixture/.store/%s/node_modules/%s" % (owner, dependency))

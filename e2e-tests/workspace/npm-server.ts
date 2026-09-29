@@ -11,10 +11,11 @@ const start: ServerAdapter = async ({inputs, host}) => {
   assert.equal(fs.readFileSync(tool, 'utf8').split('\n')[0], '#!/bin/bash')
   assert.equal(execFileSync(tool, {encoding: 'utf8'}), 'caller executable reached')
   const root = path.join(inputs, '_main/npm-fixture')
-  const require = createRequire(path.join(root, '.store/app/node_modules/app/index.js'))
+  const entry = fs.realpathSync(path.join(root, '.store/app/node_modules/app/index.js'))
+  const require = createRequire(entry)
   // Packaging is observable: retain the caller's link and module identity.
-  assert.equal(fs.readlinkSync(path.join(root, '.store/app/node_modules/app/linked.js')), 'index.js')
-  assert.equal(fs.readlinkSync(path.join(root, '.store/app/node_modules/middle')),
+  assert.equal(fs.readlinkSync(path.join(path.dirname(entry), 'linked.js')), 'index.js')
+  assert.equal(fs.readlinkSync(path.join(path.dirname(entry), '../middle')),
     '../../middle/node_modules/middle')
   assert.equal(fs.lstatSync(path.join(root, 'optional-platform')).isSymbolicLink(), true)
   assert.equal(fs.existsSync(path.join(root, 'optional-platform')), false)
