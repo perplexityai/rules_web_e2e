@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
-import {removeScratch, linkRunfiles, testEnvironment} from './isolation.js'
+import {browserTempRoot, removeScratch, linkRunfiles, testEnvironment} from './isolation.js'
 
 test('runfile mapping preserves declared artifact identity and excludes adjacent files', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-staging-'))
@@ -75,4 +75,10 @@ test('cleanup removes staged read-only directories without following links', t =
 
   assert.equal(fs.existsSync(temp), false)
   assert.equal(fs.readFileSync(external, 'utf8'), 'keep')
+})
+
+test('browser temp root stays below Chromium socket path limits', () => {
+  assert.equal(browserTempRoot('/short/tmp', 'linux'), '/short/tmp')
+  assert.equal(browserTempRoot('/deep/bazel/workspace/' + 'nested/'.repeat(8), 'linux'), '/tmp')
+  assert.equal(browserTempRoot('/deep/bazel/workspace/' + 'nested/'.repeat(8), 'win32'), '/deep/bazel/workspace/' + 'nested/'.repeat(8))
 })

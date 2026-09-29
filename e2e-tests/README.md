@@ -44,3 +44,5 @@ worker; browser assertions and process supervision are TypeScript.
 The Linux VM workflow also runs `capacity.ts` under a second supervisor with 8192 MiB RAM and an 8192 MiB CAS disk. It verifies the actual disk size, guest-visible memory, and a browser screenshot.
 
 The VM suite also freezes the runner after a real screenshot and verifies the parent deadline, downloaded evidence, untouched baselines, and an uncached recovery run.
+
+Host CI also runs `temp-paths.ts` with deep and symlinked temp roots, checking real Chromium screenshots and scratch cleanup.

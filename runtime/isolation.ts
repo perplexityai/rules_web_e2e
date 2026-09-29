@@ -1,6 +1,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+/** Chromium's profile socket exceeds the Unix path limit under deep Bazel temp roots. */
+export function browserTempRoot(requested: string, platform = process.platform): string {
+  return platform !== 'win32' && Buffer.byteLength(requested) > 40
+    ? '/tmp'
+    : requested
+}
+
 /** Map logical names to declared artifacts without copying or repairing packages. */
 export function linkRunfiles(files: Record<string, string>, destination: string): void {
   destination = path.resolve(destination)

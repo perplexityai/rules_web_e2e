@@ -363,3 +363,22 @@ visual_test(
     env = {"NODE_OPTIONS": "--import=./$(execpath deadline-preload.js)"},
     execution_timeout_seconds = 15,
 )
+
+js_library(
+    name = "temp_path_specs",
+    srcs = ["temp-path.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+js_library(
+    name = "temp_path_config",
+    srcs = ["temp-path.config.js"],
+    data = ["package.json"],
+    deps = [":typecheck_project"],
+)
+
+web_e2e_test(
+    name = "host_temp_path_test",
+    config = ":temp_path_config",
+    tests = ":temp_path_specs",
+)
