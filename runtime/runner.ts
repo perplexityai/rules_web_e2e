@@ -7,7 +7,7 @@ import {validatePlaywrightVersions, validateChromiumVersion} from './versions.js
 import {spawn, execFileSync, type ChildProcess} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
-import {baselineDestination, updateBaselines} from './baselines.js'
+import {baselineDestination, materializeSnapshots, updateBaselines} from './baselines.js'
 import {removeScratch, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
 import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
@@ -145,7 +145,7 @@ async function main() {
   const baselines = path.join(temp, 'baselines')
   fs.mkdirSync(baselines)
   if (!update && baselineInputs && fs.existsSync(baselineInputs))
-    fs.cpSync(baselineInputs, baselines, {recursive: true, dereference: true})
+    materializeSnapshots(baselineInputs, baselines)
   const fixtureEnv = testEnvironment(
     process.env,
     [...JSON.parse(required('VRT_ENV_NAMES')) as string[], 'TEST_RUN_NUMBER', 'TEST_RANDOM_SEED'],
@@ -312,7 +312,7 @@ async function main() {
     const code = discoveryCode === 0 ? await run(false) : discoveryCode
     if (code !== 0) {
       if (visual)
-        fs.cpSync(baselines, path.join(outputs, 'reference'), {recursive: true, dereference: true})
+        materializeSnapshots(baselines, path.join(outputs, 'reference'))
       process.exitCode = code
       console.error(`VRT artifacts: ${outputs}`)
       return

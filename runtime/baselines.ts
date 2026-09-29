@@ -46,3 +46,14 @@ export function updateBaselines(generated: string, destination: string) {
       fs.unlinkSync(path.join(destination, name))
   }
 }
+
+/** Snapshots are owned working/output data, never links into the input tree. */
+export function materializeSnapshots(source: string, destination: string): void {
+  fs.mkdirSync(destination, {recursive: true})
+  for (const name of fs.readdirSync(source)) {
+    const input = path.join(source, name)
+    const output = path.join(destination, name)
+    if (fs.statSync(input).isDirectory()) materializeSnapshots(input, output)
+    else fs.writeFileSync(output, fs.readFileSync(input), {flag: 'wx'})
+  }
+}
