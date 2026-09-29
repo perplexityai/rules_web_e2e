@@ -147,7 +147,9 @@ try {
   for (const directory of ['.', 'bazel-testlogs', 'bazel-bin']) {
     if (!fs.existsSync(directory)) continue
     for (const name of fs.readdirSync(directory)) {
-      if (!(name.startsWith('__actiond') || (name.startsWith('actiond_') && (name.endsWith('_test') || name.endsWith('.results'))))) continue
+      const collect = directory === '.' ? name.startsWith('__actiond') :
+        name.startsWith('actiond_') && name.endsWith(directory === 'bazel-testlogs' ? '_test' : '.results')
+      if (!collect) continue
       fs.cpSync(path.join(directory, name), path.join(destination, name), {recursive: true, dereference: true})
     }
   }
