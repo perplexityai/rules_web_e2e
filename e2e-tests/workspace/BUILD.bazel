@@ -1,7 +1,7 @@
 load(":platform-fixtures.bzl", "platform_fixtures")
 load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_archive")
 load("@rules_web_e2e//playwright:defs.bzl", "browser_runtime")
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_binary", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_link_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
@@ -33,30 +33,6 @@ js_library(
     deps = [":typecheck_project"],
 )
 
-web_e2e_test(
-    name = "native_config_test",
-    browser = "@web_browser//:browser",
-    config = ":native_config",
-    tests = ":native_specs",
-)
-
-visual_test(
-    target_arch = _TARGET_ARCH,
-    name = "native_visual_test",
-    baseline_dir = "__native_screenshots__",
-    baselines = glob(
-        ["__native_screenshots__/*.png"],
-        allow_empty = True,
-    ),
-    browser = "@web_browser//:browser",
-    config = ":native_config",
-    matching = {
-        "threshold": "0.1",
-        "maxDiffPixels": "0",
-    },
-    tests = ":native_visual_specs",
-)
-
 npm_link_package(
     name = "node_modules/@rules-web-e2e/vrt",
     src = "@rules_web_e2e//runtime:package",
@@ -79,7 +55,6 @@ ts_project(
             "*.ts",
             "*.tsx",
         ],
-        exclude = ["remote-harness.ts"],
     ),
     declaration = True,
     transpiler = "tsc",
@@ -127,11 +102,6 @@ js_run_binary(
 )
 
 browser_shell(
-    name = "app_shell",
-    assets = ":bundle",
-)
-
-browser_shell(
     name = "component_shell",
     assets = ":bundle",
     entry_point = "gallery.html",
@@ -144,141 +114,12 @@ playwright_runtime(
 )
 
 js_library(
-    name = "e2e_specs",
-    srcs = [
-        "card.spec.js",
-    ],
-    deps = [":typecheck_project"],
-)
-
-js_library(
     name = "component_specs",
     srcs = ["counter.browser.spec.js"],
     deps = [":typecheck_project"],
 )
 
-js_library(
-    name = "remote_specs",
-    srcs = ["remote.spec.js"],
-    deps = [":typecheck_project"],
-)
-
-component_visual_test(
-    target_arch = _TARGET_ARCH,
-    name = "visual_test",
-    baselines = glob(
-        ["__screenshots__/*.png"],
-        allow_empty = True,
-    ),
-    browser = "@web_browser//:browser",
-    matching = {
-        "threshold": "0.1",
-        "maxDiffPixels": "0",
-    },
-    shell = ":app_shell",
-)
-
-component_visual_test(
-    target_arch = _TARGET_ARCH,
-    name = "component_visual_test",
-    baseline_dir = "__component_screenshots__",
-    baselines = glob(
-        ["__component_screenshots__/*.png"],
-        allow_empty = True,
-    ),
-    browser = "@web_browser//:browser",
-    matching = ":matching",
-    shell = ":component_shell",
-)
-
-component_browser_test(
-    name = "component_test",
-    browser = "@web_browser//:browser",
-    playwright = ":playwright",
-    shell = ":component_shell",
-    tests = ":component_specs",
-)
-
-web_e2e_test(
-    name = "e2e_test",
-    browser = "@web_browser//:browser",
-    shell = ":app_shell",
-    tests = ":e2e_specs",
-)
-
-web_e2e_test(
-    name = "remote_test",
-    base_url_env = "EXAMPLE_REMOTE_URL",
-    env_inherit = ["EXAMPLE_BLOCKED_URL"],
-    tests = ":remote_specs",
-)
-
-ts_project(
-    name = "remote_harness",
-    srcs = ["remote-harness.ts"],
-    declaration = True,
-    transpiler = "tsc",
-    tsconfig = {"compilerOptions": {
-        "target": "ES2022",
-        "module": "ESNext",
-        "moduleResolution": "Bundler",
-        "types": ["node"],
-        "strict": True,
-        "skipLibCheck": True,
-    }},
-    deps = [":node_modules/@types/node"],
-)
-
-js_test(
-    name = "remote_integration_test",
-    copy_data_to_bin = False,
-    data = [
-        "package.json",
-        ":remote_test",
-    ],
-    entry_point = "remote-harness.js",
-    env = {"REMOTE_TEST": "$(rlocationpath :remote_test)"},
-    env_inherit = [
-        "PLAYWRIGHT_BROWSERS_PATH",
-    ],
-    tags = [
-        "external",
-        "manual",
-        "no-cache",
-        "no-remote",
-        "no-sandbox",
-        "requires-network",
-    ],
-)
-
-js_library(
-    name = "matching",
-    srcs = ["matching.js"],
-    data = ["package.json"],
-)
-
-js_library(
-    name = "isolation_specs",
-    srcs = ["isolation.spec.js"],
-    deps = [":typecheck_project"],
-)
-
-# VRT runs in a Linux action with loopback-only networking.
-visual_test(
-    target_arch = _TARGET_ARCH,
-    name = "network_isolation_test",
-    baseline_dir = "__isolation_screenshots__",
-    browser = "@web_browser//:browser",
-    shell = ":app_shell",
-    tests = ":isolation_specs",
-)
-
-# Host variants for live-service checks and machines without a Linux VM worker.
-web_e2e_test(
-    name = "host_e2e_test",
-    shell = ":app_shell",
-    tests = ":e2e_specs",
-)
+# Host checks use the same page and gallery as the VM suite.
 
 component_browser_test(
     name = "host_component_test",
@@ -323,8 +164,8 @@ web_e2e_test(
 web_e2e_test(
     name = "actiond_e2e_test",
     browser = ":actiond_browser",
-    shell = ":app_shell",
-    tests = ":e2e_specs",
+    config = ":native_config",
+    tests = ":native_specs",
 )
 component_browser_test(
     name = "actiond_component_test",
@@ -399,7 +240,7 @@ component_visual_test(
     name = "actiond_gallery_test",
     browser = ":actiond_browser",
     shell = ":component_shell",
-    matching = ":matching",
+    matching = {"threshold": "0.1", "maxDiffPixels": "0"},
     baseline_dir = "__actiond_gallery__",
     baselines = glob(["__actiond_gallery__/*.png"], allow_empty = True),
 )

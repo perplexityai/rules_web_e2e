@@ -1,36 +1,43 @@
-# Isolated end-to-end tests
+# Isolated E2E tests
 
-The tests in this directory consume the public browser rules from `actiond/workspace/`, a separate Bazel module with its own BUILD,
-lockfile, application, browser specs, and checked-in screenshot fixtures.
-No test imports private runtime functions. Harnesses copy the module to a
-disposable directory with a separate Bazel output base; source baselines stay
-unchanged. JavaScript and TypeScript fixtures are real source files.
+`workspace/` is a separate Bazel module with its own dependency lockfile. It
+contains one page server and one component gallery, plus focused regression specs.
+The page checks combine interaction, native Playwright configuration, and reload
+isolation. The gallery covers component interaction and visual capture, including
+hover on the hover PR. Unused example targets and static baselines are omitted.
 
-## Host browsers
-
-Install the Chromium version pinned in the root package.json, then run:
+Use Node 24+ and Bazelisk. CI typechecks the harness with the root Bazel build;
+Node executes the TypeScript directly, without Python or a separate JS build.
 
 ```sh
-python3 e2e-tests/run-host.py
+# After installing the Chromium version pinned in the root package.json:
+node e2e-tests/run.ts
 ```
 
-Set `PLAYWRIGHT_BROWSERS_PATH` when using a nondefault browser installation and
-`BAZEL` when the executable is not `bazelisk`. This runs page interaction,
-component interaction, and native Playwright configuration through public Bazel
-test targets. Test-result caching is disabled. `E2E_TEST_ARTIFACTS` optionally
-retains Bazel logs and browser artifacts after the temporary workspace is removed.
-CI runs this on Linux and macOS and uploads the results, including on failure.
+The runner copies the consumer to a temporary directory, rewrites its repository
+override, and uses a separate Bazel output base. Tests execute with result caching
+disabled. Set `BAZEL`, `PLAYWRIGHT_BROWSERS_PATH`, and `E2E_TEST_ARTIFACTS` to override
+the executable, browser cache, and saved reports. CI runs on Linux and macOS.
 
-## Isolated Linux VM
+For the real Linux VM suite, use a KVM/vsock host:
 
-See [the VM harness](actiond/README.md) and [consumer commands](actiond/workspace/README.md).
-The production CI lane runs real Chromium inside the published actiond worker.
-One consumer and worker cover compatible scenarios: browser execution, retries,
-screenshot capture/compare, failure artifacts, baseline preservation, and recovery.
-Each regression keeps its own assertions, and recovery runs use uncached actions.
-The macOS ARM64 lane builds the consumer's remote inputs and worker.
+```sh
+work=$(mktemp -d)
+ACTIOND_SKIP_WORKER_SOURCE=1 bash e2e-tests/actiond/prepare.sh "$work"
+node e2e-tests/run.ts prepare "$work"
+bazelisk run --script_path="$work/run-web-e2e" //worker:runner
+"$work/run-web-e2e" exec -- node e2e-tests/vm.ts "$work"
+```
 
-PR-specific regressions extend this shared consumer rather than creating copies
-of the application. Where present, `host-temp-paths.py` exercises deep and
-symlinked Chromium temp roots, and `release-consumer.py` packages a local candidate
-release and runs the consumer against its archive. Both are wired into CI.
+`vm.ts` shares one worker across execution, retry, isolation, capture/compare,
+empty/failed capture, timeout, cancellation, and recovery checks. It creates real
+PNG references in the disposable consumer, checks downloaded failure artifacts,
+and deliberately swaps references to prove comparison fails. Source baselines
+must remain unchanged after unsuccessful captures; recovery actions bypass caches.
+PR-specific runfile and hard-deadline regressions extend this suite.
+
+Where present, `temp-paths.ts`, `capacity.ts`, and `release.ts` cover short Chromium
+socket paths, real supervisor resource sizes, and the actual release archive.
+They share workspace/process helpers in `harness.ts` and run in CI.
+The two shell scripts under `actiond/` only provision the Linux runtime and macOS
+worker; browser assertions and process supervision are TypeScript.

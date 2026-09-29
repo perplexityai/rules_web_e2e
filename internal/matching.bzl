@@ -11,7 +11,7 @@ def _matching_config_impl(ctx):
     ctx.actions.expand_template(
         template = ctx.file._template,
         output = module,
-        substitutions = {"__RULES_WEB_E2E_MATCHING_OPTIONS__": json.encode(ctx.attr.options)},
+        substitutions = {'"__RULES_WEB_E2E_MATCHING_OPTIONS__"': json.encode(json.encode(ctx.attr.options))},
     )
     return [DefaultInfo(files = depset([module]), runfiles = ctx.runfiles(files = [module]))]
 
@@ -19,6 +19,6 @@ matching_config = rule(
     implementation = _matching_config_impl,
     attrs = {
         "options": attr.string_dict(),
-        "_template": attr.label(default = Label("//internal:matching-config.mjs"), allow_single_file = True),
+        "_template": attr.label(default = Label("//internal:matching-config.ts"), allow_single_file = True),
     },
 )

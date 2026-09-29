@@ -1,5 +1,5 @@
 {
-  "name": "component-vrt-example",
+  "name": "rules-web-e2e-consumer",
   "private": true,
   "type": "module",
   "devDependencies": {
