@@ -9,8 +9,11 @@ const interpreter = Buffer.from(`${runtimeDirectory}/ld.so\0`)
 /** Rewrite executable lookup paths, leaving ELF loadable segments untouched. */
 export function relocateExecutable(data: Buffer): Buffer | undefined {
   if (data.subarray(0, 4).equals(Buffer.from([0x7f, 0x45, 0x4c, 0x46]))) {
-    if (data.length < 64 || data[4] !== 2 || data[5] !== 1)
-      throw new Error('VRT relocation requires a little-endian ELF64 executable')
+    // Cross-platform runfiles may contain executable ELF files for other
+    // architectures. They cannot run in this action and need no relocation.
+    if (data[4] !== 2 || data[5] !== 1) return undefined
+    if (data.length < 64)
+      throw new Error('Invalid ELF64 executable')
     const table = Number(data.readBigUInt64LE(32))
     const size = data.readUInt16LE(54)
     const count = data.readUInt16LE(56)

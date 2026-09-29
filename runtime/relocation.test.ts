@@ -43,18 +43,29 @@ test('ARM64 interpreter relocation preserves its shorter segment and machine hea
   assert.equal(output.subarray(128, 128 + runtimeDirectory.length + 7).toString(), `${runtimeDirectory}/ld.so\0`)
 })
 
+test('unsupported ELF classes and byte orders remain untouched', () => {
+  const elf32 = Buffer.from(elf()); elf32[4] = 1
+  const bigEndian = Buffer.from(elf()); bigEndian[5] = 2
+  assert.equal(relocateExecutable(elf32), undefined)
+  assert.equal(relocateExecutable(bigEndian), undefined)
+  assert.throws(() => relocateExecutable(elf().subarray(0, 32)), /Invalid ELF64/)
+})
+
 test('staging relocates executable ELF and common shebangs without changing data or following links', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-relocation-'))
   try {
     const binary = path.join(root, 'node'); fs.writeFileSync(binary, elf(), {mode: 0o555})
     const script = path.join(root, 'server'); fs.writeFileSync(script, '#!/usr/bin/env bash\nprintf hello\n', {mode: 0o755})
     const data = path.join(root, 'data'); fs.writeFileSync(data, elf(), {mode: 0o644})
+    const foreign = path.join(root, 'foreign'); const elf32 = Buffer.from(elf()); elf32[4] = 1
+    fs.writeFileSync(foreign, elf32, {mode: 0o755})
     fs.symlinkSync('data', path.join(root, 'alias'))
     relocateInputs(root)
     assert.deepEqual(fs.readFileSync(binary), relocateExecutable(elf()))
     assert.equal(fs.statSync(binary).mode & 0o777, 0o555)
     assert.equal(fs.readFileSync(script, 'utf8'), `#!${runtimeDirectory}/bash\nprintf hello\n`)
     assert.deepEqual(fs.readFileSync(data), elf())
+    assert.deepEqual(fs.readFileSync(foreign), elf32)
     assert.ok(fs.lstatSync(path.join(root, 'alias')).isSymbolicLink())
     assert.equal(relocateExecutable(Buffer.from('#!/usr/bin/env python3\nprint(1)\n')), undefined)
   } finally { fs.rmSync(root, {recursive: true, force: true}) }
