@@ -29,7 +29,7 @@ Install Xcode command-line tools, Bazelisk, Node.js 24+, and Python 3. From the
 repository root:
 
 ```sh
-bash tests/actiond/run-macos-arm64.sh /tmp/rules-web-vrt-arm64
+bash e2e-tests/actiond/run-macos-arm64.sh /tmp/rules-web-vrt-arm64
 ```
 
 Use a dedicated work directory without spaces. The script downloads the pinned

@@ -31,7 +31,7 @@ jobs:
           disk-cache: actiond-macos-arm64
       # Hosted Macs cannot boot nested VMs. Build the real VRT inputs and worker.
       - name: Build ARM64 runtime, signed worker, and VRT inputs
-        run: bash tests/actiond/run-macos-arm64.sh "$RUNNER_TEMP/actiond-macos" --build-only
+        run: bash e2e-tests/actiond/run-macos-arm64.sh "$RUNNER_TEMP/actiond-macos" --build-only
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

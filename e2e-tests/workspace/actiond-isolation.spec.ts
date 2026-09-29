@@ -4,11 +4,12 @@ import net from 'node:net'
 
 test('the whole VRT action is offline and can still serve its fixture', async ({page}) => {
   expect(process.platform).toBe('linux')
-  expect(process.arch).toBe('x64')
+  expect(process.arch).toBe(process.env.ACTIOND_ARCH)
   expect(fs.existsSync('/var/run/docker.sock')).toBe(false)
-  // No input-rootfs mapping or packaged libc/Bash runtime was requested.
-  for (const file of ['/bin/bash', '/bin/sh', '/usr/bin/env', '/lib64/ld-linux-x86-64.so.2', '/lib/ld-linux-aarch64.so.1'])
-    expect(fs.existsSync(file), file).toBe(false)
+  // Standard ELF loading comes from the pinned worker, not rewritten inputs.
+  expect(fs.existsSync('/bin/bash')).toBe(true)
+  expect(fs.existsSync(process.arch === 'x64'
+    ? '/lib64/ld-linux-x86-64.so.2' : '/lib/ld-linux-aarch64.so.1')).toBe(true)
   const fixture = JSON.parse(process.env.ACTIOND_FIXTURE!)
   expect(JSON.parse(fs.readFileSync(fixture.package, 'utf8')).name).toBeTruthy()
   const error = await new Promise<NodeJS.ErrnoException>(resolve => {

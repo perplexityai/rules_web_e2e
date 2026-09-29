@@ -28,3 +28,5 @@ linux_platform(
     name = "target_platform",
     tags = ["manual"],
 )
+
+exports_files(["matching-config.ts"], visibility = ["//visibility:private"])

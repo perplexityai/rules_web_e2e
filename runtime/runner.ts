@@ -8,10 +8,9 @@ import {spawn, execFileSync, type ChildProcess} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
 import {baselineDestination, updateBaselines} from './baselines.js'
-import {removeStagedTemp, stageRunfiles, testEnvironment} from './isolation.js'
+import {removeScratch, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
 import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
-import {relocateInputs, runtimeDirectory} from './relocation.js'
 
 function required(name: string) {
   const value = process.env[name]
@@ -39,12 +38,7 @@ async function main() {
   const outputs =
     process.env.TEST_UNDECLARED_OUTPUTS_DIR || path.join(temp, 'artifacts')
   fs.mkdirSync(outputs, {recursive: true})
-  const inputs = path.join(temp, 'inputs')
-  const runfiles = process.env.RUNFILES_DIR || required('JS_BINARY__RUNFILES')
-  stageRunfiles(
-    process.env.RUNFILES_MANIFEST_FILE || path.join(runfiles, 'MANIFEST'),
-    inputs
-  )
+  const inputs = process.env.RUNFILES_DIR || required('JS_BINARY__RUNFILES')
   const input = (relative: string) => path.join(inputs, relative)
   const descriptorPath = input(required('VRT_DESCRIPTOR'))
   const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8')) as {
@@ -58,8 +52,13 @@ async function main() {
       test: string
       core: string
       version: string
+      fromConsumer: boolean
     }
   }
+  const testFiles = descriptor.tests.map(name => fs.realpathSync(input(name)))
+  let discoveryRoot = testFiles.length ? path.dirname(testFiles[0]) : inputs
+  while (testFiles.some(file => !file.startsWith(discoveryRoot + path.sep)))
+    discoveryRoot = path.dirname(discoveryRoot)
   const selectors = testArguments(visual, args, descriptor.tests)
   if (visual && !descriptor.browser) throw new Error("VRT requires a declared browser runtime")
   const declaredBrowser = descriptor.browser
@@ -67,9 +66,8 @@ async function main() {
     : undefined
   const hostEnv = declaredBrowser ? {} : hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
   const node = declaredBrowser?.node || fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
-  if (declaredBrowser) relocateInputs(inputs)
   const testRoot = path.dirname(descriptorPath)
-  const generated = path.join(testRoot, '.rules-browser')
+  const generated = path.join(temp, 'config')
   fs.mkdirSync(generated)
   fs.writeFileSync(path.join(generated, 'package.json'), '{"type":"module"}')
   for (const name of [
@@ -89,34 +87,41 @@ async function main() {
   const packageVersion = (directory: string) =>
     JSON.parse(fs.readFileSync(path.join(directory, 'package.json'), 'utf8'))
       .version as string
-  const core = input(descriptor.playwright.core)
-  const testPackage = input(descriptor.playwright.test)
+  const modules = [...descriptor.tests, ...(descriptor.config ? [descriptor.config] : [])]
+  const modulePackage = (module: string) => path.dirname(
+    createRequire(pathToFileURL(fs.realpathSync(input(module))))
+      .resolve('@playwright/test/package.json')
+  )
+  // The default uses the caller's dependency graph when a spec/config supplies
+  // one. An explicit playwright_runtime remains authoritative.
+  const testPackage = descriptor.playwright.fromConsumer && modules.length
+    ? modulePackage(modules[0]) : fs.realpathSync(input(descriptor.playwright.test))
+  const playwrightPackage = createRequire(path.join(testPackage, 'package.json'))
+    .resolve('playwright/package.json')
+  const resolvedCore = path.dirname(createRequire(playwrightPackage).resolve('playwright-core/package.json'))
+  const core = descriptor.playwright.fromConsumer
+    ? resolvedCore : fs.realpathSync(input(descriptor.playwright.core))
   validatePlaywrightVersions(
     descriptor.playwright.version,
     packageVersion(testPackage),
     packageVersion(core)
   )
-  // The consumer and rules repository may stage separate copies of the same package.
-  // Playwright requires one test-harness instance, even when both versions match.
-  for (const module of [
-    ...descriptor.tests,
-    ...(descriptor.config ? [descriptor.config] : []),
-  ]) {
-    const consumerRequire = createRequire(pathToFileURL(input(module)))
-    const directory = path.dirname(
-      consumerRequire.resolve('@playwright/test/package.json')
-    )
+  if (fs.realpathSync(resolvedCore) !== fs.realpathSync(core))
+    throw new Error('playwright_runtime.core must be the playwright-core package used by its test package')
+  // Playwright requires one test-harness instance. The caller owns its dependency
+  // graph; validate that graph rather than replacing packages inside it.
+  for (const module of modules) {
+    const directory = modulePackage(module)
     validatePlaywrightVersions(
       descriptor.playwright.version,
       packageVersion(directory),
       packageVersion(core)
     )
-    if (fs.realpathSync(directory) !== fs.realpathSync(testPackage)) {
-      if (!directory.startsWith(inputs + path.sep))
-        throw new Error('Playwright package escaped staged inputs')
-      fs.rmSync(directory, {recursive: true})
-      fs.symlinkSync(testPackage, directory)
-    }
+    if (fs.realpathSync(directory) !== fs.realpathSync(testPackage))
+      throw new Error(
+        `Playwright package mismatch for ${module}: tests and config must resolve ` +
+        'the same @playwright/test package declared by playwright_runtime; fix the caller dependencies'
+      )
   }
   fs.mkdirSync(path.join(generated, 'node_modules', '@playwright'), {
     recursive: true,
@@ -140,7 +145,7 @@ async function main() {
   const baselines = path.join(temp, 'baselines')
   fs.mkdirSync(baselines)
   if (!update && baselineInputs && fs.existsSync(baselineInputs))
-    fs.cpSync(baselineInputs, baselines, {recursive: true})
+    fs.cpSync(baselineInputs, baselines, {recursive: true, dereference: true})
   const env = {
     ...testEnvironment(
       process.env,
@@ -150,18 +155,14 @@ async function main() {
     ...hostEnv,
     ...declaredBrowser?.env,
     ...(declaredBrowser ? {
-      VRT_BASH: path.join(runtimeDirectory, 'bash'),
-      NODE_OPTIONS: [
-        process.env.NODE_OPTIONS || '',
-        `--require=${JSON.stringify(fileURLToPath(new URL('./vrt-processes.cjs', import.meta.url)))}`,
-      ].filter(Boolean).join(' '),
+      NODE_OPTIONS: `--import=${JSON.stringify(fileURLToPath(new URL('./process-shell.js', import.meta.url)))}`,
     } : {}),
     VRT_INPUTS: inputs,
     VRT_PLAYWRIGHT_CORE: core,
     VRT_ISOLATED: declaredBrowser ? '1' : '0',
     VRT_MODE: required('VRT_MODE'),
-    VRT_TEST_ROOT: visual ? testRoot : inputs,
-    VRT_TEST_FILES: JSON.stringify(descriptor.tests.map(input)),
+    VRT_TEST_ROOT: gallery ? generated : discoveryRoot,
+    VRT_TEST_FILES: JSON.stringify(testFiles),
     ...(descriptor.config
       ? {VRT_CONFIG_OVERRIDE: input(descriptor.config)}
       : {}),
@@ -347,7 +348,7 @@ async function main() {
       )
     )
     if (interrupted) process.exitCode = 143
-    if (succeeded) removeStagedTemp(temp)
+    if (succeeded) removeScratch(temp)
     process.removeListener('SIGTERM', onSignal)
     process.removeListener('SIGINT', onSignal)
   }

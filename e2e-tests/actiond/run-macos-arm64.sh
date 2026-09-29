@@ -17,7 +17,7 @@ command -v "$bazel_bin" >/dev/null
 command -v node >/dev/null
 xcrun --find clang >/dev/null
 bash "$here/prepare.sh" "$work"
-node "$here/prepare-public.mjs" "$work"
+node "$here/../run.ts" prepare "$work"
 (
   cd "$work/actiond"
   flags=(--bes_backend= --remote_executor= --remote_cache= --spawn_strategy=local --jobs=2)
@@ -42,11 +42,7 @@ if [[ $mode == --build-only ]]; then
 fi
 # The upstream target signs the executable with the virtualization entitlement.
 # Port 8980 must be free: do not accidentally test an unrelated worker.
-python3 - <<'PY'
-import socket
-with socket.socket() as sock:
-    sock.bind(('127.0.0.1', 8980))
-PY
+node --input-type=module -e 'import net from "node:net"; const server = net.createServer(); server.on("error", error => { throw error }); server.listen(8980, "127.0.0.1", () => server.close())'
 "$work/actiond-worker" serve-vm --root="$work/vm" --listen=127.0.0.1:8980 --memory-mib=6144 --cpus=2 --cas-image-size-mib=4096 > "$work/vm.log" 2>&1 &
 worker_pid=$!
 trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
@@ -57,4 +53,4 @@ for ((attempt=0; attempt<90; attempt++)); do
   sleep 1
 done
 "$ready" || { cat "$work/vm.log" >&2; exit 1; }
-bash "$here/run-public-actiond.sh" "$work" grpc://127.0.0.1:8980
+node "$here/../vm.ts" "$work" grpc://127.0.0.1:8980

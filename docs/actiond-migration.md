@@ -33,7 +33,8 @@ migrations have landed.
   checks stay in host E2E targets; inherited environment and origin exceptions
   do not carry over.
 
-The pinned upstream actiond includes memory-advice syscalls. VRT relocates
-declared executable copies and supplies explicit loader, library, and shell paths.
+The pinned upstream actiond includes memory-advice syscalls. Browser actions now
+request the worker's glibc 2.39 and Bash runtime, and execute caller artifacts
+without rewriting them. See [the ownership contract](actiond.md#declared-inputs-and-isolation).
 Native macOS VM execution and cross-architecture
 pixel equivalence remain unvalidated. These baselines require a Linux amd64 worker.

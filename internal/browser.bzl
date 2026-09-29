@@ -54,7 +54,12 @@ def _inputs_impl(ctx):
         "matching": _compiled(ctx.attr.matching, "matching"),
         "server": _compiled(ctx.attr.server, "server"),
         "shell": {"directory": shell.directory, "entryPoint": shell.entry_point} if shell else None,
-        "playwright": {"test": runtime.test, "core": runtime.core, "version": runtime.version},
+        "playwright": {
+            "test": runtime.test,
+            "core": runtime.core,
+            "version": runtime.version,
+            "fromConsumer": ctx.attr.playwright.label == Label("//runtime:playwright"),
+        },
         "browser": ctx.attr.browser[BrowserRuntimeInfo].descriptor if ctx.attr.browser else None,
     }))
     inputs = ctx.runfiles(files = [result])
@@ -183,6 +188,7 @@ def browser_test(
         return
     js_test(
         name = name,
+        patch_node_fs = False,
         args = args,
         env_inherit = browser_env_inherit + env_inherit,
         tags = ["manual", "external", "visual_test" if visual else "component_browser_test" if component else "e2e_test", "requires-network", "no-sandbox", "no-remote", "no-cache"] + tags,
