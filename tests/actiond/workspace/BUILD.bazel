@@ -1,0 +1,465 @@
+load(":npm-fixtures.bzl", "npm_fixtures")
+load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_archive")
+load("@rules_web_e2e//playwright:defs.bzl", "browser_runtime")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_binary", "js_test")
+load("@aspect_rules_js//npm:defs.bzl", "npm_link_package")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@rules_web_e2e//component:defs.bzl", "browser_shell", "component_browser_test")
+load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_test")
+load("@rules_web_e2e//playwright:defs.bzl", "playwright_runtime")
+load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test", "visual_test")
+
+_TARGET_ARCH = "x64"
+
+npm_link_all_packages(name = "node_modules")
+
+js_library(
+    name = "native_config",
+    srcs = ["native.config.js"],
+    data = ["package.json"],
+    deps = [":typecheck_project"],
+)
+
+js_library(
+    name = "native_specs",
+    srcs = ["native.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+js_library(
+    name = "native_visual_specs",
+    srcs = ["native.visual.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+web_e2e_test(
+    name = "native_config_test",
+    browser = "@web_browser//:browser",
+    config = ":native_config",
+    tests = ":native_specs",
+)
+
+visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "native_visual_test",
+    baseline_dir = "__native_screenshots__",
+    baselines = glob(
+        ["__native_screenshots__/*.png"],
+        allow_empty = True,
+    ),
+    browser = "@web_browser//:browser",
+    config = ":native_config",
+    matching = {
+        "threshold": "0.1",
+        "maxDiffPixels": "0",
+    },
+    tests = ":native_visual_specs",
+)
+
+npm_link_package(
+    name = "node_modules/@rules-web-e2e/vrt",
+    src = "@rules_web_e2e//runtime:package",
+)
+
+VRT_DEPS = [
+    ":node_modules/@rules-web-e2e/vrt",
+    ":node_modules/@vitejs/plugin-react",
+    ":node_modules/@playwright/test",
+    ":node_modules/playwright",
+    ":node_modules/react",
+    ":node_modules/react-dom",
+    ":node_modules/vite",
+]
+
+ts_project(
+    name = "typecheck_project",
+    srcs = glob(
+        [
+            "*.ts",
+            "*.tsx",
+        ],
+        exclude = ["remote-harness.ts"],
+    ),
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = "tsconfig.json",
+    deps = VRT_DEPS + [
+        ":node_modules/@types/node",
+        ":node_modules/@types/react",
+        ":node_modules/@types/react-dom",
+    ],
+)
+
+filegroup(
+    name = "typecheck",
+    srcs = [":typecheck_project"],
+    output_group = "transitive_typecheck",
+)
+
+js_library(
+    name = "bundle_sources",
+    srcs = glob([
+        "*.tsx",
+        "*.html",
+    ]) + ["package.json"],
+    deps = VRT_DEPS,
+)
+
+js_binary(
+    name = "build_shell",
+    data = [
+        ":bundle_sources",
+        ":typecheck",
+        ":typecheck_project",
+    ],
+    entry_point = "build-shell.js",
+)
+
+js_run_binary(
+    name = "bundle",
+    args = ["assets"],
+    out_dirs = ["assets"],
+    tool = ":build_shell",
+    # Run the bundler with execution-platform npm bindings when VRT inputs
+    # target a different Linux architecture from the build host.
+    use_execroot_entry_point = False,
+)
+
+browser_shell(
+    name = "app_shell",
+    assets = ":bundle",
+)
+
+browser_shell(
+    name = "component_shell",
+    assets = ":bundle",
+    entry_point = "gallery.html",
+)
+
+playwright_runtime(
+    name = "playwright",
+    core = ":node_modules/playwright-core/dir",
+    test = ":node_modules/@playwright/test/dir",
+)
+
+js_library(
+    name = "e2e_specs",
+    srcs = [
+        "card.spec.js",
+    ],
+    deps = [":typecheck_project"],
+)
+
+js_library(
+    name = "component_specs",
+    srcs = ["counter.browser.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+js_library(
+    name = "remote_specs",
+    srcs = ["remote.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+component_visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "visual_test",
+    baselines = glob(
+        ["__screenshots__/*.png"],
+        allow_empty = True,
+    ),
+    browser = "@web_browser//:browser",
+    matching = {
+        "threshold": "0.1",
+        "maxDiffPixels": "0",
+    },
+    shell = ":app_shell",
+)
+
+component_visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "component_visual_test",
+    baseline_dir = "__component_screenshots__",
+    baselines = glob(
+        ["__component_screenshots__/*.png"],
+        allow_empty = True,
+    ),
+    browser = "@web_browser//:browser",
+    matching = ":matching",
+    shell = ":component_shell",
+)
+
+component_browser_test(
+    name = "component_test",
+    browser = "@web_browser//:browser",
+    playwright = ":playwright",
+    shell = ":component_shell",
+    tests = ":component_specs",
+)
+
+web_e2e_test(
+    name = "e2e_test",
+    browser = "@web_browser//:browser",
+    shell = ":app_shell",
+    tests = ":e2e_specs",
+)
+
+web_e2e_test(
+    name = "remote_test",
+    base_url_env = "EXAMPLE_REMOTE_URL",
+    env_inherit = ["EXAMPLE_BLOCKED_URL"],
+    tests = ":remote_specs",
+)
+
+ts_project(
+    name = "remote_harness",
+    srcs = ["remote-harness.ts"],
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = {"compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "types": ["node"],
+        "strict": True,
+        "skipLibCheck": True,
+    }},
+    deps = [":node_modules/@types/node"],
+)
+
+js_test(
+    name = "remote_integration_test",
+    copy_data_to_bin = False,
+    data = [
+        "package.json",
+        ":remote_test",
+    ],
+    entry_point = "remote-harness.js",
+    env = {"REMOTE_TEST": "$(rlocationpath :remote_test)"},
+    env_inherit = [
+        "PLAYWRIGHT_BROWSERS_PATH",
+    ],
+    tags = [
+        "external",
+        "manual",
+        "no-cache",
+        "no-remote",
+        "no-sandbox",
+        "requires-network",
+    ],
+)
+
+js_library(
+    name = "matching",
+    srcs = ["matching.js"],
+    data = ["package.json"],
+)
+
+js_library(
+    name = "isolation_specs",
+    srcs = ["isolation.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+# VRT runs in a Linux action with loopback-only networking.
+visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "network_isolation_test",
+    baseline_dir = "__isolation_screenshots__",
+    browser = "@web_browser//:browser",
+    shell = ":app_shell",
+    tests = ":isolation_specs",
+)
+
+# Host variants for live-service checks and machines without a Linux VM worker.
+web_e2e_test(
+    name = "host_e2e_test",
+    shell = ":app_shell",
+    tests = ":e2e_specs",
+)
+
+component_browser_test(
+    name = "host_component_test",
+    playwright = ":playwright",
+    shell = ":component_shell",
+    tests = ":component_specs",
+)
+
+web_e2e_test(
+    name = "host_native_config_test",
+    config = ":native_config",
+    tests = ":native_specs",
+)
+
+npm_fixtures(
+    name = "npm_inputs",
+    app = "npm-packages/app.cjs",
+    middle = "npm-packages/middle.cjs",
+    leaf = "npm-packages/leaf.cjs",
+    alias = "npm-packages/alias.cjs",
+)
+js_library(
+    name = "actiond_npm_server",
+    srcs = ["npm-server.js"],
+    deps = [":typecheck_project"],
+)
+js_library(
+    name = "actiond_npm_specs",
+    srcs = ["actiond-npm.visual.spec.js"],
+    deps = [":typecheck_project"],
+)
+visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "actiond_npm_test",
+    browser = ":actiond_browser",
+    server = ":actiond_npm_server",
+    tests = ":actiond_npm_specs",
+    data = [":npm_inputs"],
+    baseline_dir = "__actiond_npm__",
+    baselines = glob(["__actiond_npm__/*.png"], allow_empty = True),
+)
+js_library(
+    name = "actiond_rerun_specs",
+    srcs = ["actiond-rerun.spec.js"],
+    deps = [":typecheck_project"],
+)
+web_e2e_test(
+    name = "actiond_rerun_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_rerun_specs",
+)
+web_e2e_test(
+    name = "actiond_e2e_test",
+    browser = ":actiond_browser",
+    shell = ":app_shell",
+    tests = ":e2e_specs",
+)
+component_browser_test(
+    name = "actiond_component_test",
+    browser = ":actiond_browser",
+    shell = ":component_shell",
+    tests = ":component_specs",
+)
+js_library(
+    name = "actiond_browser_isolation_specs",
+    srcs = ["actiond-isolation.spec.js"],
+    deps = [":typecheck_project"],
+)
+web_e2e_test(
+    name = "actiond_browser_isolation_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_browser_isolation_specs",
+    data = [":actiond_fixture_server", "package.json"],
+    env = {
+        "EXAMPLE_SERVER_COMMAND": "$(rootpath :actiond_fixture_server)",
+        "ACTIOND_ARCH": _TARGET_ARCH, "ACTIOND_FIXTURE": json.encode({"package": "$(rootpath package.json)"}),
+    },
+)
+js_library(
+    name = "actiond_browser_failure_specs",
+    srcs = ["actiond-browser-failure.spec.js"],
+    deps = [":typecheck_project"],
+)
+web_e2e_test(
+    name = "actiond_browser_failure_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_browser_failure_specs",
+)
+js_binary(
+    name = "actiond_fixture_server",
+    entry_point = "native-server.js",
+    data = [":typecheck_project", "package.json"],
+)
+browser_runtime_archive(name = "actiond_runtime_files", archive = "runtime.tar")
+browser_runtime(
+    arch = _TARGET_ARCH,
+    loader = {"x64": "lib/ld-linux-x86-64.so.2", "arm64": "lib/ld-linux-aarch64.so.1"}[_TARGET_ARCH],
+    name = "actiond_browser",
+    root = ":actiond_runtime_files",
+    executable = "chromium/chrome-headless-shell",
+    node = "bin/node",
+    library_dirs = ["lib"],
+    fontconfig = "etc/fonts",
+)
+visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "actiond_local_rejection_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":native_visual_specs",
+    baseline_dir = "__actiond_local_rejection__",
+)
+visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "actiond_native_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":native_visual_specs",
+    data = [":actiond_fixture_server"],
+    env = {"EXAMPLE_SERVER_COMMAND": "$(rootpath :actiond_fixture_server)"},
+    baseline_dir = "__actiond_native__",
+    baselines = glob(["__actiond_native__/*.png"], allow_empty = True),
+)
+component_visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "actiond_gallery_test",
+    browser = ":actiond_browser",
+    shell = ":component_shell",
+    matching = ":matching",
+    baseline_dir = "__actiond_gallery__",
+    baselines = glob(["__actiond_gallery__/*.png"], allow_empty = True),
+)
+js_library(
+    name = "actiond_isolation_specs",
+    srcs = ["actiond-isolation.visual.spec.js"],
+    deps = [":typecheck_project"],
+)
+js_library(
+    name = "actiond_failure_specs",
+    srcs = ["actiond-failure.visual.spec.js"],
+    deps = [":typecheck_project"],
+)
+visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "actiond_isolation_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_isolation_specs",
+    baseline_dir = "__actiond_isolation__",
+    data = ["package.json"],
+    env = {"ACTIOND_ARCH": _TARGET_ARCH, "ACTIOND_FIXTURE": json.encode({"package": "$(rootpath package.json)"})},
+)
+visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "actiond_failure_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_failure_specs",
+    baseline_dir = "__actiond_failed__",
+    baselines = glob(["__actiond_failed__/*.png"], allow_empty = True),
+)
+visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "actiond_timeout_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_failure_specs",
+    baseline_dir = "__actiond_timeout__",
+    env = {"ACTIOND_HANG": "1"},
+    execution_timeout_seconds = 8,
+)
+visual_test(
+    target_arch = _TARGET_ARCH,
+    name = "actiond_cancel_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_failure_specs",
+    baseline_dir = "__actiond_cancel__",
+    env = {"ACTIOND_HANG": "1"},
+    execution_timeout_seconds = 90,
+)

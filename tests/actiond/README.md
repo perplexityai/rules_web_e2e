@@ -10,7 +10,10 @@ workspace. Upstream is built as a standalone workspace to retain its MODULE
 patches and toolchain overrides. There are no local actiond patches or standalone
 Zig downloads.
 
-`prepare-public.mjs` creates a disposable React example workspace.
+`workspace/` is the checked-in standalone Bazel consumer: its MODULE, BUILD,
+application, specs, and dependency lockfile are real files. `prepare-public.mjs`
+copies it to a disposable directory and adjusts only configuration. See
+[workspace instructions](workspace/README.md) for the complete E2E command.
 `run-public-actiond.sh WORK_DIRECTORY ENDPOINT` verifies native E2E/component
 execution, isolation, failures, repeated runs, retries, VRT comparison/capture,
 empty and failed capture protection, deadlines, and cancellation recovery.

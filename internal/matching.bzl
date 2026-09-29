@@ -8,14 +8,17 @@ def _matching_config_impl(ctx):
 
     # Starlark has no floats. Parse JSON numeric strings without evaluating code;
     # the shared runtime validator enforces numeric types, ranges, and budgets.
-    entries = [
-        "%s: JSON.parse(%s)" % (json.encode(name), json.encode(value))
-        for name, value in ctx.attr.options.items()
-    ]
-    ctx.actions.write(module, "export default {" + ", ".join(entries) + "};\n")
+    ctx.actions.expand_template(
+        template = ctx.file._template,
+        output = module,
+        substitutions = {"__RULES_WEB_E2E_MATCHING_OPTIONS__": json.encode(ctx.attr.options)},
+    )
     return [DefaultInfo(files = depset([module]), runfiles = ctx.runfiles(files = [module]))]
 
 matching_config = rule(
     implementation = _matching_config_impl,
-    attrs = {"options": attr.string_dict()},
+    attrs = {
+        "options": attr.string_dict(),
+        "_template": attr.label(default = Label("//internal:matching-config.mjs"), allow_single_file = True),
+    },
 )
