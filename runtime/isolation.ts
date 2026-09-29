@@ -32,7 +32,16 @@ export function stageRunfiles(manifest: string, destination: string): void {
       )
         throw new Error(`Runfile link escapes staged inputs: ${name}`)
       fs.symlinkSync(source, target)
-    } else fs.cpSync(source, target, {recursive: true, dereference: true})
+    } else {
+      // pnpm's nested package links must keep their package-store identity so
+      // Node finds dependencies beside the real package, not beside its alias.
+      const link = fs.existsSync(source) && fs.lstatSync(source).isSymbolicLink()
+        ? fs.readlinkSync(source)
+        : null
+      if (link && !path.isAbsolute(link) && path.resolve(path.dirname(target), link).startsWith(destination + path.sep))
+        fs.symlinkSync(link, target)
+      else fs.cpSync(source, target, {recursive: true, dereference: true})
+    }
   }
 }
 

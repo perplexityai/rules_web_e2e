@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import {createRequire} from 'node:module'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
@@ -41,6 +42,32 @@ test('staging excludes adjacent files and preserves a single npm package identit
     fs.readFileSync(path.join(staged, '_main/config.ts'), 'utf8'),
     'declared'
   )
+})
+
+test('staging preserves nested npm links so packages resolve declared dependencies', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-npm-links-'))
+  t.after(() => fs.rmSync(root, {recursive: true, force: true}))
+  const source = path.join(root, 'bin/node_modules/.store')
+  const staged = path.join(root, 'inputs')
+  const packageDir = path.join(source, 'package/node_modules/package')
+  const dependencyDir = path.join(source, 'dependency/node_modules/dependency')
+  fs.mkdirSync(packageDir, {recursive: true})
+  fs.mkdirSync(dependencyDir, {recursive: true})
+  fs.writeFileSync(path.join(packageDir, 'index.js'), 'module.exports = require("dependency")')
+  fs.writeFileSync(path.join(dependencyDir, 'index.js'), 'module.exports = "declared"')
+  fs.symlinkSync('../../dependency/node_modules/dependency', path.join(source, 'package/node_modules/dependency'))
+  const manifest = path.join(root, 'MANIFEST')
+  fs.writeFileSync(manifest, [
+    `_main/node_modules/.store/package/node_modules/package ${packageDir}`,
+    `_main/node_modules/.store/dependency/node_modules/dependency ${dependencyDir}`,
+    `_main/node_modules/.store/package/node_modules/dependency ${source}/package/node_modules/dependency`,
+  ].join('\n'))
+
+  stageRunfiles(manifest, staged)
+
+  const nestedLink = path.join(staged, '_main/node_modules/.store/package/node_modules/dependency')
+  assert.equal(fs.lstatSync(nestedLink).isSymbolicLink(), true)
+  assert.equal(createRequire(path.join(staged, '_main/node_modules/.store/package/node_modules/package/index.js'))('./index.js'), 'declared')
 })
 
 test('undeclared shell variables cannot change compare versus update', t => {
