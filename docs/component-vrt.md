@@ -103,3 +103,7 @@ selection, and uses Playwright's page screenshot assertion. It captures the visi
 viewport, not the full scrollable page. `viewport` configures the browser dimensions
 in either mode; `deviceScaleFactor` and the config's screenshot `scale` retain their
 usual behavior. For explicit full-page screenshots use a native `visual_test` spec.
+
+For hover states, set `vrt.hoverSelector` to a CSS selector for the visible
+target. The runner moves the real browser pointer after mounting the visual and
+before calling `beforeCapture`, so the hook can assert `:hover` styles.

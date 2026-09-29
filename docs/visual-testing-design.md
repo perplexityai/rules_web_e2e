@@ -105,7 +105,7 @@ export default visuals
 | `beforeCapture`         | Browser-side setup/readiness before capture                                 |
 | `getScreenshotElement`  | Capture an element, including portals; defaults to `#root`                  |
 | `vrt: false`            | Keep a preview/browser case out of screenshots                              |
-| `vrt` options           | Screenshot name, viewport, integer device scale, language, light/dark theme |
+| `vrt` options           | Screenshot name, viewport, integer device scale, language, light/dark theme, CSS hover target |
 
 VRT is enabled by default. Names default to the kebab-cased final segment of `module.id` plus
 `visualId`, with `.png`; explicit names retain existing baselines. Duplicate IDs,

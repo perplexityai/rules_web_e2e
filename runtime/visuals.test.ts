@@ -21,7 +21,7 @@ const module: ComponentVisualModule = {
       visualId: 'dark',
       name: 'Dark',
       render: () => null,
-      vrt: {screenshotName: 'code-dark', theme: 'dark', deviceScaleFactor: 2},
+      vrt: {screenshotName: 'code-dark', theme: 'dark', deviceScaleFactor: 2, hoverSelector: '#target'},
     },
   ],
 }
@@ -38,6 +38,7 @@ test('visual modules enable capture by default and respect opt-outs and override
     ]
   )
   validateCaptures(captures)
+  assert.equal(captures[1].hoverSelector, '#target')
 })
 test('duplicate identities and unsafe screenshot destinations fail before capture', () => {
   assert.throws(() => visualCaptures([module, module]), /Duplicate/)
@@ -49,6 +50,7 @@ test('duplicate identities and unsafe screenshot destinations fail before captur
     [{...capture, deviceScaleFactor: 1.5}],
     [{...capture, capture: 'fullPage'}],
     [{...capture, viewport: {width: 0, height: 100}}],
+    [{...capture, hoverSelector: ''}],
   ])
     assert.throws(() => validateCaptures(value))
 })

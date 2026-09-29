@@ -15,7 +15,7 @@ const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'capture-browser-'))
 const visuals = fs.readFileSync(new URL('./visuals.js', import.meta.url), 'utf8')
 const server = createServer((_request, response) => {
   response.setHeader('Content-Type', 'text/html')
-  response.end(`<!doctype html><style>body {margin:0}</style><script type="module">
+  response.end(`<!doctype html><style>body {margin:0} #hover-target:hover {background:red !important}</style><script type="module">
     ${visuals}
     const viewportVisual = (id, viewport) => ({
       visualId: id, name: id, render: () => true,
@@ -27,8 +27,19 @@ const server = createServer((_request, response) => {
       viewportVisual('desktop', {width:1280, height:720}),
       viewportVisual('mobile', {width:390, height:844}),
       {visualId:'element', name:'element', render:()=>false, vrt:{deviceScaleFactor:2}},
+      {visualId:'hover', name:'hover', render:()=> 'hover',
+        beforeCapture() {
+          const target = document.querySelector('#hover-target');
+          if (!target.matches(':hover') || getComputedStyle(target).backgroundColor !== 'rgb(255, 0, 0)')
+            throw new Error('Real pointer hover must precede beforeCapture');
+        },
+        vrt:{deviceScaleFactor:2, hoverSelector:'#hover-target'}},
     ]}], {
       render(fixed) {
+        if (fixed === 'hover') {
+          document.body.innerHTML = '<div id="root" style="width:200px;height:150px"><div id="hover-target" style="width:200px;height:150px;background:blue"></div></div>';
+          return;
+        }
         document.body.innerHTML = fixed
           ? '<div id="dialog" style="position:fixed;left:20px;top:100px;width:200px;height:150px;background:blue"></div>'
           : '<div id="root" style="width:200px;height:150px;background:red"></div>';
@@ -78,7 +89,7 @@ try {
     for (const scale of ['css', 'device']) {
       await run(false, scale)
       for (const [id, width, height] of [
-        ['desktop', 1280, 720], ['mobile', 390, 844], ['element', 200, 150],
+        ['desktop', 1280, 720], ['mobile', 390, 844], ['element', 200, 150], ['hover', 200, 150],
       ] as const) {
         const png = fs.readFileSync(path.join(temp, scale, `capture-${id}.png`))
         const factor = scale === 'device' ? 2 : 1

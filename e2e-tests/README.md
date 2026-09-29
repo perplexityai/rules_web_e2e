@@ -46,3 +46,5 @@ The Linux VM workflow also runs `capacity.ts` under a second supervisor with 819
 The VM suite also freezes the runner after a real screenshot and verifies the parent deadline, downloaded evidence, untouched baselines, and an uncached recovery run.
 
 Host CI also runs `temp-paths.ts` with deep and symlinked temp roots, checking real Chromium screenshots and scratch cleanup.
+
+The VM gallery also captures and compares a real pointer-hover state, asserting CSS `:hover` inside `beforeCapture`.
