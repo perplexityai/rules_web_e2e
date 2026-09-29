@@ -159,7 +159,9 @@ Import from `@rules-web-e2e/vrt/visual`. Explicitly register each
 
 `ComponentVisualVrtOptions`: `capture` (`'element'` default or `'viewport'`),
 `screenshotName`, positive integer `viewport.width`/`height` and
-`deviceScaleFactor`, `documentLanguage`, and `theme` (`'light'`/`'dark'`).
+`deviceScaleFactor`, `documentLanguage`, `theme` (`'light'`/`'dark'`), and
+`hoverSelector` (a CSS selector for a real Playwright hover after mount and before
+`beforeCapture`).
 Viewport capture skips element selection. Language changes HTML language, not locale.
 
 Screenshot names are single filenames, optionally ending in `.png`, without

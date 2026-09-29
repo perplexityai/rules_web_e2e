@@ -7,6 +7,8 @@ export interface ComponentVisualVrtOptions {
   deviceScaleFactor?: number
   documentLanguage?: string
   theme?: 'light' | 'dark'
+  /** CSS target for a real browser hover before the capture hook runs. */
+  hoverSelector?: string
 }
 export interface ComponentVisual<Node = unknown> {
   visualId: string
@@ -58,6 +60,9 @@ export function visualCaptures<Node>(
       if (visual.vrt === false) return []
       const options = visual.vrt ?? {}
       validateCaptureMode(options.capture)
+      if (options.hoverSelector !== undefined &&
+          (typeof options.hoverSelector !== 'string' || !options.hoverSelector.trim()))
+        throw new Error(`Invalid hover selector: ${id}`)
       const screenshotName =
         options.screenshotName ??
         `${kebab(module.id.split('/').at(-1)!)}-${kebab(visual.visualId)}`
@@ -209,5 +214,10 @@ export function validateCaptures(
       typeof item.documentLanguage !== 'string'
     )
       throw new Error('Invalid visual language')
+    if (
+      item.hoverSelector !== undefined &&
+      (typeof item.hoverSelector !== 'string' || !item.hoverSelector.trim())
+    )
+      throw new Error('Invalid visual hover selector')
   }
 }

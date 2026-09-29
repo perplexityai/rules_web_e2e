@@ -31,8 +31,10 @@ if (process.env.VRT_DISCOVER === '1') {
           if (visual.documentLanguage)
             document.documentElement.lang = visual.documentLanguage
           await window.rulesVisuals.mount({story: visual.id})
-          await window.rulesVisuals.prepareCapture()
         }, visual)
+        if (visual.hoverSelector)
+          await page.locator(visual.hoverSelector).hover()
+        await page.evaluate(() => window.rulesVisuals.prepareCapture())
         const subject = visual.capture === 'viewport'
           ? page
           : page.locator('[data-rules-visual-capture]')

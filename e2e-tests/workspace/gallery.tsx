@@ -21,7 +21,16 @@ const visualModule: ComponentVisualModule<ReactNode> = {
   id: 'Counter',
   title: 'Counter',
   renderShell: children => <div lang="en" dir="ltr" style={{fontFamily: 'sans-serif'}}>{children}</div>,
-  visuals: [
+  visuals: [{
+    visualId: 'hover', name: 'Hover',
+    render: () => <><style>{'#hover-probe {width:80px;height:60px;background:blue} #hover-probe:hover {background:red}'}</style><div id="hover-probe" /></>,
+    beforeCapture() {
+      const target = document.querySelector('#hover-probe')!
+      if (!target.matches(':hover') || getComputedStyle(target).backgroundColor !== 'rgb(255, 0, 0)')
+        throw new Error('Real pointer hover must precede beforeCapture')
+    },
+    vrt: {hoverSelector: '#hover-probe', screenshotName: 'hover'},
+  },
     {
       visualId: 'Default',
       name: 'Default',
