@@ -68,6 +68,22 @@ test('remote job preserves a failing subprocess result for the local test', t =>
   assert.equal(fs.readFileSync(path.join(artifacts, 'junit.xml'), 'utf8'), '<failure/>')
 })
 
+for (const exitCode of [0, 7]) {
+  test(`remote result preserves exit ${exitCode} when the artifact tree is empty`, t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-empty-artifacts-'))
+    t.after(() => fs.rmSync(root, {recursive: true, force: true}))
+    const runner = path.join(root, 'consumer.mjs')
+    fs.writeFileSync(runner, `process.exitCode = ${exitCode};`)
+    const output = path.join(root, 'output')
+    const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
+    runRemoteJob({runfiles: {}, runner, env: {}, args: [], output, mode: 'compare'}, node, {NODE_OPTIONS: ''})
+    fs.rmdirSync(path.join(output, 'artifacts'))
+    const artifacts = path.join(root, 'test-artifacts')
+    assert.equal(consumeRemoteResult(output, {artifacts, mode: 'compare'}), exitCode)
+    assert.equal(fs.existsSync(artifacts), false)
+  })
+}
+
 test('native browser failure exits the test process and preserves standard artifacts', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-test-'))
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))

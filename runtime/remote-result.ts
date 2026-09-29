@@ -8,8 +8,15 @@ export interface RemoteVrtResult {
   exitCode: number
 }
 
-function copyArtifacts(source: string, destination: string) {
-  const stat = fs.lstatSync(source)
+function copyArtifacts(source: string, destination: string, allowMissing = false) {
+  let stat: fs.Stats
+  try {
+    stat = fs.lstatSync(source)
+  } catch (error) {
+    // Bazel does not materialize empty directories from remote tree outputs.
+    if (allowMissing && (error as NodeJS.ErrnoException).code === 'ENOENT') return
+    throw error
+  }
   if (stat.isDirectory()) {
     fs.mkdirSync(destination, {recursive: true})
     for (const name of fs.readdirSync(source))
@@ -41,7 +48,7 @@ export function consumeRemoteResult(
   ) throw new Error('Invalid remote VRT result')
 
   if (options.artifacts)
-    copyArtifacts(path.join(directory, 'artifacts'), options.artifacts)
+    copyArtifacts(path.join(directory, 'artifacts'), options.artifacts, true)
   if (result.exitCode !== 0) return result.exitCode
   if (options.update) {
     const destination = baselineDestination(
