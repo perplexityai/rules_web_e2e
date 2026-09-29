@@ -312,7 +312,7 @@ async function main() {
     const code = discoveryCode === 0 ? await run(false) : discoveryCode
     if (code !== 0) {
       if (visual)
-        fs.cpSync(baselines, path.join(outputs, 'reference'), {recursive: true})
+        fs.cpSync(baselines, path.join(outputs, 'reference'), {recursive: true, dereference: true})
       process.exitCode = code
       console.error(`VRT artifacts: ${outputs}`)
       return
