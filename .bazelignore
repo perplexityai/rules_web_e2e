@@ -1,4 +1,4 @@
 bcr_test
 examples
 node_modules
-tests/actiond/workspace
+e2e-tests/actiond/workspace
