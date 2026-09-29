@@ -131,6 +131,20 @@ try {
       nonempty(`${output}/artifacts/junit.xml`)
     }
   }
+  // Freeze the runner's event loop; an independent watchdog bounds this probe.
+  fs.mkdirSync('__actiond_deadline__', {recursive: true})
+  fs.writeFileSync('__actiond_deadline__/keep.png', original)
+  const started = Date.now()
+  run([...command, 'run', '//:actiond_deadline_test.update', ...flags,
+    '--remote_accept_cached=false'], {fail: true, timeout: 90_000})
+  assert(Date.now() - started < 90_000)
+  const deadlineOutput = result('actiond_deadline_test')
+  nonempty(`${deadlineOutput}/artifacts/deadline-ready.png`)
+  assert.equal(text(`${deadlineOutput}/artifacts/runner-stalled`), 'event loop blocked\n')
+  assert.deepEqual(fs.readdirSync('__actiond_deadline__'), ['keep.png'])
+  assert.deepEqual(fs.readFileSync('__actiond_deadline__/keep.png'), original)
+  run([...command, 'test', '//:actiond_native_test', ...flags, ...uncached,
+    '--test_output=errors'], {timeout: 120_000})
   // A deliberately wrong reference must produce downloaded diff images.
   fs.copyFileSync('__actiond_gallery__/counter.png', '__actiond_native__/saved.png')
   try {
