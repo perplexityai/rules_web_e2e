@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import {spawnSync, type SpawnSyncOptionsWithStringEncoding} from 'node:child_process'
 import {fileURLToPath} from 'node:url'
@@ -46,7 +45,7 @@ export function copyConsumer(destination: string, source = fixture) {
 export function consumerTest(test: (work: string, consumer: string, command: string[]) => void,
   artifacts = process.env.E2E_TEST_ARTIFACTS) {
   // Keep /tmp spelling short for the Chromium socket-path regression.
-  const work = fs.mkdtempSync(path.join(process.platform === 'linux' ? '/tmp' : os.tmpdir(), 'e2e-'))
+  const work = fs.mkdtempSync('/tmp/e2e-')
   const consumer = path.join(work, 'consumer')
   const command = [bazel, `--output_base=${work}/bazel`]
   try {
