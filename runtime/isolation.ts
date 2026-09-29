@@ -32,7 +32,19 @@ export function stageRunfiles(manifest: string, destination: string): void {
       )
         throw new Error(`Runfile link escapes staged inputs: ${name}`)
       fs.symlinkSync(source, target)
-    } else fs.cpSync(source, target, {recursive: true, dereference: true})
+    } else {
+      try {
+        fs.cpSync(source, target, {recursive: true, dereference: true})
+      } catch (error) {
+        // npm can declare platform-specific optional package links that have no
+        // target on this platform. Keep failing for every other missing runfile.
+        const danglingLink =
+          fs.lstatSync(source, {throwIfNoEntry: false})?.isSymbolicLink() &&
+          !fs.existsSync(source)
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT' || !danglingLink)
+          throw error
+      }
+    }
   }
 }
 

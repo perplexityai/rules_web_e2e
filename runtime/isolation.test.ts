@@ -43,6 +43,24 @@ test('staging excludes adjacent files and preserves a single npm package identit
   )
 })
 
+test('staging skips dangling optional package links but rejects missing runfiles', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-optional-runfiles-'))
+  t.after(() => fs.rmSync(root, {recursive: true, force: true}))
+  const packageDir = path.join(root, 'node_modules')
+  fs.mkdirSync(packageDir)
+  const optional = path.join(packageDir, 'binding-darwin-arm64')
+  fs.symlinkSync('missing-darwin-package', optional)
+  const manifest = path.join(root, 'MANIFEST')
+  const staged = path.join(root, 'inputs')
+  fs.writeFileSync(manifest, `_main/node_modules/binding-darwin-arm64 ${optional}\n`)
+
+  stageRunfiles(manifest, staged)
+
+  assert.equal(fs.existsSync(path.join(staged, '_main/node_modules/binding-darwin-arm64')), false)
+  fs.writeFileSync(manifest, `_main/required ${path.join(root, 'missing-required')}\n`)
+  assert.throws(() => stageRunfiles(manifest, staged), {code: 'ENOENT'})
+})
+
 test('undeclared shell variables cannot change compare versus update', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-env-'))
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))
