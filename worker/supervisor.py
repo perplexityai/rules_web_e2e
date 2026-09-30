@@ -25,7 +25,7 @@ def preflight(worker, expected_sha256):
             raise RuntimeError(f"actiond requires readable/writable {device}; use a KVM-capable runner")
 
 
-def bazel_config(endpoint, worker_sha256):
+def bazel_config(endpoint):
     flags = [
         "--jobs=2",
         f"--remote_executor={endpoint}",
@@ -40,7 +40,6 @@ def bazel_config(endpoint, worker_sha256):
         "--noremote_cache_compression",
         "--remote_download_outputs=all",
         "--extra_execution_platforms=@rules_web_e2e//internal:linux_amd64",
-        f"--remote_default_exec_properties=actiond-worker-sha256={worker_sha256}",
     ]
     return "".join(f"build:web-e2e {flag}\n" for flag in flags)
 
@@ -64,7 +63,7 @@ def stop(process):
     process.wait()
 
 
-def supervise(worker, worker_sha256, command, log_dir, port=8980, startup_timeout=90, memory_mib=6144, cas_image_size_mib=4096):
+def supervise(worker, command, log_dir, port=8980, startup_timeout=90, memory_mib=6144, cas_image_size_mib=4096):
     # Refuse to attach to an existing listener, including another supervisor.
     with socket.socket() as probe:
         # Match actiond: TIME_WAIT is reusable, but an active listener is not.
@@ -74,7 +73,7 @@ def supervise(worker, worker_sha256, command, log_dir, port=8980, startup_timeou
     logs = Path(tempfile.mkdtemp(prefix="run-", dir=log_dir)).resolve()
     endpoint = f"grpc://127.0.0.1:{port}"
     config = logs / "worker.bazelrc"
-    config.write_text(bazel_config(endpoint, worker_sha256))
+    config.write_text(bazel_config(endpoint))
     print(f"actiond logs: {logs}", file=sys.stderr, flush=True)
     interrupted = []
     previous = {}
@@ -156,6 +155,6 @@ def main():
             command = lambda config: arguments
         else:
             command = lambda config: [args.bazel, "--noblock_for_lock", f"--bazelrc={config}", args.operation, "--config=web-e2e", *arguments]
-        sys.exit(supervise(worker, manifest["sha256"], command, args.log_dir, args.port, args.startup_timeout, args.memory_mib, args.cas_image_size_mib))
+        sys.exit(supervise(worker, command, args.log_dir, args.port, args.startup_timeout, args.memory_mib, args.cas_image_size_mib))
     except (OSError, RuntimeError) as error:
         parser.exit(1, f"{error}\n")

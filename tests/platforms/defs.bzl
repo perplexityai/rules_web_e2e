@@ -1,6 +1,7 @@
 """Analysis checks for VRT's runtime, target CPU, and action boundary."""
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
+load("@web_e2e_worker_identity//:defs.bzl", "WORKER_SHA256")
 
 def _directory_impl(ctx):
     output = ctx.actions.declare_directory(ctx.label.name)
@@ -38,4 +39,24 @@ failure_test = analysistest.make(
     expect_failure = True,
     config_settings = _PLATFORMS,
     attrs = {"message": attr.string(mandatory = True)},
+)
+
+_Properties = provider(fields = ["values"])
+
+def _properties_impl(_target, ctx):
+    return [_Properties(values = ctx.rule.attr.exec_properties)]
+
+_properties = aspect(implementation = _properties_impl)
+
+def _properties_test_impl(ctx):
+    env = analysistest.begin(ctx)
+    properties = analysistest.target_under_test(env)[_Properties].values
+    asserts.equals(env, ctx.attr.worker_sha256, properties.get("actiond-worker-sha256", ""))
+    return analysistest.end(env)
+
+properties_test = analysistest.make(
+    _properties_test_impl,
+    config_settings = _PLATFORMS,
+    extra_target_under_test_aspects = [_properties],
+    attrs = {"worker_sha256": attr.string(default = WORKER_SHA256)},
 )

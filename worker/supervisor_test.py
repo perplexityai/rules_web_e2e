@@ -13,10 +13,16 @@ import time
 import unittest
 from unittest.mock import patch
 
-from worker.supervisor import main, preflight, supervise
+from worker.supervisor import bazel_config, main, preflight, supervise
 
 
 class SupervisorTest(unittest.TestCase):
+    def test_config_does_not_change_prerequisite_execution_properties(self):
+        endpoint = "grpc://127.0.0.1:8980"
+        config = bazel_config(endpoint)
+        self.assertIn(f"--remote_executor={endpoint}", config)
+        self.assertNotIn("--remote_default_exec_properties", config)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -64,7 +70,7 @@ with socket.socket() as listener:
         self.assertTrue(list(self.logs.glob("run-*/actiond.log")))
 
     def test_command_status_configuration_and_private_worker_environment(self):
-        checksum = self.make_worker()
+        self.make_worker()
         output = self.root / "command.json"
         script = '''import json, os, pathlib, sys
 config = pathlib.Path(os.environ["RULES_WEB_E2E_BAZELRC"]).read_text()
@@ -72,13 +78,13 @@ pathlib.Path(sys.argv[1]).write_text(json.dumps({"config": config, "endpoint": o
 sys.exit(7)
 '''
         with patch.dict(os.environ, {"SECRET_FOR_TEST": "not-for-worker"}):
-            status = supervise(self.worker, checksum,
+            status = supervise(self.worker,
                 lambda config: [sys.executable, "-c", script, str(output)], self.logs, self.port, 2, 12288, 32768)
         self.assertEqual(status, 7)
         result = json.loads(output.read_text())
         self.assertEqual(result["endpoint"], f"grpc://127.0.0.1:{self.port}")
         self.assertIn("--remote_executor=" + result["endpoint"], result["config"])
-        self.assertIn("--remote_default_exec_properties=actiond-worker-sha256=" + checksum, result["config"])
+        self.assertNotIn("--remote_default_exec_properties", result["config"])
         self.assertIn("--remote_local_fallback=false", result["config"])
         self.assertNotIn("SECRET_FOR_TEST", json.loads(self.record.read_text())["env"])
         self.assertEqual(json.loads(self.record.read_text())["memory_mib"], "12288")
@@ -86,17 +92,17 @@ sys.exit(7)
         self.assert_cleaned()
 
     def test_occupied_port_never_launches_or_adopts_worker(self):
-        checksum = self.make_worker()
+        self.make_worker()
         with socket.socket() as listener:
             listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             listener.bind(("127.0.0.1", self.port))
             listener.listen()
             with self.assertRaises(OSError):
-                supervise(self.worker, checksum, lambda config: ["never"], self.logs, self.port, 1)
+                supervise(self.worker, lambda config: ["never"], self.logs, self.port, 1)
         self.assertFalse(self.record.exists())
 
     def test_recently_closed_connection_does_not_block_new_worker(self):
-        checksum = self.make_worker()
+        self.make_worker()
         # Close the server side first, leaving its local port in TCP TIME_WAIT.
         with socket.socket() as listener:
             listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -106,7 +112,7 @@ sys.exit(7)
                 connection, _ = listener.accept()
                 connection.close()
                 self.assertEqual(client.recv(1), b"")
-        status = supervise(self.worker, checksum,
+        status = supervise(self.worker,
             lambda config: [sys.executable, "-c", "raise SystemExit(23)"], self.logs, self.port, 2)
         self.assertEqual(status, 23)
         self.assert_cleaned()
@@ -114,25 +120,25 @@ sys.exit(7)
     def test_startup_failure_and_timeout_do_not_launch_command(self):
         for mode in ("exit", "stall"):
             with self.subTest(mode=mode):
-                checksum = self.make_worker(mode)
+                self.make_worker(mode)
                 with self.assertRaisesRegex(RuntimeError, "startup"):
-                    supervise(self.worker, checksum, lambda config: self.fail("command ran before readiness"),
+                    supervise(self.worker, lambda config: self.fail("command ran before readiness"),
                         self.logs, self.port, 0.3)
                 self.assert_cleaned()
 
     def test_worker_death_stops_command(self):
-        checksum = self.make_worker("die")
+        self.make_worker("die")
         marker = self.root / "child.pid"
         script = "import os,pathlib,sys,time; pathlib.Path(sys.argv[1]).write_text(str(os.getpid())); time.sleep(30)"
         with self.assertRaisesRegex(RuntimeError, "while the command"):
-            supervise(self.worker, checksum, lambda config: [sys.executable, "-c", script, str(marker)],
+            supervise(self.worker, lambda config: [sys.executable, "-c", script, str(marker)],
                 self.logs, self.port, 2)
         with self.assertRaises(ProcessLookupError):
             os.kill(int(marker.read_text()), 0)
         self.assert_cleaned()
 
     def test_cancellation_cleans_worker_and_command(self):
-        checksum = self.make_worker()
+        self.make_worker()
         marker = self.root / "command.pid"
         cancelled = threading.Event()
         def interrupt_when_started():
@@ -147,7 +153,7 @@ sys.exit(7)
             return [sys.executable, "-c",
                 "import os,pathlib,sys,time; pathlib.Path(sys.argv[1]).write_text(str(os.getpid())); time.sleep(30)", str(marker)]
         try:
-            status = supervise(self.worker, checksum, command, self.logs, self.port, 2)
+            status = supervise(self.worker, command, self.logs, self.port, 2)
         finally:
             cancelled.set()
             if sender.ident is not None:

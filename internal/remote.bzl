@@ -1,6 +1,7 @@
 """Native browser tests and VRT artifact-producing actions."""
 
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
+load("@web_e2e_worker_identity//:defs.bzl", "WORKER_SHA256")
 load("//internal/test_tools:defs.bzl", "TestToolsInfo")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "runfile")
 
@@ -168,8 +169,15 @@ _native_browser_test = rule(
     exec_groups = {"test": exec_group(exec_compatible_with = [str(Label("@platforms//os:linux")), str(Label("@platforms//cpu:x86_64"))])},
 )
 
-def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch):
+def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256 = None):
     """Run native browser tests or produce downloadable VRT comparisons/captures."""
+    if worker_sha256 != None and (len(worker_sha256) != 64 or any([c not in "0123456789abcdef" for c in worker_sha256.elems()])):
+        fail("worker_sha256 must be a lowercase SHA256 digest")
+    if worker_sha256 == None:
+        worker_sha256 = WORKER_SHA256 if target_arch == "x64" else ""
+    execution_properties = {"libc": "glibc2.39", "requires-bash": ""}
+    if worker_sha256:
+        execution_properties["actiond-worker-sha256"] = worker_sha256
     constraints = [Label("@platforms//os:linux"), Label("@platforms//cpu:" + ("x86_64" if target_arch == "x64" else "arm64"))]
     if not visual and target_arch == "arm64":
         fail("ARM64 isolated execution currently supports VRT only; omit browser for host interaction tests")
@@ -184,7 +192,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             data = data,
             target_platform = target_platform,
             target_arch = target_arch,
-            exec_properties = {"libc": "glibc2.39", "requires-bash": ""},
+            exec_properties = execution_properties,
             exec_compatible_with = constraints,
             tags = ["manual", "browser_test"] + tags,
             timeout = timeout,
@@ -204,7 +212,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             target_platform = target_platform,
             target_arch = target_arch,
             exec_compatible_with = constraints,
-            exec_properties = {"libc": "glibc2.39", "requires-bash": ""},
+            exec_properties = execution_properties,
             tags = ["manual"],
         )
         common = dict(

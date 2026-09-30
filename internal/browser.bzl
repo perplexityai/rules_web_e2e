@@ -97,6 +97,7 @@ def browser_test(
         browser = None,
         target_platform = None,
         target_arch = "x64",
+        worker_sha256 = None,
         config = None,
         matching = None,
         baselines = [],
@@ -187,7 +188,7 @@ def browser_test(
         if key not in env and key not in env_inherit
     ]
     if browser:
-        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch)
+        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256)
         return
     js_test(
         name = name,
