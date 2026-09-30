@@ -76,8 +76,9 @@ def _native_test(ctx, root, descriptor, files, job):
             "USER": "test",
             "LANG": "C.UTF-8",
             "TZ": "UTC",
+            "VRT_HOST_EXECUTION": "1" if ctx.attr.host_vrt else "0",
         }),
-        testing.ExecutionInfo({"no-local": "1"}),
+        testing.ExecutionInfo({"no-remote": "1"} if ctx.attr.host_vrt else {"no-local": "1"}),
     ]
 
 def _remote_impl(ctx):
@@ -133,8 +134,9 @@ def _remote_impl(ctx):
             "TMPDIR": "/tmp",
             "LANG": "C.UTF-8",
             "TZ": "UTC",
+            "VRT_HOST_EXECUTION": "1" if ctx.attr.host_vrt else "0",
         },
-        execution_requirements = {"no-local": "1"},
+        execution_requirements = {"no-remote": "1", "no-cache": "1"} if ctx.attr.host_vrt else {"no-local": "1"},
         mnemonic = {"capture": "VrtCapture", "compare": "VrtCompare", "test": "BrowserTest"}[ctx.attr.mode],
     )
     return [
@@ -152,6 +154,7 @@ _attrs = {
     "env": attr.string_dict(),
     "args": attr.string_list(),
     "mode": attr.string(mandatory = True, values = ["capture", "compare", "test"]),
+    "host_vrt": attr.bool(default = False),
     "_runtime": attr.label(default = Label("//runtime:files")),
     "_runner": attr.label(default = Label("//runtime:runner_entry"), allow_single_file = True),
     "_bootstrap": attr.label(default = Label("//runtime:remote_runner_entry"), allow_single_file = True),
@@ -169,14 +172,14 @@ _native_browser_test = rule(
     exec_groups = {"test": exec_group(exec_compatible_with = [str(Label("@platforms//os:linux")), str(Label("@platforms//cpu:x86_64"))])},
 )
 
-def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256 = None):
+def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256 = None, host_vrt = False):
     """Run native browser tests or produce downloadable VRT comparisons/captures."""
     if worker_sha256 != None and (len(worker_sha256) != 64 or any([c not in "0123456789abcdef" for c in worker_sha256.elems()])):
         fail("worker_sha256 must be a lowercase SHA256 digest")
     if worker_sha256 == None:
         worker_sha256 = WORKER_SHA256 if target_arch == "x64" else ""
-    execution_properties = {"libc": "glibc2.39", "requires-bash": ""}
-    if worker_sha256:
+    execution_properties = {} if host_vrt else {"libc": "glibc2.39", "requires-bash": ""}
+    if worker_sha256 and not host_vrt:
         execution_properties["actiond-worker-sha256"] = worker_sha256
     constraints = [Label("@platforms//os:linux"), Label("@platforms//cpu:" + ("x86_64" if target_arch == "x64" else "arm64"))]
     if not visual and target_arch == "arm64":
@@ -198,7 +201,23 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             timeout = timeout,
         )
         return
-    for mode in ["compare", "capture"]:
+    if host_vrt:
+        _native_browser_test(
+            name = name,
+            inputs = ":" + name + "_inputs",
+            browser = browser,
+            env = env,
+            args = args,
+            mode = "test",
+            data = data,
+            target_platform = target_platform,
+            target_arch = target_arch,
+            host_vrt = True,
+            exec_compatible_with = constraints,
+            tags = ["manual", "visual_test"] + tags,
+            timeout = timeout,
+        )
+    for mode in (["capture"] if host_vrt else ["compare", "capture"]):
         capture = mode == "capture"
         action = name + "_" + mode
         _remote(
@@ -211,6 +230,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             data = data,
             target_platform = target_platform,
             target_arch = target_arch,
+            host_vrt = host_vrt,
             exec_compatible_with = constraints,
             exec_properties = execution_properties,
             tags = ["manual"],

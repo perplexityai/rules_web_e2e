@@ -9,7 +9,7 @@ const context: ServerContext = {
   host: '127.0.0.1',
 }
 const server = process.env.VRT_SHELL
-  ? await serveDirectory(process.env.VRT_SHELL, process.env.VRT_SHELL_ENTRY)
+  ? await serveDirectory(process.env.VRT_SHELL, process.env.VRT_SHELL_ENTRY, process.env.VRT_HOST_EXECUTION === '1')
   : await (async () => {
       const {default: start} = (await import(
         pathToFileURL(process.env.VRT_CUSTOM_SERVER!).href

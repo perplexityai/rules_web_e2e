@@ -98,6 +98,7 @@ def browser_test(
         target_platform = None,
         target_arch = "x64",
         worker_sha256 = None,
+        host_vrt = False,
         config = None,
         matching = None,
         baselines = [],
@@ -124,6 +125,10 @@ def browser_test(
         fail("Visual and component modes are separate targets")
     if visual and not browser:
         fail("VRT requires browser = <caller-owned browser_runtime target>")
+    if host_vrt and not visual:
+        fail("host_vrt is only supported for visual tests")
+    if host_vrt and target_arch != "x64":
+        fail("host_vrt currently requires target_arch = x64")
     if network_origins or network_origins_env:
         fail("Network origin exceptions are unsupported: VRT uses action-local fixtures and host tests use the host network")
     if browser and env_inherit:
@@ -188,7 +193,7 @@ def browser_test(
         if key not in env and key not in env_inherit
     ]
     if browser:
-        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256)
+        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256, host_vrt)
         return
     js_test(
         name = name,

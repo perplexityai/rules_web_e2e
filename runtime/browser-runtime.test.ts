@@ -30,6 +30,8 @@ test('declared browser resolution refuses host fallback and escaping files', {
     assert.throws(() => browserRuntime(inputs, {...runtime, executable: '../chrome'}), /Invalid browser runtime path/)
     fs.symlinkSync(process.execPath, path.join(root, 'host'))
     assert.throws(() => browserRuntime(inputs, {...runtime, executable: 'host'}), /escapes declared root/)
+    const hostBrowser = browserRuntime(inputs, {...runtime, executable: 'host'}, true).env.VRT_CHROMIUM_EXECUTABLE
+    assert.equal(fs.statSync(hostBrowser).ino, fs.statSync(process.execPath).ino)
     assert.throws(() => browserRuntime(inputs, {...runtime, arch: process.arch === 'x64' ? 'arm64' : 'x64'}), /select a matching execution platform/)
   } finally {
     fs.rmSync(inputs, {recursive: true, force: true})

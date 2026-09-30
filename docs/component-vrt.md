@@ -1,7 +1,8 @@
 # Component visual regression tests
 
 `component_visual_test` generates Playwright Test captures from consumer `.visual.tsx` modules against a
-caller-owned browser runtime in an isolated Linux action. It provides comparison,
+caller-owned browser runtime in an isolated Linux action by default, or on a
+Linux amd64 host with `host_vrt = True`. It provides comparison,
 failure artifacts, and an explicit `<name>.update` target. The runtime is consumed
 through Bazel; a separate npm publication is not required. See
 [architecture](architecture.md) and [visual testing design](visual-testing-design.md)
@@ -64,8 +65,11 @@ A custom compiled `server` or action-local URL can replace `shell`; see
   keep its browser compatible with the consumer's Playwright packages.
 - The fixture server and browser share an action-local loopback network. External
   services and inherited environment are unsupported; declare fixtures and `env`.
-- Capture and comparison are cacheable remote actions. Their local wrappers
-  download artifacts and report results; only `.update` writes source baselines.
+- By default, capture and comparison are cacheable remote actions. Their local
+  wrappers download artifacts and report results; only `.update` writes source
+  baselines. With `host_vrt = True`, comparison is a native Bazel test and
+  capture is a local action. Use `--nocache_test_results` to repeat a host
+  comparison with unchanged inputs.
 - Built inputs are staged from their runfiles manifest into a private tree with
   fresh home/cache directories. See [the isolation boundaries](actiond.md).
 - Compare mode copies declared baselines to a temporary directory. Missing or

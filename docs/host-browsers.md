@@ -4,10 +4,20 @@
 | --- | --- | --- |
 | `web_e2e_test` | Version-matched host Chromium | Host network |
 | `component_browser_test` | Version-matched host Chromium | Host network |
-| `visual_test` | Declared Linux amd64 runtime | Action-local loopback |
-| `component_visual_test` | Declared Linux amd64 runtime | Action-local loopback |
+| `visual_test` | Declared Linux runtime; actiond by default, Linux amd64 host with `host_vrt = True` | Action-local loopback |
+| `component_visual_test` | Declared Linux runtime; actiond by default, Linux amd64 host with `host_vrt = True` | Action-local loopback |
 
-VRT uses [actiond](actiond.md); host tests keep their existing browser setup.
+VRT uses [actiond](actiond.md) by default; host interaction tests keep their
+existing browser setup.
+
+On a controlled Linux amd64 host, VRT can run without actiond by setting
+`host_vrt = True` on a visual target and invoking ordinary `bazel test`.
+The declared browser, Node, fonts, and fixtures remain Bazel inputs, while the
+host supplies libc, Bash, and kernel behavior. Bazel's local sandbox exposes
+declared inputs through links, which the host mode accepts. Treat the CI image
+as part of the screenshot environment and recapture baselines when switching
+execution modes. This mode does not provide the worker's VM isolation or its
+cross-host rendering contract.
 
 ## Hermetic E2E and component tests
 

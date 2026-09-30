@@ -18,7 +18,7 @@ export const workerLibraryPath = [
 ].join(path.delimiter)
 
 /** Resolve only declared runtime files; never fall back to a host browser. */
-export function browserRuntime(inputs: string, runtime: BrowserRuntime) {
+export function browserRuntime(inputs: string, runtime: BrowserRuntime, host = false) {
   if (process.platform !== 'linux' || process.arch !== runtime.arch)
     throw new Error(`Browser runtime requires Linux ${runtime.arch}; select a matching execution platform`)
   const root = fs.realpathSync(path.join(inputs, runtime.root))
@@ -26,7 +26,7 @@ export function browserRuntime(inputs: string, runtime: BrowserRuntime) {
     if (!relative || path.isAbsolute(relative) || relative.split('/').some(p => !p || p === '.' || p === '..'))
       throw new Error(`Invalid browser runtime path: ${relative}`)
     const file = fs.realpathSync(path.join(root, relative))
-    if (!file.startsWith(root + path.sep))
+    if (!host && !file.startsWith(root + path.sep))
       throw new Error(`Browser runtime path escapes declared root: ${relative}`)
     return file
   }

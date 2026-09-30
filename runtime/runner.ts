@@ -60,7 +60,7 @@ async function main() {
   const selectors = testArguments(visual, args, descriptor.tests)
   if (visual && !descriptor.browser) throw new Error("VRT requires a declared browser runtime")
   const declaredBrowser = descriptor.browser
-    ? browserRuntime(inputs, descriptor.browser)
+    ? browserRuntime(inputs, descriptor.browser, process.env.VRT_HOST_EXECUTION === '1')
     : undefined
   const hostEnv = declaredBrowser ? {} : hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
   const node = declaredBrowser?.node || fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
@@ -162,6 +162,7 @@ async function main() {
     VRT_INPUTS: inputs,
     VRT_PLAYWRIGHT_CORE: core,
     VRT_ISOLATED: declaredBrowser ? '1' : '0',
+    VRT_HOST_EXECUTION: process.env.VRT_HOST_EXECUTION === '1' ? '1' : '0',
     VRT_MODE: required('VRT_MODE'),
     VRT_TEST_ROOT: gallery ? generated : discoveryRoot,
     VRT_TEST_FILES: JSON.stringify(testFiles),

@@ -1,7 +1,7 @@
 # Manual actiond setup
 
-`visual_test` and `component_visual_test` run the fixture server, Playwright,
-Chromium, and screenshot comparison together in an isolated Linux amd64 action.
+By default, `visual_test` and `component_visual_test` run the fixture server,
+Playwright, Chromium, and screenshot comparison together in an isolated Linux amd64 action.
 E2E and component tests also use this execution path when supplied a `browser`.
 Callers supply a [declared browser runtime](browser-runtime.md), built from declared archives and files. Without `browser`, E2E and component tests use host browsers.
 
@@ -62,7 +62,7 @@ Ordinary browser tests are native Bazel test actions. Bazel owns their exit
 status, retries, repeated runs, and test-result caching. `--nocache_test_results`
 reruns Chromium; failure reports are standard test artifacts.
 
-VRT comparison and capture are cacheable build actions. Their result directory
+With actiond, VRT comparison and capture are cacheable build actions. Their result directory
 contains test status and artifacts even when the suite fails. A local test
 wrapper reports comparison failure, copies reports into Bazel test outputs, and
 forwards per-case JUnit to Bazel’s XML output for failure/quarantine matching.

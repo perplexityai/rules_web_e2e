@@ -11,6 +11,7 @@ execution, reports, and screenshot updates.
 | **Basic: presets** | Isolated Linux amd64 tests | One browser release and the worker launcher |
 | **Advanced: custom** | Custom browsers, fonts, ARM64, or worker infrastructure | Runtime inputs and/or worker execution settings |
 | **Host tests** | Live services or E2E/component tests without a VM | A version-matched host Playwright browser; no VRT |
+| **Host VRT** | Screenshot tests on a controlled Linux amd64 host without a VM | `host_vrt = True`, a declared browser runtime, and host environment parity |
 
 The preset supplies Chromium, Node, libraries, and fonts. Its worker supervisor
 handles download, startup, execution flags, logs, and cleanup. You still own
