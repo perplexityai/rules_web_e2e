@@ -29,9 +29,13 @@ After [provisioning host Chromium](../../docs/host-browsers.md):
 bazel test //:host_e2e_test //:host_component_test //:host_native_config_test //:remote_integration_test
 ```
 
-Host targets omit `browser`. `remote_integration_test` owns a temporary external
-server for `remote_test`; it exercises the existing-URL API. VRT requires an
-isolated worker.
+Host interaction targets omit `browser`. `remote_integration_test` owns a
+temporary external server for `remote_test`; it exercises the existing-URL API.
+`host_visual_test` opts in to local Linux VRT with the declared browser runtime:
+
+```sh
+bazel test --nocache_test_results //:host_visual_test
+```
 
 For custom runtime assembly, see [examples/browser-runtime](../browser-runtime)
 and the [runtime guide](../../docs/browser-runtime.md).

@@ -55,10 +55,19 @@ and baseline directories for different suites.
 | `matching` | Zero mismatched pixels | Numeric-string dictionary or compiled `VisualMatching` module |
 | `baselines` | `[]` | Existing PNG labels |
 | `baseline_dir` | `"__screenshots__"` | Package-relative directory owned by this target |
+| `host_vrt` | `False` | Opt in to Linux amd64 host execution of capture and comparison; requires a declared browser runtime |
 
 `<name>.update` runs the full visual suite, replaces PNGs, and removes stale PNGs
 only after a successful, nonempty capture. Other files remain. Comparison fails
 on missing baselines. Review updates before committing.
+
+`host_vrt` runs VRT in Bazel's local sandbox and does not start actiond.
+Comparison is a native Bazel test: use `--nocache_test_results` to rerun it on
+unchanged inputs. Baseline capture remains a build action and Bazel may reuse a
+locally completed capture on an identical `.update` invocation. The host's
+libc, shell, kernel, and system services become execution inputs; use a
+controlled CI image and recapture baselines before switching from the worker.
+Host VRT does not use remote execution or the remote action cache.
 
 All targets reserve `<name>_sources` and `<name>_inputs`. `visual` and `component`
 are private mode switches.

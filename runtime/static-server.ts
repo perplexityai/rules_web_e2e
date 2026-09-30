@@ -20,12 +20,21 @@ const contentTypes: Record<string, string> = {
 /** Serve only a built asset directory; never resolve source imports or compile code. */
 export async function serveDirectory(
   directory: string,
-  entryPoint = 'index.html'
+  entryPoint = 'index.html',
+  host = false
 ): Promise<RunningServer> {
   const root = await fs.realpath(directory)
-  const inside = (file: string) => file.startsWith(root + path.sep)
-  const entry = await fs.realpath(path.resolve(root, entryPoint))
-  if (!inside(entry) || !(await fs.stat(entry)).isFile())
+  const resolve = async (relative: string) => {
+    const requested = path.resolve(root, relative)
+    if (!requested.startsWith(root + path.sep)) throw new Error('Path escapes asset directory')
+    const file = await fs.realpath(requested)
+    if (!host && !file.startsWith(root + path.sep)) throw new Error('Path escapes asset directory')
+    return file
+  }
+  const entry = await resolve(entryPoint).catch(() => {
+    throw new Error('Shell entry point must be a file within the asset directory')
+  })
+  if (!(await fs.stat(entry)).isFile())
     throw new Error(
       'Shell entry point must be a file within the asset directory'
     )
@@ -42,8 +51,8 @@ export async function serveDirectory(
         const relative = pathname === '/' ? entryPoint : pathname.slice(1)
         if (relative.includes('\0') || relative.includes('\\'))
           throw new Error('Invalid path')
-        const file = await fs.realpath(path.resolve(root, relative))
-        if (!inside(file) || !(await fs.stat(file)).isFile())
+        const file = await resolve(relative)
+        if (!(await fs.stat(file)).isFile())
           throw new Error('Not a file')
         response.writeHead(200, {
           'content-type':

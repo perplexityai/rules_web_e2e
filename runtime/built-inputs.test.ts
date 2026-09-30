@@ -38,6 +38,20 @@ test('serves a built shell and assets without exposing adjacent files or symlink
   )
 })
 
+test('host VRT serves Bazel sandbox links while rejecting URL traversal', async t => {
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'host-shell-'))
+  t.after(() => fs.rm(temp, {recursive: true, force: true}))
+  const root = path.join(temp, 'dist')
+  await fs.mkdir(root)
+  await fs.writeFile(path.join(temp, 'built.html'), '<main>Host VRT</main>')
+  await fs.symlink(path.join(temp, 'built.html'), path.join(root, 'index.html'))
+  const server = await serveDirectory(root, 'index.html', true)
+  t.after(() => server.close())
+  assert.equal(await (await fetch(server.url)).text(), '<main>Host VRT</main>')
+  assert.equal((await fetch(new URL('%2e%2e%2fbuilt.html', server.url))).status, 404)
+  await assert.rejects(serveDirectory(root, '../built.html', true), /within the asset directory/)
+})
+
 test('matching validates pixel budgets and preserves an explicit pixel-count budget', () => {
   assert.deepEqual(screenshotMatching({maxDiffPixels: 5}), {
     threshold: 0.1,

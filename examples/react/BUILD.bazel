@@ -51,6 +51,17 @@ visual_test(
     tests = ":native_visual_specs",
 )
 
+visual_test(
+    name = "host_visual_test",
+    baseline_dir = "__host_screenshots__",
+    baselines = glob(["__host_screenshots__/*.png"], allow_empty = True),
+    browser = "@web_browser//:browser",
+    config = ":native_config",
+    host_vrt = True,
+    matching = {"threshold": "0.1", "maxDiffPixels": "0"},
+    tests = ":native_visual_specs",
+)
+
 npm_link_package(
     name = "node_modules/@rules-web-e2e/vrt",
     src = "@rules_web_e2e//runtime:package",
