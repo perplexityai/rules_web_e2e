@@ -1,7 +1,7 @@
-load("//component:defs.bzl", "browser_shell")
+load("//component:defs.bzl", "browser_shell", "component_browser_test")
 load("//playwright:defs.bzl", "browser_runtime")
 load("//vrt:defs.bzl", "component_visual_test")
-load(":defs.bzl", "capture_test", "directory", "failure_test")
+load(":defs.bzl", "capture_test", "directory", "failure_test", "properties_test")
 
 directory(
     name = "files",
@@ -79,4 +79,63 @@ failure_test(
     name = "wrong_platform_test",
     message = "target_platform CPU must match target_arch",
     target_under_test = ":wrong_platform_capture",
+)
+
+component_visual_test(
+    name = "custom_worker",
+    browser = ":x64_browser",
+    shell = ":shell",
+    worker_sha256 = "a" * 64,
+)
+
+properties_test(
+    name = "custom_worker_test",
+    target_under_test = ":custom_worker_capture",
+    worker_sha256 = "a" * 64,
+)
+
+properties_test(
+    name = "compare_worker_test",
+    target_under_test = ":x64_compare",
+)
+
+properties_test(
+    name = "inputs_without_worker_test",
+    target_under_test = ":x64_inputs",
+    worker_sha256 = "",
+)
+
+properties_test(
+    name = "runtime_without_worker_test",
+    target_under_test = ":x64_browser",
+    worker_sha256 = "",
+)
+
+genrule(
+    name = "spec",
+    outs = ["fixture.browser.spec.js"],
+    cmd = "touch $@",
+)
+
+component_browser_test(
+    name = "native_browser",
+    browser = ":x64_browser",
+    shell = ":shell",
+    tests = ":spec",
+)
+
+properties_test(
+    name = "native_worker_test",
+    target_under_test = ":native_browser",
+)
+
+properties_test(
+    name = "capture_worker_test",
+    target_under_test = ":x64_capture",
+)
+
+properties_test(
+    name = "arm64_without_preset_test",
+    target_under_test = ":arm64_capture",
+    worker_sha256 = "",
 )

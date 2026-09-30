@@ -48,10 +48,20 @@ bazel --bazelrc="$RULES_WEB_E2E_BAZELRC" test --config=web-e2e //ui:component_te
 bazel --bazelrc="$RULES_WEB_E2E_BAZELRC" test --config=web-e2e //ui:visual_test
 ```
 
-The generated profile keys results by worker SHA256, routes isolated tests and
-VRT actions remotely, and keeps VRT report wrappers local. Host fallback is
+Browser rules key results by worker SHA256. The generated profile routes isolated
+tests and VRT actions remotely, and keeps VRT report wrappers local. Host fallback is
 disabled. Use it only for isolated browser/VRT targets; keep live-service and
 unrelated unit tests in separate jobs. Do not override its execution settings.
+
+Browser targets include the preset worker SHA256 in their execution properties.
+Ordinary prerequisites do not: prebuilding TypeScript or Vite inputs preserves
+their cache keys when the worker starts. Browser results remain cacheable and
+invalidate when the preset worker changes. The rules and supervisor read the
+same worker manifest; loading its identity does not download the worker binary.
+
+For a custom worker, set `worker_sha256` on browser test targets to the SHA256 of
+that worker binary. Linux amd64 defaults to the preset digest; ARM64 has no preset
+digest and requires an explicit value to track custom worker upgrades.
 
 Caching stays enabled. `--nocache_test_results` reruns native browser tests;
 add `--remote_accept_cached=false` to force VRT actions too.
