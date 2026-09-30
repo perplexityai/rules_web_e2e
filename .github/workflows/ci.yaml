@@ -72,6 +72,10 @@ jobs:
       - name: Run host browser suites without Docker
         working-directory: examples/react
         run: bazelisk test //:host_e2e_test //:host_component_test //:remote_integration_test //:host_native_config_test --test_output=errors
+      - name: Run Linux host VRT
+        if: runner.os == 'Linux'
+        working-directory: examples/react
+        run: bazelisk test --nocache_test_results //:host_visual_test --test_output=errors
       - name: Run isolated E2E consumer workspace
         env:
           E2E_TEST_ARTIFACTS: ${{ runner.temp }}/isolated-e2e-results
