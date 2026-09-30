@@ -183,6 +183,15 @@ component_visual_test(
 )
 
 component_visual_test(
+    name = "host_component_visual_test",
+    baseline_dir = "__host_component_screenshots__",
+    baselines = glob(["__host_component_screenshots__/*.png"], allow_empty = True),
+    browser = "@web_browser//:browser",
+    host_vrt = True,
+    shell = ":component_shell",
+)
+
+component_visual_test(
     name = "component_visual_test",
     baseline_dir = "__component_screenshots__",
     baselines = glob(
