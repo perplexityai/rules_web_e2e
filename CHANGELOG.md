@@ -26,6 +26,14 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.5.1 (2026-09-30)
+
+## What's Changed
+* fix: scope worker identity to browser actions by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/64
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.5.0...v3.5.1
+
 ## 3.5.0 (2026-09-29)
 
 ## What's Changed
