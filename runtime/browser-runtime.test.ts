@@ -52,7 +52,7 @@ test('stages declared FFmpeg at the selected Playwright revision', () => {
     stageFfmpeg(core, executable, cache)
     assert.equal(
       fs.realpathSync(path.join(cache, 'ms-playwright', 'ffmpeg-1011', 'ffmpeg-linux')),
-      executable,
+      fs.realpathSync(executable),
     )
     fs.writeFileSync(path.join(core, 'browsers.json'), JSON.stringify({
       browsers: [{name: 'ffmpeg', revision: '../outside'}],
