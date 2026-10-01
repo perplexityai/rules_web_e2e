@@ -10,7 +10,7 @@ import {testArguments} from './arguments.js'
 import {baselineDestination, materializeSnapshots, updateBaselines} from './baselines.js'
 import {browserTempRoot, removeScratch, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
-import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
+import {browserRuntime, stageFfmpeg, type BrowserRuntime} from './browser-runtime.js'
 
 function required(name: string) {
   const value = process.env[name]
@@ -149,6 +149,8 @@ async function main() {
     [...JSON.parse(required('VRT_ENV_NAMES')) as string[], 'TEST_RUN_NUMBER', 'TEST_RANDOM_SEED'],
     temp
   )
+  if (declaredBrowser?.ffmpeg)
+    stageFfmpeg(core, declaredBrowser.ffmpeg, fixtureEnv.XDG_CACHE_HOME!)
   const env = {
     ...fixtureEnv,
     ...hostEnv,

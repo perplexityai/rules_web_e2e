@@ -48,3 +48,9 @@ The VM suite also freezes the runner after a real screenshot and verifies the pa
 Host CI also runs `temp-paths.ts` with deep and symlinked temp roots, checking real Chromium screenshots and scratch cleanup.
 
 The VM gallery also captures and compares a real pointer-hover state, asserting CSS `:hover` inside `beforeCapture`.
+
+The Linux amd64 VM suite also records a page interaction using a caller-pinned
+FFmpeg helper and verifies the downloaded video is nonempty with a WebM header.
+A paired run without the helper must fail with the missing-FFmpeg diagnostic.
+Both actions bypass remote action and test-result caches. Other suites keep
+their runtime without FFmpeg, covering the optional-input behavior.

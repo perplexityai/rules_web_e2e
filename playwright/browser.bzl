@@ -24,15 +24,17 @@ def _linux_impl(ctx):
         "arch": ctx.attr.arch,
         "chromium": [file.path for file in ctx.files.chromium],
         "node": ctx.file.node.path,
+        "ffmpeg": [file.path for file in ctx.files.ffmpeg],
         "system": ctx.file.system.path,
         "fonts": [file.path for file in ctx.files.fonts],
-    }, ctx.files.chromium + [ctx.file.node, ctx.file.system] + ctx.files.fonts)
+    }, ctx.files.chromium + ctx.files.ffmpeg + [ctx.file.node, ctx.file.system] + ctx.files.fonts)
     return [
         DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output])),
         BrowserRuntimeInfo(descriptor = {
             "root": runfile(output),
             "executable": "chromium/chrome-headless-shell",
             "node": "bin/node",
+            "ffmpeg": "bin/ffmpeg-linux" if ctx.files.ffmpeg else "",
             "loader": "lib/ld-linux-x86-64.so.2" if ctx.attr.arch == "x64" else "lib/ld-linux-aarch64.so.1",
             "bash": "bin/bash",
             "libraryDirs": ["lib"],
@@ -47,6 +49,7 @@ _linux_chromium_runtime = rule(
     attrs = {
         "chromium": attr.label(mandatory = True, allow_files = True, doc = "Headless-shell files or directory, e.g. rules_browsers :info."),
         "node": attr.label(mandatory = True, allow_single_file = True, doc = "Matching Linux Node ELF, e.g. rules_nodejs :node_bin."),
+        "ffmpeg": attr.label(allow_files = True, doc = "Pinned Playwright FFmpeg bundle for video recording."),
         "arch": attr.string(default = "x64", values = ["x64", "arm64"]),
         "system": attr.label(mandatory = True, allow_single_file = True, doc = "Versioned libraries, shell and font preset; excludes browser and Node."),
         "fonts": attr.label_list(allow_files = True, doc = "Additional declared font files/directories."),

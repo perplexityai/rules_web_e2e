@@ -23,3 +23,12 @@ bazel_dep(name = "aspect_rules_ts", version = "3.10.1")
 typescript = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
 typescript.deps(ts_version = "7.0.2")
 use_repo(typescript, "npm_typescript")
+
+# Video regression uses a caller-pinned helper, never Playwright downloads at runtime.
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+http_archive(
+    name = "video_ffmpeg",
+    urls = ["https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-linux.zip"],
+    sha256 = "ebc74fc5b94830176a3c2914ae96bd8bc7f6a91f4f33890230f84a172ee61ccc",
+    build_file_content = 'exports_files(["ffmpeg-linux"])',
+)
