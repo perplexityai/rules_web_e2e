@@ -91,6 +91,16 @@ try {
     fs.writeFileSync(`${work}/results/local-rejection.log`, log)
     assert(log.includes("VRT requires actiond's pinned glibc/Bash runtime"), log)
     test('//:actiond_e2e_test', '//:actiond_component_test', '//:actiond_browser_isolation_test')
+    const missingFfmpeg = run([...command, 'test', '//:actiond_missing_ffmpeg_test', ...flags,
+      ...uncached, '--test_output=errors'], {fail: true, stdio: 'pipe'})
+    assert.match(missingFfmpeg, /Executable doesn't exist at[^\n]*ffmpeg-/)
+    test('//:actiond_video_test', ...uncached)
+    const videos = outputFiles('bazel-testlogs/actiond_video_test/test.outputs')
+      .filter(file => file.name.endsWith('.webm'))
+    assert.equal(videos.length, 1, 'Expected one downloaded video from the isolated browser')
+    const video = videos[0].read()
+    assert(video.length > 4, 'Video artifact is empty')
+    assert.deepEqual(video.subarray(0, 4), Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), 'Expected a WebM/EBML header')
     run([...command, 'test', '//:actiond_browser_failure_test', ...flags,
       '--flaky_test_attempts=2', '--nocache_test_results', '--test_output=errors'], {fail: true})
     assert(text('bazel-testlogs/actiond_browser_failure_test/test.log').includes('Intentional ordinary browser failure'))

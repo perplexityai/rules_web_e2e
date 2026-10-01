@@ -382,3 +382,37 @@ web_e2e_test(
     config = ":temp_path_config",
     tests = ":temp_path_specs",
 )
+
+# Keep the ordinary runtime without FFmpeg to cover callers that do not record video.
+browser_runtime_archive(
+    name = "actiond_video_runtime_files",
+    archive = "runtime.tar",
+    files = {"@video_ffmpeg//:ffmpeg-linux": "bin/ffmpeg-linux"},
+)
+browser_runtime(
+    name = "actiond_video_browser",
+    root = ":actiond_video_runtime_files",
+    executable = "chromium/chrome-headless-shell",
+    node = "bin/node",
+    ffmpeg = "bin/ffmpeg-linux",
+    library_dirs = ["lib"],
+    fontconfig = "etc/fonts",
+)
+js_library(
+    name = "actiond_video_specs",
+    srcs = ["actiond-video.spec.js"],
+    deps = [":typecheck_project"],
+)
+web_e2e_test(
+    name = "actiond_video_test",
+    browser = ":actiond_video_browser",
+    config = ":native_config",
+    tests = ":actiond_video_specs",
+)
+
+web_e2e_test(
+    name = "actiond_missing_ffmpeg_test",
+    browser = ":actiond_browser",
+    config = ":native_config",
+    tests = ":actiond_video_specs",
+)
