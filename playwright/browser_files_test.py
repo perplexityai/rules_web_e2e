@@ -54,11 +54,14 @@ class BrowserFilesTest(unittest.TestCase):
                 font.write_text("caller font")
                 browser = self.bundle(root / "browser")
                 (browser / "chrome-headless-shell").write_bytes(binary)
+                ffmpeg = root / "ffmpeg-linux"
+                ffmpeg.write_bytes(binary)
                 output = root / "runtime"
                 manifest = {"mode": "linux", "arch": arch, "system": str(system), "node": str(node),
-                            "chromium": [str(browser)], "fonts": [str(font)]}
+                            "chromium": [str(browser)], "ffmpeg": [str(ffmpeg)], "fonts": [str(font)]}
                 assemble(manifest, output)
                 self.assertEqual((output / "bin/node").read_bytes(), binary)
+                self.assertEqual((output / "bin/ffmpeg-linux").read_bytes(), binary)
                 self.assertEqual((output / "fonts/custom/0/brand.ttf").read_text(), "caller font")
                 self.assertTrue((output / "fonts/default.ttf").exists())
                 self.assertFalse(any(p.is_symlink() for p in output.rglob("*")))

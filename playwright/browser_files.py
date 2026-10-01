@@ -46,6 +46,12 @@ def assemble(manifest, output):
         (output / "bin").mkdir(exist_ok=True)
         shutil.copyfile(manifest["node"], output / "bin/node")
         (output / "bin/node").chmod(0o755)
+        if manifest.get("ffmpeg"):
+            helpers = [file for file in declared_files(manifest["ffmpeg"]) if file.name == "ffmpeg-linux"]
+            if len(helpers) != 1:
+                raise ValueError("ffmpeg must contain exactly one ffmpeg-linux executable")
+            shutil.copyfile(helpers[0], output / "bin/ffmpeg-linux")
+            (output / "bin/ffmpeg-linux").chmod(0o755)
         for index, font in enumerate(manifest.get("fonts", [])):
             target = output / "fonts" / "custom" / str(index)
             if Path(font).is_dir(): shutil.copytree(font, target)
@@ -61,6 +67,8 @@ def assemble(manifest, output):
                 raise ValueError(f"system preset is missing {required}")
         for executable in [loaders[arch], "bin/bash", "bin/node", "chromium/chrome-headless-shell"]:
             check_elf_arch(output / executable, arch)
+        if manifest.get("ffmpeg"):
+            check_elf_arch(output / "bin/ffmpeg-linux", arch)
     else:
         metadata = json.loads((Path(manifest["core"]) / "browsers.json").read_text())
         browsers = {entry["name"]: entry for entry in metadata["browsers"]}
