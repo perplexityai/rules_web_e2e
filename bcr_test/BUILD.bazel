@@ -1,3 +1,4 @@
+load("@rules_python//python:defs.bzl", "py_test")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 sh_test(
@@ -13,4 +14,11 @@ sh_test(
         "@rules_web_e2e//:MODULE.bazel",
         "@rules_web_e2e//:distribution",
     ],
+)
+
+py_test(
+    name = "supervisor_config_test",
+    size = "small",
+    srcs = ["supervisor_config_test.py"],
+    deps = ["@rules_web_e2e//worker:supervisor"],
 )

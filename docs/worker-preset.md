@@ -4,6 +4,10 @@ The supervisor supplies pinned actiond 0.0.7, execution flags, startup, logs,
 and cleanup. Use it with the [browser preset](browser-runtime.md) or a compatible
 custom Linux amd64 runtime. It owns one worker per command or CI bucket.
 
+Consumers that start a worker on another machine can depend on
+`@rules_web_e2e//worker:supervisor` and call `worker.supervisor.bazel_config(endpoint)`
+to generate the same Bazel flags for a forwarded loopback endpoint.
+
 ## Materialize once, run outside Bazel
 
 From your consuming workspace:
