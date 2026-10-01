@@ -26,6 +26,15 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.7.0 (2026-10-01)
+
+## What's Changed
+* fix(browser): stage declared ffmpeg for isolated video by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/68
+* feat(worker): expose supervisor config for forwarded clients by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/69
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.6.0...v3.7.0
+
 ## 3.6.0 (2026-09-30)
 
 ## What's Changed
