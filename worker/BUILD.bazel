@@ -6,6 +6,7 @@ py_library(
     name = "supervisor",
     srcs = ["supervisor.py"],
     imports = [".."],
+    visibility = ["//visibility:public"],
     deps = ["@rules_python//python/runfiles"],
 )
 
