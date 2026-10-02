@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
-import {baselineDestination, updateBaselines} from './baselines.js'
+import {baselineDestination, baselineHashes, updateBaselines} from './baselines.js'
 
 test('updates captures, removes stale PNGs, and preserves unrelated files', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-'))
@@ -47,4 +47,17 @@ test('baseline writes cannot escape through traversal or directory symlinks', t 
     baselineDestination(root, 'editor/screenshots'),
     path.join(root, 'editor/screenshots')
   )
+})
+
+test('capture hashes declared runfile symlinks without accepting source symlinks', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-runfiles-'))
+  t.after(() => fs.rmSync(root, {recursive: true, force: true}))
+  const source = path.join(root, 'source.png')
+  const runfiles = path.join(root, 'runfiles')
+  fs.writeFileSync(source, 'baseline')
+  fs.mkdirSync(runfiles)
+  fs.symlinkSync(source, path.join(runfiles, 'baseline.png'))
+
+  assert.deepEqual(Object.keys(baselineHashes(runfiles, true)), ['baseline.png'])
+  assert.throws(() => baselineHashes(runfiles), /regular files/)
 })

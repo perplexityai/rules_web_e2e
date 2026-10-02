@@ -77,8 +77,10 @@ A custom compiled `server` or action-local URL can replace `shell`; see
   JUnit and image attachments under `TEST_UNDECLARED_OUTPUTS_DIR`.
 - Update mode captures into a fresh directory, then synchronizes PNGs into the
   source directory, removing stale PNGs and retaining other files. It rejects
-  empty captures, path traversal, directory symlinks, and CLI filters. Do not
-  run concurrent updates against the same baseline directory.
+  empty captures, path traversal, directory symlinks, and CLI filters. It also
+  rejects baseline edits made during capture and concurrent updates to the same
+  directory. An interrupted update may leave a `.vrt-update.lock` directory
+  beside the baselines; inspect the baselines before removing that stale lock.
 - `execution_timeout_seconds` bounds each Playwright invocation (default: 180
   seconds each for discovery and capture). Managed server startup has a separate
   30-second deadline; Bazel’s `timeout` bounds the local result test, not its input build actions. Failed updates leave existing

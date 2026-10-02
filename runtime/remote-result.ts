@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import {baselineDestination, updateBaselines} from './baselines.js'
+import {applyBaselineUpdate, baselineDestination} from './baselines.js'
 
 export interface RemoteVrtResult {
   schemaVersion: 1
@@ -54,7 +54,10 @@ export function consumeRemoteResult(
     const destination = baselineDestination(
       options.update.workspace, options.update.baselineRelative
     )
-    updateBaselines(path.join(directory, 'baselines'), destination)
+    const before = JSON.parse(
+      fs.readFileSync(path.join(directory, 'baseline-before.json'), 'utf8')
+    ) as Record<string, string>
+    applyBaselineUpdate(path.join(directory, 'baselines'), destination, before)
   }
   return 0
 }
