@@ -7,7 +7,7 @@ import {validatePlaywrightVersions, validateChromiumVersion} from './versions.js
 import {spawn, execFileSync, type ChildProcess} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
-import {baselineDestination, materializeSnapshots, updateBaselines} from './baselines.js'
+import {applyBaselineUpdate, baselineDestination, baselineHashes, materializeSnapshots, updateBaselines} from './baselines.js'
 import {browserTempRoot, removeScratch, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
 import {browserRuntime, stageFfmpeg, type BrowserRuntime} from './browser-runtime.js'
@@ -32,6 +32,7 @@ async function main() {
         required('VRT_BASELINE_RELATIVE')
       )
     : undefined
+  const baselineBefore = destination ? baselineHashes(destination) : undefined
   const temp = fs.realpathSync(fs.mkdtempSync(path.join(browserTempRoot(fs.realpathSync(process.env.TEST_TMPDIR || os.tmpdir())), 'vrt-')))
   const outputs =
     process.env.TEST_UNDECLARED_OUTPUTS_DIR || path.join(temp, 'artifacts')
@@ -140,6 +141,11 @@ async function main() {
         required('VRT_BASELINE_RELATIVE')
       )
     : undefined
+  if (captureOutput)
+    fs.writeFileSync(
+      path.join(path.dirname(captureOutput), 'baseline-before.json'),
+      JSON.stringify(baselineInputs ? baselineHashes(baselineInputs, true) : {})
+    )
   const baselines = path.join(temp, 'baselines')
   fs.mkdirSync(baselines)
   if (!update && baselineInputs && fs.existsSync(baselineInputs))
@@ -319,7 +325,7 @@ async function main() {
       return
     }
     if (destination) {
-      updateBaselines(baselines, destination)
+      applyBaselineUpdate(baselines, destination, baselineBefore!)
       console.log(`Updated baselines: ${destination}`)
     }
     if (captureOutput) {
