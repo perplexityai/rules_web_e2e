@@ -14,7 +14,7 @@ test('host browser cache survives fixture isolation without implicit downloads',
     const env = {...testEnvironment({}, [], temp), ...hostBrowserEnvironment(cache)}
     assert.equal(env.PLAYWRIGHT_BROWSERS_PATH, cache)
     assert.equal(env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD, '1')
-    // AGI supplies $(rootpath @playwright//:chromium)/../ from declared data.
+    // Consumers can supply $(rootpath @playwright//:chromium)/../ from declared data.
     fs.mkdirSync(path.join(cache, 'chromium-1243'))
     assert.equal(hostBrowserEnvironment('browsers/chromium-1243/../', temp).PLAYWRIGHT_BROWSERS_PATH, cache)
     const file = path.join(temp, 'file')

@@ -18,8 +18,7 @@ Bazel 8.6/9.2 build/tests and host browser suites pass on Linux and macOS. The
 actual FormatJS editor gallery builds its Vite/StyleX assets, captures all eight
 screenshots, applies references locally, and compares them in actiond process
 isolation. See [consumer migration](host-browsers.md) for the actual interface
-and the AGI wrapper requirements; this is not a claim that their full CI
-migrations have landed.
+and shared wrapper requirements; this does not establish full consumer CI migration.
 
 ## Caller changes
 
