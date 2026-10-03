@@ -80,7 +80,7 @@ inputs. Neither choice provides VRT's controlled OS/fonts rendering environment.
 
 ## Consumer migration
 
-Keep existing host browser data and `PLAYWRIGHT_BROWSERS_PATH` wiring.
+For AGI, keep existing host browser data and `PLAYWRIGHT_BROWSERS_PATH` wiring.
 In the shared component/page VRT wrappers, add `browser` pointing to a
 `browser_runtime` built from the caller's pinned packages and browser archive. Preserve built galleries,
 custom configs, server executables, `data`, matching, and baseline directories.
@@ -110,8 +110,8 @@ component_visual_test(
 
 `:linux_browser` is a caller-owned [browser_runtime](browser-runtime.md).
 The actual editor gallery built, captured, locally applied references, and
-compared all eight screenshots in actiond's process sandbox with this interface.
-That check does not establish full consumer CI migration or macOS worker support.
+compared all eight screenshots in actiond's process sandbox with this interface. That check does not establish full AGI or
+FormatJS CI migration, or macOS worker support.
 
 `playwright_runtime` now groups only matching npm packages and their version.
 Replace its former `image` setting with a declared package/browser runtime assembled

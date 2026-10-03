@@ -15,7 +15,7 @@ reapers fail without being stopped. See [setup](docs/api.md#vrt-image-manifest-a
 version-matched browser and supply `PLAYWRIGHT_BROWSERS_PATH` before upgrading.
 Remove their `network_origins`, `network_origins_env`, and `use.connectOptions`;
 host browsers use host networking. Only VRT retains Testcontainers and image
-requirements. See [consumer migration guidance](docs/host-browsers.md).
+requirements. See [migration guidance for AGI and FormatJS](docs/host-browsers.md).
 
 ### Breaking compatibility: Playwright suite selection
 
