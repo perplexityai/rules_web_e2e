@@ -1,11 +1,12 @@
 import fs from 'node:fs'
 import {forwardOutput} from './output.js'
+import {manageChild} from './child-process.js'
 import os from 'node:os'
 import path from 'node:path'
 import {fileURLToPath, pathToFileURL} from 'node:url'
 import {createRequire} from 'node:module'
 import {validatePlaywrightVersions, validateChromiumVersion} from './versions.js'
-import {spawn, execFileSync, type ChildProcess} from 'node:child_process'
+import {spawn, execFileSync} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
 import {applyBaselineUpdate, baselineDestination, baselineHashes, materializeSnapshots, updateBaselines} from './baselines.js'
@@ -215,23 +216,10 @@ async function run(temp: string) {
     })
     validateChromiumVersion(JSON.parse(fs.readFileSync(path.join(core, 'browsers.json'), 'utf8')), actual)
   }
-  const children: ChildProcess[] = []
+  const children: ReturnType<typeof manageChild>[] = []
   let succeeded = false
   const killChildren = () => {
-    for (const child of children)
-      if (child.pid && child.exitCode === null) {
-        try {
-          process.kill(-child.pid, 'SIGTERM')
-        } catch {}
-        const pid = child.pid
-        setTimeout(() => {
-          if (child.exitCode === null && child.signalCode === null) {
-            try {
-              process.kill(-pid, 'SIGKILL')
-            } catch {}
-          }
-        }, 3000).unref()
-      }
+    for (const child of children) child.stop()
   }
   let interrupted = false
   const onSignal = () => {
@@ -264,7 +252,7 @@ async function run(temp: string) {
       )
       if (server.stdout) forwardOutput(server.stdout, process.stdout)
       if (server.stderr) forwardOutput(server.stderr, process.stderr)
-      children.push(server)
+      children.push(manageChild(server))
       appUrl = await new Promise<string>((resolve, reject) => {
         const timer = setTimeout(
           () => reject(new Error('Fixture server startup timed out')),
@@ -309,7 +297,8 @@ async function run(temp: string) {
         )
         if (child.stdout) forwardOutput(child.stdout, process.stdout)
         if (child.stderr) forwardOutput(child.stderr, process.stderr)
-        children.push(child)
+        const managed = manageChild(child)
+        children.push(managed)
         let timedOut = false
         const timer = setTimeout(
           () => {
@@ -319,13 +308,12 @@ async function run(temp: string) {
           },
           Number(required('VRT_TIMEOUT_MS'))
         )
-        child.once('error', error => {
-          clearTimeout(timer)
-          reject(error)
-        })
-        child.once('close', code => {
+        managed.closed.then(code => {
           clearTimeout(timer)
           resolve(timedOut || interrupted ? 1 : code ?? 1)
+        }, error => {
+          clearTimeout(timer)
+          reject(error)
         })
       })
     const discoveryCode = gallery ? await run(true) : 0
@@ -348,29 +336,7 @@ async function run(temp: string) {
     succeeded = true
   } finally {
     killChildren()
-    await Promise.all(
-      children.map(
-        child =>
-          new Promise<void>(resolve => {
-            if (child.exitCode !== null || child.signalCode !== null) {
-              resolve()
-              return
-            }
-            const timer = setTimeout(() => {
-              if (child.pid) {
-                try {
-                  process.kill(-child.pid, 'SIGKILL')
-                } catch {}
-              }
-              resolve()
-            }, 3000)
-            child.once('exit', () => {
-              clearTimeout(timer)
-              resolve()
-            })
-          })
-      )
-    )
+    await Promise.allSettled(children.map(child => child.closed))
     if (interrupted) process.exitCode = 143
     if (succeeded && !process.env.TEST_UNDECLARED_OUTPUTS_DIR) removeScratch(outputs)
     process.removeListener('SIGTERM', onSignal)

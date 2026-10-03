@@ -416,3 +416,24 @@ web_e2e_test(
     config = ":native_config",
     tests = ":actiond_video_specs",
 )
+
+js_library(
+    name = "lingering_specs",
+    srcs = ["lingering.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+js_library(
+    name = "lingering_config",
+    srcs = ["lingering.config.js"],
+    data = ["package.json", "lingering.teardown.js"],
+    deps = [":typecheck_project"],
+)
+
+web_e2e_test(
+    name = "host_lingering_test",
+    base_url = "http://127.0.0.1:12345",
+    config = ":lingering_config",
+    tests = ":lingering_specs",
+    execution_timeout_seconds = 30,
+)

@@ -90,5 +90,7 @@ jobs:
           path: ${{ runner.temp }}/isolated-e2e-results
       - name: Verify generated capture bounds and pixels
         run: bazelisk test //runtime:capture_browser_test --test_output=errors
+      - name: Clean up descendants holding browser output pipes
+        run: node e2e-tests/lingering.ts
       - name: Launch Chromium under deep and symlinked temp roots
         run: node e2e-tests/temp-paths.ts
