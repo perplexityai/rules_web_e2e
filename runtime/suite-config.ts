@@ -7,14 +7,17 @@ import {
 import {pathToFileURL, fileURLToPath} from 'node:url'
 import {createRequire} from 'node:module'
 import path from 'node:path'
-import {e2eConfig, componentBrowserConfig, visualConfig} from './config.js'
+import {e2eConfig, componentBrowserConfig, visualConfig, processConfig} from './config.js'
 import {screenshotMatching, type VisualMatching} from './matching.js'
 
 const mode = process.env.VRT_MODE!
+const processOwned = mode === 'process'
 const root = process.env.VRT_TEST_ROOT!
 const visual = mode === 'visual' || mode === 'visual-spec'
 const isolated = process.env.VRT_ISOLATED === '1'
-const defaults = visual
+const defaults = processOwned
+  ? processConfig({root})
+  : visual
   ? visualConfig({root})
   : mode === 'component'
     ? componentBrowserConfig({root, gallery: process.env.VRT_APP_URL!})
@@ -75,7 +78,7 @@ const additionalReporters: ReporterDescription[] = reporters.map(
     ] as ReporterDescription
 )
 if (
-  !visual &&
+  !visual && !processOwned &&
   (custom.use?.connectOptions ||
     custom.projects?.some(project => project.use?.connectOptions))
 )
@@ -129,7 +132,7 @@ const testMatch =
         file =>
           new RegExp('^' + file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$')
       )
-const managedUse = {
+const managedUse = processOwned ? merged.use : {
   ...merged.use,
   connectOptions: defaults.use!.connectOptions,
   ...(visual
@@ -155,7 +158,7 @@ export default defineConfig(
       ? defaults.snapshotPathTemplate
       : custom.snapshotPathTemplate,
     webServer,
-    globalSetup: isolated ? lifecycleModules(custom.globalSetup) : [
+    globalSetup: isolated || processOwned ? lifecycleModules(custom.globalSetup) : [
       ...(lifecycleModules(custom.globalSetup) ?? []),
       fileURLToPath(new URL('./host-browser-check.js', import.meta.url)),
     ],
@@ -171,7 +174,7 @@ export default defineConfig(
             outputDir: defaults.outputDir,
             snapshotPathTemplate:
               project.snapshotPathTemplate ?? custom.snapshotPathTemplate,
-            use: isolatedUse({
+            use: processOwned ? {...managedUse, ...project.use} : isolatedUse({
               ...managedUse,
               ...project.use,
               connectOptions: defaults.use!.connectOptions,

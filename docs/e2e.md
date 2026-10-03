@@ -146,3 +146,16 @@ web_e2e_test(name = "app_test", tests = ":compiled_app_specs", config = ":config
 If authentication is setup rather than a test suite, put it in an app-suite
 fixture. Bazel tests do not order other tests or consume their mutable outputs.
 Declare hermetically generated static fixture files through `data` instead.
+# Process-owned tests
+
+Use `browser_process_test` from `@rules_web_e2e//e2e:defs.bzl` for compiled
+Playwright specs that launch their own Electron app or persistent browser process.
+Pass compiled `tests` and `config`, and declare executable runfiles in `data`.
+The rule does not provision Chromium, discover an application URL, or override
+native launch settings. The caller owns executable selection and any native
+Playwright `webServer` setup. It is host execution, not a sandboxed browser mode.
+
+Bazel still owns spec selection, timeouts, output reports, scratch cleanup, and
+child-process cleanup. Do not set `testDir`, `testMatch`, or `testIgnore` in the
+compiled config. `browser`, `server`, `shell`, and base-URL rule options are not
+supported; use `web_e2e_test` for managed browser/server execution.

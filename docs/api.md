@@ -18,6 +18,7 @@ and application-specific output can still contain sensitive data.
 | Load | Rule | Specs |
 | --- | --- | --- |
 | `@rules_web_e2e//e2e:defs.bzl` | `web_e2e_test` | `*.spec.js`, excluding component/visual specs |
+| `@rules_web_e2e//e2e:defs.bzl` | `browser_process_test` | `*.spec.js`; caller launches its own process, no managed browser or URL |
 | `@rules_web_e2e//component:defs.bzl` | `component_browser_test` | `*.browser.spec.js` |
 | `@rules_web_e2e//vrt:defs.bzl` | `component_visual_test` | Generated from the gallery; rejects `tests` |
 | `@rules_web_e2e//vrt:defs.bzl` | `visual_test` | Compiled specs with native `toHaveScreenshot` assertions |
