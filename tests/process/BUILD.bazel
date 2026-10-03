@@ -4,6 +4,7 @@ load("//e2e:defs.bzl", "browser_process_test")
 ts_project(
     name = "compiled",
     srcs = ["owned.spec.ts", "process.config.ts"],
+    data = ["package.json"],
     declaration = True,
     transpiler = "tsc",
     tsconfig = {"compilerOptions": {
@@ -22,7 +23,7 @@ browser_process_test(
     name = "owned_test",
     tests = ":compiled",
     config = ":process.config.js",
-    data = ["package.json", ":compiled", "//tests/process/tool:echo.ts"],
+    data = [":compiled", "//tests/process/tool:echo.ts"],
     env = {
         "OWNED_PROCESS_VALUE": "declared",
         "OWNED_PROCESS_TOOL": "$(rootpath //tests/process/tool:echo.ts)",
