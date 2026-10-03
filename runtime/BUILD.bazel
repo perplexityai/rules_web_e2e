@@ -41,6 +41,7 @@ js_library(
         "baselines.js",
         "browser-runtime.js",
         "capture.js",
+        "child-process.js",
         "config.js",
         "config-url.js",
         "isolation.js",
@@ -48,6 +49,7 @@ js_library(
         "host-browser-check.js",
         "matching.js",
         "network.js",
+        "output.js",
         "remote-job.js",
         "process-shell.js",
         "package.json",
@@ -269,4 +271,25 @@ js_test(
     timeout = "short",
     data = ["package.json", ":typecheck"],
     entry_point = "remote-job.test.js",
+)
+
+js_test(
+    name = "output_test",
+    size = "small",
+    data = ["package.json", ":typecheck"],
+    entry_point = "output.test.js",
+)
+
+js_test(
+    name = "runner_cleanup_test",
+    size = "small",
+    data = ["package.json", ":typecheck"],
+    entry_point = "runner-cleanup.test.js",
+)
+
+js_test(
+    name = "child_process_test",
+    size = "small",
+    data = ["package.json", ":typecheck"],
+    entry_point = "child-process.test.js",
 )

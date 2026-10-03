@@ -1,10 +1,12 @@
 import fs from 'node:fs'
+import {forwardOutput} from './output.js'
+import {manageChild} from './child-process.js'
 import os from 'node:os'
 import path from 'node:path'
 import {fileURLToPath, pathToFileURL} from 'node:url'
 import {createRequire} from 'node:module'
 import {validatePlaywrightVersions, validateChromiumVersion} from './versions.js'
-import {spawn, execFileSync, type ChildProcess} from 'node:child_process'
+import {spawn, execFileSync} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
 import {applyBaselineUpdate, baselineDestination, baselineHashes, materializeSnapshots, updateBaselines} from './baselines.js'
@@ -19,6 +21,15 @@ function required(name: string) {
 }
 
 async function main() {
+  const temp = fs.realpathSync(fs.mkdtempSync(path.join(browserTempRoot(fs.realpathSync(process.env.TEST_TMPDIR || os.tmpdir())), 'vrt-')))
+  try {
+    await run(temp)
+  } finally {
+    removeScratch(temp)
+  }
+}
+
+async function run(temp: string) {
   const gallery = required('VRT_MODE') === 'visual'
   const visual = gallery || required('VRT_MODE') === 'visual-spec'
   const remote = remoteAppUrl(process.env)
@@ -33,9 +44,8 @@ async function main() {
       )
     : undefined
   const baselineBefore = destination ? baselineHashes(destination) : undefined
-  const temp = fs.realpathSync(fs.mkdtempSync(path.join(browserTempRoot(fs.realpathSync(process.env.TEST_TMPDIR || os.tmpdir())), 'vrt-')))
   const outputs =
-    process.env.TEST_UNDECLARED_OUTPUTS_DIR || path.join(temp, 'artifacts')
+    process.env.TEST_UNDECLARED_OUTPUTS_DIR || fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-artifacts-'))
   fs.mkdirSync(outputs, {recursive: true})
   const inputs = process.env.RUNFILES_DIR || required('JS_BINARY__RUNFILES')
   const input = (relative: string) => path.join(inputs, relative)
@@ -206,23 +216,10 @@ async function main() {
     })
     validateChromiumVersion(JSON.parse(fs.readFileSync(path.join(core, 'browsers.json'), 'utf8')), actual)
   }
-  const children: ChildProcess[] = []
+  const children: ReturnType<typeof manageChild>[] = []
   let succeeded = false
   const killChildren = () => {
-    for (const child of children)
-      if (child.pid && child.exitCode === null) {
-        try {
-          process.kill(-child.pid, 'SIGTERM')
-        } catch {}
-        const pid = child.pid
-        setTimeout(() => {
-          if (child.exitCode === null && child.signalCode === null) {
-            try {
-              process.kill(-pid, 'SIGKILL')
-            } catch {}
-          }
-        }, 3000).unref()
-      }
+    for (const child of children) child.stop()
   }
   let interrupted = false
   const onSignal = () => {
@@ -250,10 +247,12 @@ async function main() {
           cwd: testRoot,
           env,
           detached: true,
-          stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+          stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
         }
       )
-      children.push(server)
+      if (server.stdout) forwardOutput(server.stdout, process.stdout)
+      if (server.stderr) forwardOutput(server.stderr, process.stderr)
+      children.push(manageChild(server))
       appUrl = await new Promise<string>((resolve, reject) => {
         const timer = setTimeout(
           () => reject(new Error('Fixture server startup timed out')),
@@ -287,7 +286,7 @@ async function main() {
           ],
           {
             cwd: testRoot,
-            stdio: 'inherit',
+            stdio: ['inherit', 'pipe', 'pipe'],
             detached: true,
             env: {
               ...env,
@@ -296,7 +295,10 @@ async function main() {
             },
           }
         )
-        children.push(child)
+        if (child.stdout) forwardOutput(child.stdout, process.stdout)
+        if (child.stderr) forwardOutput(child.stderr, process.stderr)
+        const managed = manageChild(child)
+        children.push(managed)
         let timedOut = false
         const timer = setTimeout(
           () => {
@@ -306,13 +308,12 @@ async function main() {
           },
           Number(required('VRT_TIMEOUT_MS'))
         )
-        child.once('error', error => {
-          clearTimeout(timer)
-          reject(error)
-        })
-        child.once('exit', code => {
+        managed.closed.then(code => {
           clearTimeout(timer)
           resolve(timedOut || interrupted ? 1 : code ?? 1)
+        }, error => {
+          clearTimeout(timer)
+          reject(error)
         })
       })
     const discoveryCode = gallery ? await run(true) : 0
@@ -335,31 +336,9 @@ async function main() {
     succeeded = true
   } finally {
     killChildren()
-    await Promise.all(
-      children.map(
-        child =>
-          new Promise<void>(resolve => {
-            if (child.exitCode !== null || child.signalCode !== null) {
-              resolve()
-              return
-            }
-            const timer = setTimeout(() => {
-              if (child.pid) {
-                try {
-                  process.kill(-child.pid, 'SIGKILL')
-                } catch {}
-              }
-              resolve()
-            }, 3000)
-            child.once('exit', () => {
-              clearTimeout(timer)
-              resolve()
-            })
-          })
-      )
-    )
+    await Promise.allSettled(children.map(child => child.closed))
     if (interrupted) process.exitCode = 143
-    if (succeeded) removeScratch(temp)
+    if (succeeded && !process.env.TEST_UNDECLARED_OUTPUTS_DIR) removeScratch(outputs)
     process.removeListener('SIGTERM', onSignal)
     process.removeListener('SIGINT', onSignal)
   }

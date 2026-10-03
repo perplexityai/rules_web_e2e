@@ -3,6 +3,16 @@
 Rules consume built artifacts. Your build owns typechecking, compilation, and
 bundling. Start with [preset setup](getting-started.md).
 
+Browser runfiles include each input target's default files and declared runfiles,
+not its `transitive_typecheck` output group. Keep semantic typechecking in separate
+validation targets; executing a browser test does not replace that validation.
+
+The runner removes private scratch state on success and failure while retaining
+failure artifacts outside that directory. Forwarded child-process console output
+filters common Cookie and Authorization header lines, including lines split across
+stream chunks. This is not general secret scrubbing: traces, reports, screenshots,
+and application-specific output can still contain sensitive data.
+
 ## Test targets
 
 | Load | Rule | Specs |

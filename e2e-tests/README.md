@@ -54,3 +54,7 @@ FFmpeg helper and verifies the downloaded video is nonempty with a WebM header.
 A paired run without the helper must fail with the missing-FFmpeg diagnostic.
 Both actions bypass remote action and test-result caches. Other suites keep
 their runtime without FFmpeg, covering the optional-input behavior.
+
+Host CI runs `lingering.ts` with a real browser and a background process holding
+Playwright's output pipes open. It checks forced cleanup, bounded completion,
+credential filtering, retained screenshots, and scratch removal.

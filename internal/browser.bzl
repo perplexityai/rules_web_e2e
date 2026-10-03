@@ -67,8 +67,6 @@ def _inputs_impl(ctx):
         if target:
             inputs = inputs.merge(target[DefaultInfo].default_runfiles)
             inputs = inputs.merge(ctx.runfiles(transitive_files = target[DefaultInfo].files))
-            if OutputGroupInfo in target and hasattr(target[OutputGroupInfo], "transitive_typecheck"):
-                inputs = inputs.merge(ctx.runfiles(transitive_files = target[OutputGroupInfo].transitive_typecheck))
     return [DefaultInfo(files = depset([result]), runfiles = inputs)]
 
 _inputs = rule(
