@@ -159,3 +159,7 @@ Bazel still owns spec selection, timeouts, output reports, scratch cleanup, and
 child-process cleanup. Do not set `testDir`, `testMatch`, or `testIgnore` in the
 compiled config. `browser`, `server`, `shell`, and base-URL rule options are not
 supported; use `web_e2e_test` for managed browser/server execution.
+Process-owned suites run with the runfiles workspace as their working directory,
+so `$(rootpath ...)` values in declared environment variables resolve without
+depending on the config package's location. Runtime `data` stays in runfiles;
+native executables are not copied into the test package.

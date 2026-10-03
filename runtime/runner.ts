@@ -76,7 +76,9 @@ async function run(temp: string) {
     : undefined
   const hostEnv = declaredBrowser || processOwned ? {} : hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
   const node = declaredBrowser?.node || fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
-  const testRoot = path.dirname(descriptorPath)
+  const testRoot = processOwned
+    ? path.join(inputs, required('VRT_DESCRIPTOR').split('/')[0])
+    : path.dirname(descriptorPath)
   const generated = path.join(temp, 'config')
   fs.mkdirSync(generated)
   fs.writeFileSync(path.join(generated, 'package.json'), '{"type":"module"}')

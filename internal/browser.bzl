@@ -158,7 +158,7 @@ def browser_test(
             tags = tags,
         )
         matching = ":" + name + "_matching"
-    js_library(name = name + "_sources", srcs = baselines, data = data)
+    js_library(name = name + "_sources", srcs = baselines, data = data, copy_data_to_bin = not process_owned)
     _inputs(
         name = name + "_inputs",
         tests = tests,

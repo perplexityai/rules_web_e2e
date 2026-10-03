@@ -22,6 +22,9 @@ browser_process_test(
     name = "owned_test",
     tests = ":compiled",
     config = ":process.config.js",
-    data = ["package.json", ":compiled"],
-    env = {"OWNED_PROCESS_VALUE": "declared"},
+    data = ["package.json", ":compiled", "//tests/process/tool:echo.ts"],
+    env = {
+        "OWNED_PROCESS_VALUE": "declared",
+        "OWNED_PROCESS_TOOL": "$(rootpath //tests/process/tool:echo.ts)",
+    },
 )
