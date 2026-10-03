@@ -26,6 +26,15 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.7.1 (2026-10-03)
+
+## What's Changed
+* fix(vrt): guard baseline edits and concurrent updates by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/72
+* fix(runtime): harden browser output and cleanup boundaries by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/74
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.7.0...v3.7.1
+
 ## 3.7.0 (2026-10-01)
 
 ## What's Changed
