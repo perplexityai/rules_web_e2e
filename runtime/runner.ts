@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import {forwardOutput} from './output.js'
 import os from 'node:os'
 import path from 'node:path'
 import {fileURLToPath, pathToFileURL} from 'node:url'
@@ -19,6 +20,15 @@ function required(name: string) {
 }
 
 async function main() {
+  const temp = fs.realpathSync(fs.mkdtempSync(path.join(browserTempRoot(fs.realpathSync(process.env.TEST_TMPDIR || os.tmpdir())), 'vrt-')))
+  try {
+    await run(temp)
+  } finally {
+    removeScratch(temp)
+  }
+}
+
+async function run(temp: string) {
   const gallery = required('VRT_MODE') === 'visual'
   const visual = gallery || required('VRT_MODE') === 'visual-spec'
   const remote = remoteAppUrl(process.env)
@@ -33,9 +43,8 @@ async function main() {
       )
     : undefined
   const baselineBefore = destination ? baselineHashes(destination) : undefined
-  const temp = fs.realpathSync(fs.mkdtempSync(path.join(browserTempRoot(fs.realpathSync(process.env.TEST_TMPDIR || os.tmpdir())), 'vrt-')))
   const outputs =
-    process.env.TEST_UNDECLARED_OUTPUTS_DIR || path.join(temp, 'artifacts')
+    process.env.TEST_UNDECLARED_OUTPUTS_DIR || fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-artifacts-'))
   fs.mkdirSync(outputs, {recursive: true})
   const inputs = process.env.RUNFILES_DIR || required('JS_BINARY__RUNFILES')
   const input = (relative: string) => path.join(inputs, relative)
@@ -250,9 +259,11 @@ async function main() {
           cwd: testRoot,
           env,
           detached: true,
-          stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+          stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
         }
       )
+      if (server.stdout) forwardOutput(server.stdout, process.stdout)
+      if (server.stderr) forwardOutput(server.stderr, process.stderr)
       children.push(server)
       appUrl = await new Promise<string>((resolve, reject) => {
         const timer = setTimeout(
@@ -287,7 +298,7 @@ async function main() {
           ],
           {
             cwd: testRoot,
-            stdio: 'inherit',
+            stdio: ['inherit', 'pipe', 'pipe'],
             detached: true,
             env: {
               ...env,
@@ -296,6 +307,8 @@ async function main() {
             },
           }
         )
+        if (child.stdout) forwardOutput(child.stdout, process.stdout)
+        if (child.stderr) forwardOutput(child.stderr, process.stderr)
         children.push(child)
         let timedOut = false
         const timer = setTimeout(
@@ -310,7 +323,7 @@ async function main() {
           clearTimeout(timer)
           reject(error)
         })
-        child.once('exit', code => {
+        child.once('close', code => {
           clearTimeout(timer)
           resolve(timedOut || interrupted ? 1 : code ?? 1)
         })
@@ -359,7 +372,7 @@ async function main() {
       )
     )
     if (interrupted) process.exitCode = 143
-    if (succeeded) removeScratch(temp)
+    if (succeeded && !process.env.TEST_UNDECLARED_OUTPUTS_DIR) removeScratch(outputs)
     process.removeListener('SIGTERM', onSignal)
     process.removeListener('SIGINT', onSignal)
   }

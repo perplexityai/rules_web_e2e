@@ -35,9 +35,9 @@ def _sources_impl(_ctx):
     )
     http_archive(
         name = "test_tools_libmagic",
-        urls = ["https://github.com/file/file/archive/refs/tags/FILE5_47.tar.gz"],
-        integrity = "sha256-NU1t+k3eAvy8de/yvM+vCRCDejWHTFJLRv83TE+wR0I=",
-        strip_prefix = "file-FILE5_47",
+        urls = ["https://github.com/file/file/archive/7d20612996567ecedec7f5c58f7bf15c2cf42c19.tar.gz"],
+        sha256 = "f3d6ae53b8c7b970d44f93c235dfea4b1b35db8e8e52399d6632d578f73fa12f",
+        strip_prefix = "file-7d20612996567ecedec7f5c58f7bf15c2cf42c19",
         remote_file_urls = {
             "BUILD.bazel": [_BCR + "/libmagic/5.47/overlay/BUILD.bazel"],
         },

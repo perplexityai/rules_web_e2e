@@ -1,11 +1,25 @@
 load("//component:defs.bzl", "browser_shell", "component_browser_test")
 load("//playwright:defs.bzl", "browser_runtime")
 load("//vrt:defs.bzl", "component_visual_test")
-load(":defs.bzl", "capture_test", "directory", "failure_test", "properties_test")
+load(":defs.bzl", "capture_test", "directory", "failure_test", "properties_test", "runtime_inputs_test", "typed_fixture")
 
 directory(
     name = "files",
     tags = ["manual"],
+)
+
+typed_fixture(name = "typed_fixture")
+
+component_browser_test(
+    name = "typed_browser",
+    shell = ":shell",
+    tests = ":typed_fixture",
+    tags = ["manual"],
+)
+
+runtime_inputs_test(
+    name = "runtime_inputs_test",
+    target_under_test = ":typed_browser_inputs",
 )
 
 browser_shell(
