@@ -41,3 +41,8 @@ static linkage. `bazel test //internal/test_tools:tools_test` checks amd64
 launcher's actual command flags with empty PATH, including process groups,
 symlinks, MIME detection, and ZIP output. Actiond integration suite exercises
 actual Bazel test launcher, retries, cancellation, and browser execution.
+
+Capture launcher uses standard Bash runfiles library. Separate `runfiles_tools`
+bundle supplies only Toybox for library commands; capture does not need ZIP or
+libmagic. Bootstrap loads declared library and tools by action execpath, then
+uses `rlocation` for browser runtime, bootstrap module, and job descriptor.

@@ -1,5 +1,5 @@
 load("@rules_python//python:defs.bzl", "py_binary", "py_test")
-load(":defs.bzl", "test_tools")
+load(":defs.bzl", "runfiles_tools", "test_tools")
 
 [
     test_tools(
@@ -63,3 +63,13 @@ config_setting(
     ],
     visibility = ["//visibility:public"],
 )
+
+[
+    runfiles_tools(
+        name = "runfiles_tools" if arch == "x64" else "runfiles_tools_arm64",
+        target_arch = arch,
+        toybox = "@test_tools_toybox//:toybox",
+        visibility = ["//:__subpackages__"],
+    )
+    for arch in ["x64", "arm64"]
+]

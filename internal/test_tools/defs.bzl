@@ -48,3 +48,18 @@ test_tools = rule(
         magic = attr.label(allow_single_file = True, mandatory = True),
     ),
 )
+
+# Bash runfiles needs a few Unix commands even before it can locate user files.
+# Keep capture bootstrap independent of the larger native-test tool bundle.
+def _runfiles_tools_impl(ctx):
+    return [DefaultInfo(files = depset([ctx.executable.toybox]))]
+
+runfiles_tools = rule(
+    implementation = _runfiles_tools_impl,
+    cfg = linux_tools,
+    attrs = {
+        "target_arch": attr.string(default = "x64", values = ["x64", "arm64"]),
+        "toybox": attr.label(executable = True, cfg = "target", mandatory = True),
+        "_allowlist_function_transition": attr.label(default = "@bazel_tools//tools/allowlists/function_transition_allowlist"),
+    },
+)

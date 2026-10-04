@@ -108,21 +108,31 @@ def _remote_impl(ctx):
     if native_test:
         return _native_test(ctx, root, descriptor, runfiles, job)
     executable = ctx.actions.declare_file(ctx.label.name)
-    ctx.actions.write(executable, "\n".join([
-        "#!/bin/bash",
-        "set -euo pipefail",
-        # FilesToRunProvider asks Bazel to supply this executable's runfiles tree.
-        'export RUNFILES_DIR="$0.runfiles"',
-        'case "$RUNFILES_DIR" in /*) ;; *) RUNFILES_DIR="$PWD/$RUNFILES_DIR" ;; esac',
-        'root="$RUNFILES_DIR/%s"' % runfile(root),
-        'export LD_LIBRARY_PATH="%s"' % _library_path("$root", descriptor),
-        'exec "$root/%s" "$RUNFILES_DIR/%s" "$RUNFILES_DIR/%s" "$@"' % (
-            descriptor["node"],
-            runfile(ctx.file._bootstrap),
-            runfile(job),
-        ),
-    ]) + "\n", is_executable = True)
-    return [DefaultInfo(executable = executable, runfiles = runfiles.merge(ctx.runfiles(files = [job])))]
+    bash_runfiles = ctx.attr._bash_runfiles[DefaultInfo].default_runfiles
+    library_files = depset(
+        [link.target_file for link in bash_runfiles.root_symlinks.to_list()],
+        transitive = [bash_runfiles.files],
+    ).to_list()
+    library = [file for file in library_files if file.basename == "runfiles.bash"][0]
+    toybox = ctx.file._runfiles_tools
+    ctx.actions.expand_template(
+        template = ctx.file._capture_launcher,
+        output = executable,
+        substitutions = {
+            "%{runfiles_commands}": "\n".join([
+                '%s() { "$execroot/%s" %s "$@"; }' % (command, toybox.path, command)
+                for command in ["cut", "grep", "sed", "tr", "uname"]
+            ]),
+            "%{runfiles_library}": library.path,
+            "%{runtime}": runfile(root),
+            "%{bootstrap}": runfile(ctx.file._bootstrap),
+            "%{job}": runfile(job),
+            "%{library_path}": _library_path("$root", descriptor),
+            "%{node}": descriptor["node"],
+        },
+        is_executable = True,
+    )
+    return [DefaultInfo(executable = executable, runfiles = runfiles.merge(bash_runfiles).merge(ctx.runfiles(files = [job, library, toybox])))]
 
 def _artifact_impl(ctx):
     output = ctx.actions.declare_directory(ctx.label.name + ".results")
@@ -171,7 +181,16 @@ _attrs = {
     "_bootstrap": attr.label(default = Label("//runtime:remote_runner_entry"), allow_single_file = True),
     "_allowlist_function_transition": attr.label(default = "@bazel_tools//tools/allowlists/function_transition_allowlist"),
 }
-_remote = rule(implementation = _remote_impl, attrs = _attrs, executable = True)
+_capture_attrs = dict(_attrs)
+_capture_attrs.update({
+    "_bash_runfiles": attr.label(default = "@rules_shell//shell/runfiles"),
+    "_capture_launcher": attr.label(default = Label("//internal:capture-launcher.sh.tpl"), allow_single_file = True),
+    "_runfiles_tools": attr.label(default = Label("//internal/test_tools:runfiles_tools"), allow_single_file = True),
+})
+_remote = rule(implementation = _remote_impl, attrs = _capture_attrs, executable = True)
+_arm64_capture_attrs = dict(_capture_attrs)
+_arm64_capture_attrs["_runfiles_tools"] = attr.label(default = Label("//internal/test_tools:runfiles_tools_arm64"), allow_single_file = True)
+_remote_arm64 = rule(implementation = _remote_impl, attrs = _arm64_capture_attrs, executable = True)
 
 _test_attrs = dict(_attrs)
 _test_attrs["_test_tools"] = attr.label(default = Label("//internal/test_tools:tools"), providers = [TestToolsInfo])
@@ -223,7 +242,8 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
     if not visual:
         return
     action = name + "_capture"
-    _remote(
+    capture_launcher = _remote_arm64 if target_arch == "arm64" else _remote
+    capture_launcher(
         name = action + "_launcher",
         inputs = ":" + name + "_inputs",
         browser = browser,

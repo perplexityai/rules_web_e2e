@@ -82,7 +82,8 @@ Docker, registry credentials, Testcontainers, and Ryuk absent from action.
 Caller owns compilation, typechecking, bundling, executable permissions, and
 its complete dependency layout. Native tests and VRT build actions use Bazel's
 runfile trees. Build actions invoke declared launchers through `FilesToRunProvider`;
-Bazel prepares their runfiles. Runtime does not copy packages, repair npm links,
+Bazel prepares their runfiles. Capture launcher resolves inputs with standard
+Bash runfiles library and declared lookup utilities. Runtime does not copy packages, repair npm links,
 scan executables, or rewrite ELF
 interpreters and shebangs. Missing required dependencies fail at caller's
 import or launch. Unused platform artifacts not inspected.
