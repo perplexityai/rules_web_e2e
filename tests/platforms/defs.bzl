@@ -89,7 +89,7 @@ def _runtime_inputs_test_impl(ctx):
     harness = [file for file in files if file.basename.endswith(".suite")]
     asserts.equals(env, 1, len(harness))
     asserts.true(env, harness[0].is_directory)
-    actions = [action for action in analysistest.target_actions(env) if action.mnemonic == "BrowserSuite"]
+    actions = [action for action in analysistest.target_actions(env) if action.mnemonic == "CopyToDirectory"]
     asserts.equals(env, 1, len(actions))
     asserts.true(env, harness[0] in actions[0].outputs.to_list())
     return analysistest.end(env)
@@ -98,13 +98,15 @@ runtime_inputs_test = analysistest.make(_runtime_inputs_test_impl)
 
 def _harness_selection_test_impl(ctx):
     env = analysistest.begin(ctx)
-    action = [action for action in analysistest.target_actions(env) if action.mnemonic == "BrowserSuite"][0]
-    destinations = json.decode(action.argv[-1])
+    action = [action for action in analysistest.target_actions(env) if action.mnemonic == "CopyToDirectory"][0]
+    config = [a for a in analysistest.target_actions(env) if a.mnemonic == "FileWrite" and a.outputs.to_list()[0].path == action.argv[1]][0]
+    configuration = json.decode(config.content)
+    destinations = configuration["replace_prefixes"]
     captures = [source for source, destination in destinations.items() if destination == ".rules-visual.spec.js"]
     asserts.equals(env, 1 if ctx.attr.gallery else 0, len(captures))
     inputs = [file.path for file in action.inputs.to_list()]
-    for source in destinations:
-        asserts.true(env, source in inputs, "Mapped source must be a declared action input: " + source)
+    for source in configuration["files"]:
+        asserts.true(env, source["path"] in inputs, "Mapped source must be a declared action input: " + source["path"])
     # Ordinary suites should not depend on an unused capture template either.
     asserts.equals(env, ctx.attr.gallery, any([file.basename == "capture.js" for file in action.inputs.to_list()]))
     return analysistest.end(env)

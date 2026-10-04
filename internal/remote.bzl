@@ -1,9 +1,10 @@
 """Native browser tests and VRT artifact-producing actions."""
 
+load("@bazel_lib//lib:paths.bzl", "to_rlocation_path")
 load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@web_e2e_worker_identity//:defs.bzl", "WORKER_SHA256")
 load("//internal/test_tools:defs.bzl", "TestToolsInfo")
-load("//playwright:defs.bzl", "BrowserRuntimeInfo", "runfile")
+load("//playwright:defs.bzl", "BrowserRuntimeInfo")
 
 def _linux_impl(_settings, attr):
     return {"//command_line_option:platforms": [str(attr.target_platform)]}
@@ -52,17 +53,17 @@ def _native_test(ctx, root, descriptor, runfiles, job):
     ctx.actions.write(setup, "\n".join([
         "unset BASH_ENV",
         'case "$TEST_SRCDIR" in /*) ;; *) export TEST_SRCDIR="$PWD/$TEST_SRCDIR" ;; esac',
-        'source "$TEST_SRCDIR/%s"' % runfile(tools.shell_setup),
+        'source "$TEST_SRCDIR/%s"' % to_rlocation_path(ctx, tools.shell_setup),
     ]) + "\n")
     ctx.actions.write(executable, "\n".join([
         "#!/bin/bash",
         "set -euo pipefail",
-        'root="$TEST_SRCDIR/%s"' % runfile(root),
+        'root="$TEST_SRCDIR/%s"' % to_rlocation_path(ctx, root),
         'export LD_LIBRARY_PATH="%s"' % _library_path("$root", descriptor),
         'exec "$root/%s" "$TEST_SRCDIR/%s" "$TEST_SRCDIR/%s" "$@"' % (
             descriptor["node"],
-            runfile(ctx.file._bootstrap),
-            runfile(job),
+            to_rlocation_path(ctx, ctx.file._bootstrap),
+            to_rlocation_path(ctx, job),
         ),
     ]) + "\n", is_executable = True)
     inputs = [executable, job, setup] + ctx.attr._test_tools[DefaultInfo].files.to_list()
@@ -71,7 +72,7 @@ def _native_test(ctx, root, descriptor, runfiles, job):
         DefaultInfo(executable = executable, runfiles = runfiles),
         OutputGroupInfo(inputs = runfiles.files),
         testing.TestEnvironment({
-            "BASH_ENV": executable.path + ".runfiles/" + runfile(setup),
+            "BASH_ENV": executable.path + ".runfiles/" + to_rlocation_path(ctx, setup),
             "USER": "test",
             "LANG": "C.UTF-8",
             "TZ": "UTC",
@@ -94,15 +95,15 @@ def _remote_impl(ctx):
         runfiles = runfiles.merge(info.default_runfiles).merge(ctx.runfiles(transitive_files = info.files))
     locations = ctx.attr.data + ctx.attr.inputs
     env = {key: ctx.expand_location(value, targets = locations) for key, value in ctx.attr.env.items() if key != "VRT_DESCRIPTOR"}
-    env["VRT_DESCRIPTOR"] = runfile(ctx.file.inputs)
+    env["VRT_DESCRIPTOR"] = to_rlocation_path(ctx, ctx.file.inputs)
     job = ctx.actions.declare_file(ctx.label.name + ".job.json")
     ctx.actions.write(job, json.encode({
-        "runner": runfile(ctx.file._runner),
+        "runner": to_rlocation_path(ctx, ctx.file._runner),
         "env": env,
         "args": [] if native_test else [ctx.expand_location(value, targets = locations) for value in ctx.attr.args],
         "output": "",
         "mode": ctx.attr.mode,
-        "runtime": dict(browser.descriptor, path = runfile(root)),
+        "runtime": dict(browser.descriptor, path = to_rlocation_path(ctx, root)),
     }))
     descriptor = browser.descriptor
     if native_test:
@@ -124,9 +125,9 @@ def _remote_impl(ctx):
                 for command in ["cut", "grep", "sed", "tr", "uname"]
             ]),
             "%{runfiles_library}": library.path,
-            "%{runtime}": runfile(root),
-            "%{bootstrap}": runfile(ctx.file._bootstrap),
-            "%{job}": runfile(job),
+            "%{runtime}": to_rlocation_path(ctx, root),
+            "%{bootstrap}": to_rlocation_path(ctx, ctx.file._bootstrap),
+            "%{job}": to_rlocation_path(ctx, job),
             "%{library_path}": _library_path("$root", descriptor),
             "%{node}": descriptor["node"],
         },

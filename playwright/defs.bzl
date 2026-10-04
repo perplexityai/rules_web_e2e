@@ -1,5 +1,7 @@
 """A reusable, version-matched Playwright runtime."""
 
+load("@bazel_lib//lib:paths.bzl", "to_rlocation_path")
+
 PlaywrightInfo = provider(fields = ["test", "core", "core_file", "version"])
 
 BrowserRuntimeInfo = provider(fields = ["descriptor", "root_file"])
@@ -13,7 +15,7 @@ def _browser_runtime_impl(ctx):
     if not ctx.file.root.is_directory:
         fail("browser_runtime root must be a declared directory containing the Linux runtime")
     descriptor = {
-        "root": runfile(ctx.file.root),
+        "root": to_rlocation_path(ctx, ctx.file.root),
         "executable": _relative_path(ctx.attr.executable, "executable"),
         "node": _relative_path(ctx.attr.node, "node"),
         "ffmpeg": _relative_path(ctx.attr.ffmpeg, "ffmpeg") if ctx.attr.ffmpeg else "",
@@ -44,10 +46,6 @@ browser_runtime = rule(
     },
 )
 
-def runfile(file):
-    """Return a canonical manifest-relative path, including external repositories."""
-    return file.short_path[3:] if file.short_path.startswith("../") else "_main/" + file.short_path
-
 def _runtime_impl(ctx):
     parts = ctx.attr.version.split(".")
     if len(parts) != 3 or any([not p.isdigit() for p in parts]):
@@ -60,7 +58,7 @@ def _runtime_impl(ctx):
         runfiles = runfiles.merge(target[DefaultInfo].default_runfiles)
     return [
         DefaultInfo(files = depset(files), runfiles = runfiles),
-        PlaywrightInfo(test = runfile(ctx.file.test), core = runfile(ctx.file.core), core_file = ctx.file.core, version = ctx.attr.version),
+        PlaywrightInfo(test = to_rlocation_path(ctx, ctx.file.test), core = to_rlocation_path(ctx, ctx.file.core), core_file = ctx.file.core, version = ctx.attr.version),
     ]
 
 playwright_runtime = rule(

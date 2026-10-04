@@ -1,6 +1,6 @@
 """Declared static Linux utilities used by Bazel's native test launcher."""
 
-load("//playwright:defs.bzl", "runfile")
+load("@bazel_lib//lib:paths.bzl", "to_rlocation_path")
 
 TestToolsInfo = provider(fields = ["shell_setup"])
 
@@ -23,16 +23,16 @@ def _tools_impl(ctx):
     commands.update({name: (getattr(ctx.executable, name), []) for name in ["file", "zip"]})
     setup = ctx.actions.declare_file(ctx.label.name + ".bash-env")
     ctx.actions.write(setup, "\n".join([
-        'export MAGIC="$TEST_SRCDIR/%s"' % runfile(ctx.file.magic),
+        'export MAGIC="$TEST_SRCDIR/%s"' % to_rlocation_path(ctx, ctx.file.magic),
     ] + [
-        '%s() { "$TEST_SRCDIR/%s" %s "$@"; }; export -f %s' % (command, runfile(binary), " ".join(args), command)
+        '%s() { "$TEST_SRCDIR/%s" %s "$@"; }; export -f %s' % (command, to_rlocation_path(ctx, binary), " ".join(args), command)
         for command, (binary, args) in commands.items()
     ] + [
         # Bazel checks only whether this exact process-group probe has output.
         # Toybox has -g but not procps's -a (print full command line).
         "pgrep() {",
         "  if [[ $# == 3 && $1 == -a && $2 == -g ]]; then shift; fi",
-        '  "$TEST_SRCDIR/%s" pgrep "$@"' % runfile(ctx.executable.toybox),
+        '  "$TEST_SRCDIR/%s" pgrep "$@"' % to_rlocation_path(ctx, ctx.executable.toybox),
         "}; export -f pgrep",
     ]) + "\n")
     files = depset([ctx.executable.toybox, ctx.executable.file, ctx.executable.zip, ctx.file.magic, setup])
