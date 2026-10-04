@@ -16,17 +16,25 @@ consumerTest((_work, consumer, command) => {
     const missing = run([...command, 'test', '//:host_snapshot_export_test', '--nocache_test_results',
       '--test_output=errors'], {cwd: consumer, fail: true, stdio: 'pipe'})
     assert.match(missing, /snapshot doesn't exist|snapshot.*missing/i)
-    run([...command, 'run', '//:host_snapshot_export_test.update'], {cwd: consumer})
+    run([...command, 'build', '//:host_snapshot_export_test_snapshot_capture',
+      `--action_env=PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH}`], {cwd: consumer})
+    assert(files(path.join(consumer, 'bazel-bin/host_snapshot_export_test_snapshot_capture.results/snapshots')).length > 0)
+    assert(!fs.existsSync(path.join(consumer, 'snapshots')), 'Capture action modified source')
+    run([...command, 'run', `--action_env=PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH}`,  '//:host_snapshot_export_test.update'], {cwd: consumer})
     run([...command, 'test', '//:host_snapshot_export_test', '--nocache_test_results'], {cwd: consumer})
     const baseline = path.join(consumer, 'snapshots/default/snapshot-export.spec.js-snapshots')
     const second = fs.readFileSync(path.join(baseline, `second-${process.platform}.png`))
-    run([...command, 'run', '//:host_snapshot_export_test.update', '--', '--grep=exports'], {cwd: consumer})
+    run([...command, 'run', `--action_env=PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH}`,  '//:host_snapshot_export_test.update', '--@rules_web_e2e//:snapshot_filter=exports'], {cwd: consumer})
     assert.deepEqual(fs.readFileSync(path.join(baseline, `second-${process.platform}.png`)), second)
     const before = files(path.join(consumer, 'snapshots')).map(file => [file, fs.readFileSync(file).toString('hex')])
-    run([...command, 'run', '//:host_snapshot_export_test.update', '--', '--grep=no-matching-test', '--pass-with-no-tests'], {cwd: consumer, fail: true, stdio: 'pipe'})
+    run([...command, 'run', `--action_env=PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH}`,  '//:host_snapshot_export_test.update', '--@rules_web_e2e//:snapshot_filter=no-matching-test'], {cwd: consumer, fail: true, stdio: 'pipe'})
     const build = path.join(consumer, 'BUILD.bazel')
+    fs.writeFileSync(build, text(build).replace('name = "host_snapshot_export_test",', 'name = "host_snapshot_export_test", args = ["--pass-with-no-tests"],'))
+    const empty = run([...command, 'run', `--action_env=PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH}`, '//:host_snapshot_export_test.update', '--@rules_web_e2e//:snapshot_filter=no-matching-test'], {cwd: consumer, fail: true, stdio: 'pipe'})
+    assert.match(empty, /no snapshots/i)
+    fs.writeFileSync(build, text(build).replace(' args = ["--pass-with-no-tests"],', ''))
     fs.writeFileSync(build, text(build).replace('name = "host_snapshot_export_test",', 'name = "host_snapshot_export_test", env = {"SNAPSHOT_FAIL": "1"},'))
-    run([...command, 'run', '//:host_snapshot_export_test.update'], {cwd: consumer, fail: true, stdio: 'pipe'})
+    run([...command, 'run', `--action_env=PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH}`,  '//:host_snapshot_export_test.update'], {cwd: consumer, fail: true, stdio: 'pipe'})
     assert.deepEqual(files(path.join(consumer, 'snapshots')).map(file => [file, fs.readFileSync(file).toString('hex')]), before)
 
     fs.writeFileSync(build, text(build).replace(' env = {"SNAPSHOT_FAIL": "1"},', ''))
@@ -35,7 +43,7 @@ config.snapshotPathTemplate = '/unused/{projectName}/{arg}{ext}'
 config.expect = {toHaveScreenshot: {pathTemplate: path.join(import.meta.dirname, 'forbidden/{arg}{ext}')}}
 config.projects = [{name: 'desktop', use: {viewport: {width: 800, height: 600}}}, {name: 'mobile', use: {viewport: {width: 400, height: 600}}}]
 `)
-    run([...command, 'run', '//:host_snapshot_export_test.update'], {cwd: consumer})
+    run([...command, 'run', `--action_env=PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH}`,  '//:host_snapshot_export_test.update'], {cwd: consumer})
     assert(!fs.existsSync(path.join(consumer, 'bazel-bin/forbidden')))
     const desktop = fs.readFileSync(path.join(consumer, `snapshots/project-desktop/snapshot-export.spec.js-snapshots/page-${process.platform}.png`))
     const mobile = fs.readFileSync(path.join(consumer, `snapshots/project-mobile/snapshot-export.spec.js-snapshots/page-${process.platform}.png`))
@@ -48,7 +56,7 @@ component_browser_test(name = "snapshot_component_test", tests = ":snapshot_comp
 browser_process_test(name = "snapshot_process_test", tests = ":snapshot_export_specs", config = ":native_config", snapshot_dir = "process-snapshots", snapshots = glob(["process-snapshots/**"], allow_empty = True), env = {"PLAYWRIGHT_BROWSERS_PATH": ${JSON.stringify(process.env.PLAYWRIGHT_BROWSERS_PATH)}})
 `)
     for (const target of ['snapshot_component_test', 'snapshot_process_test']) {
-      run([...command, 'run', `//:${target}.update`], {cwd: consumer})
+      run([...command, 'run', `--action_env=PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH}`,  `//:${target}.update`], {cwd: consumer})
       run([...command, 'test', `//:${target}`, '--nocache_test_results'], {cwd: consumer})
     }
 

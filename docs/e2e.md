@@ -67,16 +67,23 @@ web_e2e_test(
 
 ```sh
 bazel run //path:e2e_test.update
-bazel run //path:e2e_test.update -- --grep="checkout"
+bazel run //path:e2e_test.update --@rules_web_e2e//:snapshot_filter=checkout
 bazel test //path:e2e_test
 ```
 
 `snapshot_dir` is package-relative; define update targets in the consuming workspace. Normal tests read declared `snapshots`;
-`.update` captures fresh, then copies successful captures into that source directory.
+`<name>_snapshot_capture` builds a declared tree containing existing baselines plus successful captures.
+`.update` applies that tree with `write_source_files`. Building alone never changes sources.
 Missing/mismatched baselines fail normal tests. Failed or empty captures apply nothing.
-Filtered updates preserve unselected files. No stale-file deletion. Review diffs before committing.
-Use separate directories per target. Concurrent edits or updates fail; replacements
-are atomic per file, not across the directory.
+Filtered updates preserve unselected declared files. Declare the entire snapshot directory.
+Undeclared files or edits since capture block application. Use separate directories per target.
+Updates share the VRT lock and change checks; directory replacement is not atomic. Review diffs before committing.
+
+Capture runs locally. Unchanged build inputs can reuse the previous capture. Set
+`--@rules_web_e2e//:snapshot_refresh=<new-value>` to recapture after host or service changes.
+Selection belongs in `snapshot_filter` or target `args`, not arguments after `--`.
+For an inherited browser installation, pass `--action_env=PLAYWRIGHT_BROWSERS_PATH`
+to build/run; likewise forward any required inherited environment variables.
 
 Layout: `default/<compiled-spec-path>-snapshots/<snapshot-name>`, or
 `project-<URL-encoded-project-name>/...` for configured projects. Screenshot names

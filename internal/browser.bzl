@@ -1,9 +1,10 @@
 """Execute compiled browser inputs with a reusable Playwright runtime."""
 
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo", "runfile")
 load(":matching.bzl", "matching_config")
 load(":remote.bzl", "remote_browser_test")
+load(":snapshots.bzl", "snapshot_update")
 
 ShellInfo = provider(fields = ["directory", "entry_point"])
 
@@ -222,10 +223,4 @@ def browser_test(
     )
 
     if snapshot_dir:
-        js_binary(
-            name = name + ".update",
-            patch_node_fs = False,
-            args = ["--export-snapshots"] + args,
-            tags = ["manual", "no-remote"] + tags,
-            **(common | {"env": common["env"] | {"VRT_APPLY_SNAPSHOTS": "1"}})
-        )
+        snapshot_update(name, snapshot_dir, common, args, tags)

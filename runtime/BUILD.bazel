@@ -56,7 +56,6 @@ js_library(
         "server.js",
         "static-server.js",
         "suite-config.js",
-        "snapshot-update.js",
         "versions.js",
         "visuals.js",
     ],
@@ -295,9 +294,8 @@ js_test(
     entry_point = "child-process.test.js",
 )
 
-js_test(
-    name = "snapshot_update_test",
-    size = "small",
-    data = ["package.json", ":typecheck"],
-    entry_point = "snapshot-update.test.js",
+filegroup(
+    name = "snapshot_result_entry",
+    srcs = ["snapshot-result-entry.js"],
+    visibility = ["//visibility:public"],
 )
