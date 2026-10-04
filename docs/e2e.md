@@ -51,12 +51,47 @@ Selection flags `--grep`, `--grep-invert`, `--project`, and `--shard` are forwar
 through `--test_arg`. Configure other Playwright settings in the declared config;
 Add custom reporters through the [compiled Playwright config](api.md#optional-playwright-configuration). CLI overrides of config, reporters, output paths, and in-place snapshot updates are rejected.
 
-To capture replacement E2E snapshots, pass `--test_arg=--export-snapshots` to `bazel test`.
-The runner writes them under `test.outputs/snapshots/`, preserving compiled spec paths, and never overwrites source baselines.
-The sibling `snapshot-sources.json` maps each exported spec path to its declared runfiles path, so consumers can resolve source files without ambiguous basename matching.
-Callers must check the test result and explicitly copy the selected outputs back to their source baseline directories.
-Filtered exports are allowed; only the selected tests produce replacements.
-Ordinary runs continue to reject missing or mismatched baselines.
+## Snapshot updates
+
+Host E2E, component, and process-owned targets can own snapshots:
+
+```starlark
+web_e2e_test(
+    name = "e2e_test",
+    tests = ":compiled_specs",
+    config = ":compiled_config",
+    snapshot_dir = "snapshots",
+    snapshots = glob(["snapshots/**"], allow_empty = True),
+)
+```
+
+```sh
+bazel run //path:e2e_test.update
+bazel run //path:e2e_test.update -- --grep="checkout"
+bazel test //path:e2e_test
+```
+
+`snapshot_dir` is package-relative; define update targets in the consuming workspace. Normal tests read declared `snapshots`;
+`.update` captures fresh, then copies successful captures into that source directory.
+Missing/mismatched baselines fail normal tests. Failed or empty captures apply nothing.
+Filtered updates preserve unselected files. No stale-file deletion. Review diffs before committing.
+Use separate directories per target. Concurrent edits or updates fail; replacements
+are atomic per file, not across the directory.
+
+Layout: `default/<compiled-spec-path>-snapshots/<snapshot-name>`, or
+`project-<URL-encoded-project-name>/...` for configured projects. Screenshot names
+retain Playwright's platform suffix. Managed paths override caller snapshot templates,
+including screenshot/ARIA matcher templates. Existing custom layouts need migration.
+No source filename guessing or consumer-specific paths.
+
+For export only, use `bazel test //path:e2e_test --test_arg=--export-snapshots`.
+Captures stay under `test.outputs/snapshots/` using the same layout.
+`snapshot-sources.json` maps compiled spec paths to declared runfiles paths.
+Export alone never applies files. `snapshot_dir` is optional for export.
+
+Isolated browser tests support export only. Visual targets retain full-suite `.update`
+and `baseline_dir`; they reject snapshot export and `snapshot_dir`.
+
 No matching tests fail by default. Visual targets keep their separate full-capture
 policy. See [the example BUILD file](../examples/react/BUILD.bazel).
 

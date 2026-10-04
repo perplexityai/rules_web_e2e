@@ -9,6 +9,7 @@ import {validatePlaywrightVersions, validateChromiumVersion} from './versions.js
 import {spawn, execFileSync} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
+import {applySnapshotUpdate, snapshotHashes} from './snapshot-update.js'
 import {applyBaselineUpdate, baselineDestination, baselineHashes, materializeSnapshots, updateBaselines} from './baselines.js'
 import {browserTempRoot, removeScratch, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
@@ -36,6 +37,15 @@ async function run(temp: string) {
   const remote = remoteAppUrl(process.env)
   const args = process.argv.slice(2)
   const update = args.includes('--update')
+  const applySnapshots = !visual && process.env.VRT_APPLY_SNAPSHOTS === '1'
+  const exportSnapshots = !visual && (applySnapshots || args.includes('--export-snapshots'))
+  const snapshotRelative = process.env.VRT_SNAPSHOT_RELATIVE || ''
+  if (applySnapshots && !snapshotRelative) throw new Error('Snapshot updates require snapshot_dir')
+  const snapshotDestination = applySnapshots
+    ? baselineDestination(fs.realpathSync(required('BUILD_WORKSPACE_DIRECTORY')), snapshotRelative) : undefined
+  if (snapshotDestination && required('VRT_DESCRIPTOR').split('/')[0] !== '_main')
+    throw new Error('Snapshot updates require a target in the invoking workspace')
+  const snapshotsBefore = snapshotDestination ? snapshotHashes(snapshotDestination) : undefined
   if (!visual && update) throw new Error('E2E tests do not update baselines')
   const captureOutput = update ? process.env.VRT_CAPTURE_OUTPUT : undefined
   const destination = update && !captureOutput
@@ -70,7 +80,7 @@ async function run(temp: string) {
   while (testFiles.some(file => path.relative(discoveryRoot, file).split(path.sep)[0] === '..'))
     discoveryRoot = path.dirname(discoveryRoot)
   const selectors = testArguments(visual, args, descriptor.tests)
-  if (!visual && args.includes('--export-snapshots'))
+  if (exportSnapshots)
     fs.writeFileSync(path.join(outputs, 'snapshot-sources.json'), JSON.stringify(
       Object.fromEntries(testFiles.map((file, index) => [path.relative(discoveryRoot, file), descriptor.tests[index]]))
     ))
@@ -203,7 +213,8 @@ async function run(temp: string) {
         }
       : {}),
     VRT_UPDATE: update ? '1' : '0',
-    VRT_EXPORT_SNAPSHOTS: !visual && args.includes('--export-snapshots') ? '1' : '0',
+    VRT_EXPORT_SNAPSHOTS: exportSnapshots ? '1' : '0',
+    VRT_SNAPSHOT_ROOT: snapshotRelative ? path.join(inputs, required('VRT_DESCRIPTOR').split('/')[0], snapshotRelative) : '',
     VRT_BASELINES: baselines,
     VRT_OUTPUTS: outputs,
     VRT_VISUAL_CATALOG: path.join(temp, 'visual-catalog.json'),
@@ -333,6 +344,10 @@ async function run(temp: string) {
       console.error(`VRT artifacts: ${outputs}`)
       return
     }
+    if (snapshotDestination) {
+      applySnapshotUpdate(path.join(outputs, 'snapshots'), snapshotDestination, snapshotsBefore!)
+      console.log(`Updated snapshots: ${snapshotDestination}`)
+    }
     if (destination) {
       applyBaselineUpdate(baselines, destination, baselineBefore!)
       console.log(`Updated baselines: ${destination}`)
@@ -346,7 +361,7 @@ async function run(temp: string) {
     killChildren()
     await Promise.allSettled(children.map(child => child.closed))
     if (interrupted) process.exitCode = 143
-    if (succeeded && !process.env.TEST_UNDECLARED_OUTPUTS_DIR) removeScratch(outputs)
+    if (succeeded && !process.env.TEST_UNDECLARED_OUTPUTS_DIR && (!exportSnapshots || applySnapshots)) removeScratch(outputs)
     process.removeListener('SIGTERM', onSignal)
     process.removeListener('SIGINT', onSignal)
   }

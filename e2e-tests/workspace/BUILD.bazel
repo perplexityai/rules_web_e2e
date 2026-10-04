@@ -41,6 +41,8 @@ js_library(
 
 web_e2e_test(
     name = "host_snapshot_export_test",
+    snapshot_dir = "snapshots",
+    snapshots = glob(["snapshots/**"], allow_empty = True),
     playwright = ":playwright",
     config = ":native_config",
     tests = ":snapshot_export_specs",

@@ -15,9 +15,19 @@ const processOwned = mode === 'process'
 const root = process.env.VRT_TEST_ROOT!
 const visual = mode === 'visual' || mode === 'visual-spec'
 const exportSnapshots = !visual && process.env.VRT_EXPORT_SNAPSHOTS === '1'
-function snapshotExportPath(template?: string) {
-  const filename = template ? path.basename(template) : '{arg}{-projectName}{-snapshotSuffix}{ext}'
-  return path.join(process.env.VRT_OUTPUTS!, 'snapshots/{testFilePath}-snapshots', filename)
+const managedSnapshots = !visual && !!process.env.VRT_SNAPSHOT_ROOT
+const snapshotRoot = exportSnapshots
+  ? path.join(process.env.VRT_OUTPUTS!, 'snapshots')
+  : process.env.VRT_SNAPSHOT_ROOT
+function snapshotPath(project = 'default') {
+  return path.join(snapshotRoot!, project, '{testFilePath}-snapshots', '{arg}{-snapshotSuffix}{ext}')
+}
+function snapshotExpect(expect: PlaywrightTestConfig['expect'], project?: string) {
+  return {
+    ...expect,
+    toHaveScreenshot: {...expect?.toHaveScreenshot, pathTemplate: snapshotPath(project)},
+    toMatchAriaSnapshot: {...expect?.toMatchAriaSnapshot, pathTemplate: snapshotPath(project)},
+  }
 }
 const isolated = process.env.VRT_ISOLATED === '1'
 const defaults = processOwned
@@ -159,9 +169,10 @@ export default defineConfig(
       ),
     ],
     updateSnapshots: exportSnapshots ? 'all' : defaults.updateSnapshots,
+    ...(exportSnapshots || managedSnapshots ? {updateSourceMethod: 'patch' as const} : {}),
     snapshotPathTemplate: visual
       ? defaults.snapshotPathTemplate
-      : exportSnapshots ? snapshotExportPath(custom.snapshotPathTemplate) : custom.snapshotPathTemplate,
+      : exportSnapshots || managedSnapshots ? snapshotPath() : custom.snapshotPathTemplate,
     webServer,
     globalSetup: isolated || processOwned ? lifecycleModules(custom.globalSetup) : [
       ...(lifecycleModules(custom.globalSetup) ?? []),
@@ -178,7 +189,8 @@ export default defineConfig(
             testIgnore: [],
             outputDir: defaults.outputDir,
             snapshotPathTemplate:
-              exportSnapshots ? snapshotExportPath(project.snapshotPathTemplate ?? custom.snapshotPathTemplate) : project.snapshotPathTemplate ?? custom.snapshotPathTemplate,
+              exportSnapshots || managedSnapshots ? snapshotPath(`project-${encodeURIComponent(project.name || '')}`) : project.snapshotPathTemplate ?? custom.snapshotPathTemplate,
+            ...(exportSnapshots || managedSnapshots ? {expect: snapshotExpect({...merged.expect, ...project.expect}, `project-${encodeURIComponent(project.name || '')}`)} : {}),
             use: processOwned ? {...managedUse, ...project.use} : isolatedUse({
               ...managedUse,
               ...project.use,
@@ -188,6 +200,7 @@ export default defineConfig(
           })),
         }
       : {}),
+    ...(exportSnapshots || managedSnapshots ? {expect: snapshotExpect(merged.expect)} : {}),
     ...(visual
       ? {
           expect: {

@@ -1,6 +1,6 @@
 """Execute compiled browser inputs with a reusable Playwright runtime."""
 
-load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo", "runfile")
 load(":matching.bzl", "matching_config")
 load(":remote.bzl", "remote_browser_test")
@@ -101,6 +101,8 @@ def browser_test(
         matching = None,
         baselines = [],
         baseline_dir = "__screenshots__",
+        snapshot_dir = None,
+        snapshots = [],
         data = [],
         env = {},
         env_inherit = [],
@@ -114,6 +116,13 @@ def browser_test(
         component = False,
         process_owned = False):
     """Internal common implementation; public wrappers select the test mode."""
+    if snapshot_dir != None:
+        if visual or browser:
+            fail("snapshot_dir supports host E2E, component, and process-owned tests; visual targets use baseline_dir")
+        if not snapshot_dir or snapshot_dir.startswith("/") or "\\" in snapshot_dir or any([p in ["", ".", ".."] for p in snapshot_dir.split("/")]):
+            fail("snapshot_dir must be a relative directory without dot segments")
+    elif snapshots:
+        fail("snapshots requires snapshot_dir")
     if target_arch not in ["x64", "arm64"]:
         fail("target_arch must be x64 or arm64")
     if target_platform == None:
@@ -158,7 +167,7 @@ def browser_test(
             tags = tags,
         )
         matching = ":" + name + "_matching"
-    js_library(name = name + "_sources", srcs = baselines, data = data, copy_data_to_bin = not process_owned)
+    js_library(name = name + "_sources", srcs = baselines + snapshots, data = data, copy_data_to_bin = not process_owned)
     _inputs(
         name = name + "_inputs",
         tests = tests,
@@ -183,6 +192,7 @@ def browser_test(
             "VRT_BASE_URL": base_url or "",
             "VRT_BASE_URL_ENV": base_url_env or "",
             "VRT_MODE": "process" if process_owned else "visual-spec" if visual and tests else "visual" if visual else "component" if component else "e2e",
+            "VRT_SNAPSHOT_RELATIVE": (native.package_name() + "/" if native.package_name() else "") + snapshot_dir if snapshot_dir else "",
             "VRT_BASELINE_RELATIVE": (native.package_name() + "/" if native.package_name() else "") + baseline_dir if visual else "",
             "VRT_ENV_NAMES": json.encode(env.keys() + env_inherit),
             "VRT_TIMEOUT_MS": str(execution_timeout_seconds * 1000),
@@ -205,3 +215,12 @@ def browser_test(
         timeout = timeout,
         **common
     )
+
+    if snapshot_dir:
+        js_binary(
+            name = name + ".update",
+            patch_node_fs = False,
+            args = ["--export-snapshots"] + args,
+            tags = ["manual", "no-remote"] + tags,
+            **(common | {"env": common["env"] | {"VRT_APPLY_SNAPSHOTS": "1"}})
+        )
