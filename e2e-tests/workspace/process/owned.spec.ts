@@ -29,12 +29,15 @@ test('caller-owned process renders and preserves its profile', async () => {
   let close: () => Promise<void>
   let browserPid: number | undefined
   if (process.env.OWNED_KIND === 'electron') {
+    console.log('Launching declared Electron executable')
     const app = await electron.launch({
       executablePath, args: ['--no-sandbox', path.resolve(process.env.OWNED_APP!)],
       env: {...process.env, OWNED_PROFILE: profile} as Record<string, string>,
     })
     browserPid = app.process().pid
+    console.log('Electron launched; waiting for first window')
     page = await app.firstWindow()
+    console.log('Electron window ready')
     close = () => app.close()
   } else {
     const initial = await chromium.launchPersistentContext(profile, {executablePath, headless: true})

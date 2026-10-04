@@ -26,6 +26,7 @@ ts_project(
     tests = ":compiled",
     data = [":compiled", "electron-main.cjs", "@owned_" + kind + "//:files", "@owned_" + kind + "//:executable"],
     env = {
+        "DEBUG": "pw:browser" if kind == "electron" else "",
         "OWNED_KIND": kind,
         "OWNED_HANG": "1" if hang else "0",
         "OWNED_EXECUTABLE": "$(rootpath @owned_" + kind + "//:executable)",
