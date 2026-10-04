@@ -106,6 +106,8 @@ jobs:
         run: bazelisk test //runtime:capture_browser_test --test_output=errors
       - name: Export, update, and compare host snapshots
         run: node e2e-tests/snapshot-updates.ts
+      - name: Verify host result caching and input invalidation
+        run: node e2e-tests/cacheable.ts
       - name: Clean up descendants holding browser output pipes
         run: node e2e-tests/lingering.ts
       - name: Launch Chromium under deep and symlinked temp roots

@@ -61,3 +61,4 @@ See the [API reference](docs/api.md), [documentation index](docs/README.md),
 and [development guide](docs/development.md).
 
 Host suites can [own snapshots and run `.update`](docs/e2e.md#snapshot-updates).
+Fully mocked host suites can [opt into local result caching](docs/e2e.md#opt-in-local-result-caching).

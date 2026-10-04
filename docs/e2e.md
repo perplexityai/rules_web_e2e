@@ -116,7 +116,7 @@ fixture APIs for deterministic data; declare any authentication state files in
 `data`. Keep credentials in explicitly declared environment variables rather
 than checked-in state. Host browsers use host networking; VRT uses separate offline Linux actions.
 
-E2E is manual, local, and uncached. It requires a provisioned host browser, not
+E2E is manual, local, and uncached by default. It requires a provisioned host browser, not
 Docker; see [host setup](host-browsers.md).
 Server processes and browser resources are cleaned up after completion. Failures
 return a nonzero status and preserve JUnit, screenshots, and traces in Bazel's
@@ -124,6 +124,46 @@ undeclared outputs. The host test process (including Playwright's `request`
 fixture), custom server code, and setup scripts remain trusted and unsandboxed;
 host browser and Node requests use host networking. Remote endpoints are caller-owned; automatic backend provisioning and authentication
 conventions remain consumer responsibilities.
+
+## Opt-in local result caching
+
+Fully mocked host E2E/component suites can set `cacheable = True`. Unchanged
+inputs reuse local results. Defaults stay uncached; remote caching stays disabled.
+
+```starlark
+load("@rules_web_e2e//playwright:browser.bzl", "playwright_browser_installation")
+
+playwright_browser_installation(
+    name = "browsers",
+    chromium = "@rules_browsers_chrome_linux//:info",
+    ffmpeg = ":downloaded_ffmpeg",
+    playwright = ":playwright",
+)
+
+web_e2e_test(
+    name = "local_e2e_test",
+    tests = ":compiled_specs",
+    server = ":app_test_server",
+    playwright = ":playwright",
+    data = [":browsers", ":mock_fixtures"],
+    env = {"PLAYWRIGHT_BROWSERS_PATH": "$(rootpath :browsers)"},
+    cacheable = True,
+)
+```
+
+Use caller-pinned browser downloads; see [browser provisioning](host-browsers.md#assemble-an-existing-browser-download).
+Declare specs, app assets, servers, mocks, fixtures, and browser files. Mock external
+services, including calls from Node setup/server code. Reject unexpected requests.
+
+`cacheable = True` promises results depend on declared inputs plus a controlled
+host environment. Rules cannot verify mocks or browser pinning. Explicit
+`PLAYWRIGHT_BROWSERS_PATH` prevents implicit browser inheritance; it does not
+prove browser files are declared. Live URLs hidden in config remain undeclared inputs.
+
+Unsupported: `browser`, visual/process-owned modes, URL attributes, `env_inherit`.
+Host execution stays manual, unsandboxed, and network-enabled. After host OS/library
+changes, force execution with `--cache_test_results=no`. Caller `no-cache` or
+`external` tags still disable reuse.
 
 ## Existing application URLs
 
