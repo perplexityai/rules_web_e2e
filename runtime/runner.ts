@@ -93,8 +93,8 @@ async function run(temp: string) {
   const testRoot = processOwned
     ? path.join(inputs, required('VRT_DESCRIPTOR').split('/')[0])
     : path.dirname(descriptorPath)
-  const generated = input(descriptor.harness)
-  const config = path.join(generated, 'suite-config.js')
+  const config = fs.realpathSync(path.join(input(descriptor.harness), 'suite-config.js'))
+  const generated = path.dirname(config)
   const packageVersion = (directory: string) =>
     JSON.parse(fs.readFileSync(path.join(directory, 'package.json'), 'utf8'))
       .version as string
