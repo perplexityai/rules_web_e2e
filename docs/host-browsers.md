@@ -74,7 +74,8 @@ files must include Chromium/headless shell and any FFmpeg binary required by the
 suite. Caller-owned Bazel browser repositories are supported; these rules do not
 introduce another browser downloader or repository format.
 
-Tests remain local and uncached. A host cache is an explicit environmental input;
+Tests stay local and uncached by default. Fully mocked suites can [opt into local
+result caching](e2e.md#opt-in-local-result-caching). A host browser cache is an environmental input;
 Bazel-provisioned browser artifacts additionally make the browser files declared
 inputs. Neither choice provides VRT's controlled OS/fonts rendering environment.
 

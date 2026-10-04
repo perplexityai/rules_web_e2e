@@ -43,6 +43,7 @@ and application-specific output can still contain sensitive data.
 | `target_platform` | Linux platform for `target_arch` | Override for native ABI constraints; must match the runtime |
 | `execution_timeout_seconds` | `180` | Per Playwright invocation; discovery and capture have separate deadlines |
 | `timeout` | `"long"` | Independent Bazel test timeout |
+| `cacheable` | `False` | Opt in to local result caching for deterministic host E2E/component tests; requires explicit browser path and caller-declared inputs. No URL attributes, env inheritance, visual, process-owned, or isolated browser modes. See [caching contract](e2e.md#opt-in-local-result-caching). |
 | `tags` | `[]` | Additional tags; browser targets are manual |
 
 Choose one of `server`, `shell`, `base_url`, or `base_url_env`. Alternatively,
