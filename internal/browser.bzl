@@ -118,7 +118,7 @@ def browser_test(
     if cacheable and (browser or visual or process_owned or base_url or base_url_env or env_inherit):
         fail("cacheable requires local host tests with explicit declared inputs and no inherited environment")
     if cacheable and "PLAYWRIGHT_BROWSERS_PATH" not in env:
-        fail("cacheable requires an explicit pinned PLAYWRIGHT_BROWSERS_PATH")
+        fail("cacheable requires an explicit PLAYWRIGHT_BROWSERS_PATH")
     if target_arch not in ["x64", "arm64"]:
         fail("target_arch must be x64 or arm64")
     if target_platform == None:

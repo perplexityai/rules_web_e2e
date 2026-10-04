@@ -59,3 +59,5 @@ explicit `.update` target; review PNG changes before committing.
 
 See the [API reference](docs/api.md), [documentation index](docs/README.md),
 and [development guide](docs/development.md).
+
+Fully mocked host suites can [opt into local result caching](docs/e2e.md#opt-in-local-result-caching).

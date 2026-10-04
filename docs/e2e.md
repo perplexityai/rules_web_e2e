@@ -85,36 +85,43 @@ conventions remain consumer responsibilities.
 
 ## Opt-in local result caching
 
-For deterministic host E2E and component tests, `cacheable = True` allows Bazel
-to reuse successful local results when declared inputs are unchanged. It removes
-`external` and `no-cache`; `manual`, `no-sandbox`, and `no-remote` remain. This
-neither enables remote cache sharing nor makes host execution hermetic.
+Fully mocked host E2E/component suites can set `cacheable = True`. Unchanged
+inputs reuse local results. Defaults stay uncached; remote caching stays disabled.
 
 ```starlark
+load("@rules_web_e2e//playwright:browser.bzl", "playwright_browser_installation")
+
+playwright_browser_installation(
+    name = "browsers",
+    chromium = "@rules_browsers_chrome_linux//:info",
+    ffmpeg = ":downloaded_ffmpeg",
+    playwright = ":playwright",
+)
+
 web_e2e_test(
     name = "local_e2e_test",
     tests = ":compiled_specs",
     server = ":app_test_server",
-    data = [":pinned_browsers"],
-    env = {"PLAYWRIGHT_BROWSERS_PATH": "$(rootpath :pinned_browsers)"},
+    playwright = ":playwright",
+    data = [":browsers", ":mock_fixtures"],
+    env = {"PLAYWRIGHT_BROWSERS_PATH": "$(rootpath :browsers)"},
     cacheable = True,
 )
 ```
 
-Here `:pinned_browsers` must provide a declared directory containing the browser
-revisions required by the pinned Playwright package. Include all application
-assets, server executables, fixtures, authentication state, and browser artifacts
-in the dependency graph. Mock external services and reject unexpected requests,
-including requests made by Node setup and server code. A live endpoint hidden in
-Playwright config is still an undeclared input; the rule cannot detect it.
+Use caller-pinned browser downloads; see [browser provisioning](host-browsers.md#assemble-an-existing-browser-download).
+Declare specs, app assets, servers, mocks, fixtures, and browser files. Mock external
+services, including calls from Node setup/server code. Reject unexpected requests.
 
-The opt-in rejects `browser`, visual and process-owned modes, `base_url`,
-`base_url_env`, and `env_inherit`, and requires an explicit
-`env["PLAYWRIGHT_BROWSERS_PATH"]`. The path check does not verify that the browser
-is actually a declared artifact; callers own that contract. Host OS and native
-libraries remain implicit dependencies, so use a controlled host and force a
-fresh run after changing that environment. `--cache_test_results=no` forces
-execution. Caller-supplied `no-cache` or `external` tags continue to disable reuse.
+`cacheable = True` promises results depend on declared inputs plus a controlled
+host environment. Rules cannot verify mocks or browser pinning. Explicit
+`PLAYWRIGHT_BROWSERS_PATH` prevents implicit browser inheritance; it does not
+prove browser files are declared. Live URLs hidden in config remain undeclared inputs.
+
+Unsupported: `browser`, visual/process-owned modes, URL attributes, `env_inherit`.
+Host execution stays manual, unsandboxed, and network-enabled. After host OS/library
+changes, force execution with `--cache_test_results=no`. Caller `no-cache` or
+`external` tags still disable reuse.
 
 ## Existing application URLs
 
