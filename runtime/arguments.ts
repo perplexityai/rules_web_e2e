@@ -14,6 +14,7 @@ export function testArguments(
   const result: string[] = []
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]
+    if (arg === '--export-snapshots') continue
     if (arg === '--pass-with-no-tests') {
       result.push(arg)
       continue

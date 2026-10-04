@@ -70,6 +70,10 @@ async function run(temp: string) {
   while (testFiles.some(file => path.relative(discoveryRoot, file).split(path.sep)[0] === '..'))
     discoveryRoot = path.dirname(discoveryRoot)
   const selectors = testArguments(visual, args, descriptor.tests)
+  if (!visual && args.includes('--export-snapshots'))
+    fs.writeFileSync(path.join(outputs, 'snapshot-sources.json'), JSON.stringify(
+      Object.fromEntries(testFiles.map((file, index) => [path.relative(discoveryRoot, file), descriptor.tests[index]]))
+    ))
   if (visual && !descriptor.browser) throw new Error("VRT requires a declared browser runtime")
   const declaredBrowser = descriptor.browser
     ? browserRuntime(inputs, descriptor.browser, process.env.VRT_HOST_EXECUTION === '1')
@@ -199,6 +203,7 @@ async function run(temp: string) {
         }
       : {}),
     VRT_UPDATE: update ? '1' : '0',
+    VRT_EXPORT_SNAPSHOTS: !visual && args.includes('--export-snapshots') ? '1' : '0',
     VRT_BASELINES: baselines,
     VRT_OUTPUTS: outputs,
     VRT_VISUAL_CATALOG: path.join(temp, 'visual-catalog.json'),

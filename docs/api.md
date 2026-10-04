@@ -57,6 +57,7 @@ outputs; shell producers must depend on their own typecheck action.
 
 E2E/component tests accept `--grep`, `--grep-invert`, `--project`, `--shard`,
 declared spec paths, and `--pass-with-no-tests` in `args` or `--test_arg`.
+`--export-snapshots` captures replacement images under test outputs with a source-path manifest; it never updates checked-in files. See [snapshot export](e2e.md).
 Source `.spec.ts`/`.spec.tsx` paths map to emitted `.spec.js`.
 Visual targets reject these filters and runtime arguments; use separate targets
 and baseline directories for different suites.

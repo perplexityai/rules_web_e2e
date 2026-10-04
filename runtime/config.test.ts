@@ -2,6 +2,39 @@ import assert from 'node:assert/strict'
 import {test} from 'node:test'
 import {componentBrowserConfig} from './config.js'
 
+test('snapshot export overrides caller paths without enabling ordinary-run writes', async () => {
+  const {mkdtempSync, writeFileSync, rmSync} = await import('node:fs')
+  const {tmpdir} = await import('node:os')
+  const {join} = await import('node:path')
+  const temp = mkdtempSync(join(tmpdir(), 'snapshot-export-'))
+  const previous = {...process.env}
+  try {
+    writeFileSync(join(temp, 'package.json'), '{"type":"module"}')
+    writeFileSync(join(temp, 'custom.js'), `export default {
+      updateSnapshots: 'all', snapshotPathTemplate: '/source/{arg}{ext}',
+      projects: [{name: 'desktop', snapshotPathTemplate: '/other/{arg}{ext}'}]
+    }`)
+    Object.assign(process.env, {
+      VRT_MODE: 'e2e', VRT_APP_URL: 'http://localhost:1234', VRT_OUTPUTS: temp,
+      VRT_TEST_ROOT: temp, VRT_TEST_FILES: JSON.stringify([join(temp, 'example.spec.js')]),
+      VRT_CONFIG_OVERRIDE: join(temp, 'custom.js'), VRT_ISOLATED: '0',
+    })
+    delete process.env.VRT_MATCHING
+    for (const enabled of ['0', '1']) {
+      process.env.VRT_EXPORT_SNAPSHOTS = enabled
+      const {default: config} = await import(new URL(`./suite-config.js?export-${enabled}`, import.meta.url).href)
+      assert.equal(config.updateSnapshots, enabled === '1' ? 'all' : 'none')
+      const exported = join(temp, 'snapshots/{testFilePath}-snapshots/{arg}{ext}')
+      assert.equal(config.snapshotPathTemplate, enabled === '1' ? exported : '/source/{arg}{ext}')
+      assert.equal(config.projects[0].snapshotPathTemplate, enabled === '1' ? exported : '/other/{arg}{ext}')
+    }
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key]
+    Object.assign(process.env, previous)
+    rmSync(temp, {recursive: true, force: true})
+  }
+})
+
 test('component gallery resolves base paths for host browser launch', () => {
   const previous = {...process.env}
   Object.assign(process.env, {

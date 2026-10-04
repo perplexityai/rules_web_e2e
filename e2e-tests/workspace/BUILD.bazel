@@ -33,6 +33,19 @@ js_library(
     deps = [":typecheck_project"],
 )
 
+js_library(
+    name = "snapshot_export_specs",
+    srcs = ["snapshot-export.spec.js"],
+    deps = [":typecheck_project"],
+)
+
+web_e2e_test(
+    name = "host_snapshot_export_test",
+    playwright = ":playwright",
+    config = ":native_config",
+    tests = ":snapshot_export_specs",
+)
+
 npm_link_package(
     name = "node_modules/@rules-web-e2e/vrt",
     src = "@rules_web_e2e//runtime:package",

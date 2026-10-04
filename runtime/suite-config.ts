@@ -14,6 +14,11 @@ const mode = process.env.VRT_MODE!
 const processOwned = mode === 'process'
 const root = process.env.VRT_TEST_ROOT!
 const visual = mode === 'visual' || mode === 'visual-spec'
+const exportSnapshots = !visual && process.env.VRT_EXPORT_SNAPSHOTS === '1'
+function snapshotExportPath(template?: string) {
+  const filename = template ? path.basename(template) : '{arg}{-projectName}{-snapshotSuffix}{ext}'
+  return path.join(process.env.VRT_OUTPUTS!, 'snapshots/{testFilePath}-snapshots', filename)
+}
 const isolated = process.env.VRT_ISOLATED === '1'
 const defaults = processOwned
   ? processConfig({root})
@@ -153,10 +158,10 @@ export default defineConfig(
         ([name, options]) => name !== 'list' || options !== undefined
       ),
     ],
-    updateSnapshots: defaults.updateSnapshots,
+    updateSnapshots: exportSnapshots ? 'all' : defaults.updateSnapshots,
     snapshotPathTemplate: visual
       ? defaults.snapshotPathTemplate
-      : custom.snapshotPathTemplate,
+      : exportSnapshots ? snapshotExportPath(custom.snapshotPathTemplate) : custom.snapshotPathTemplate,
     webServer,
     globalSetup: isolated || processOwned ? lifecycleModules(custom.globalSetup) : [
       ...(lifecycleModules(custom.globalSetup) ?? []),
@@ -173,7 +178,7 @@ export default defineConfig(
             testIgnore: [],
             outputDir: defaults.outputDir,
             snapshotPathTemplate:
-              project.snapshotPathTemplate ?? custom.snapshotPathTemplate,
+              exportSnapshots ? snapshotExportPath(project.snapshotPathTemplate ?? custom.snapshotPathTemplate) : project.snapshotPathTemplate ?? custom.snapshotPathTemplate,
             use: processOwned ? {...managedUse, ...project.use} : isolatedUse({
               ...managedUse,
               ...project.use,

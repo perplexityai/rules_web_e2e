@@ -49,7 +49,14 @@ cd examples/react
 
 Selection flags `--grep`, `--grep-invert`, `--project`, and `--shard` are forwarded
 through `--test_arg`. Configure other Playwright settings in the declared config;
-Add custom reporters through the [compiled Playwright config](api.md#optional-playwright-configuration). CLI overrides of config, reporters, output paths, and snapshot updates are rejected.
+Add custom reporters through the [compiled Playwright config](api.md#optional-playwright-configuration). CLI overrides of config, reporters, output paths, and in-place snapshot updates are rejected.
+
+To capture replacement E2E snapshots, pass `--test_arg=--export-snapshots` to `bazel test`.
+The runner writes them under `test.outputs/snapshots/`, preserving compiled spec paths, and never overwrites source baselines.
+The sibling `snapshot-sources.json` maps each exported spec path to its declared runfiles path, so consumers can resolve source files without ambiguous basename matching.
+Callers must check the test result and explicitly copy the selected outputs back to their source baseline directories.
+Filtered exports are allowed; only the selected tests produce replacements.
+Ordinary runs continue to reject missing or mismatched baselines.
 No matching tests fail by default. Visual targets keep their separate full-capture
 policy. See [the example BUILD file](../examples/react/BUILD.bazel).
 
