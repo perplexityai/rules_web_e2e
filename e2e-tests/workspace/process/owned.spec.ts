@@ -52,6 +52,7 @@ test('caller-owned process renders and preserves its profile', async () => {
     await page.goto('data:text/html,<button onclick="this.textContent=\'Saved\'">Save</button>')
     close = () => context.close()
   }
+  page.setDefaultTimeout(10_000)
   try {
     await page.getByRole('button', {name: 'Save', exact: true}).click()
     await expect(page.getByRole('button', {name: 'Saved', exact: true})).toBeVisible()
