@@ -300,7 +300,7 @@ async function run(temp: string) {
         )
         if (child.stdout) forwardOutput(child.stdout, process.stdout)
         if (child.stderr) forwardOutput(child.stderr, process.stderr)
-        const managed = manageChild(child)
+        const managed = manageChild(child, processOwned)
         children.push(managed)
         let timedOut = false
         const timer = setTimeout(

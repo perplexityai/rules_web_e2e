@@ -143,7 +143,7 @@ def browser_test(
     if not baseline_dir or baseline_dir.startswith("/") or any([p in ["", ".", ".."] for p in baseline_dir.split("/")]):
         fail("baseline_dir must be a nonempty relative directory without dot segments")
     sources = len([v for v in [server, shell, base_url, base_url_env] if v != None])
-    if sources > 1 or (sources == 0 and not config):
+    if not process_owned and (sources > 1 or (sources == 0 and not config)):
         fail("Supply one of server, shell, base_url, base_url_env, or a config with use.baseURL")
     if base_url_env != None and (not base_url_env or base_url_env.startswith("VRT_")):
         fail("base_url_env must be a nonempty consumer environment name")

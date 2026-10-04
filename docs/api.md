@@ -48,6 +48,8 @@ and application-specific output can still contain sensitive data.
 Choose one of `server`, `shell`, `base_url`, or `base_url_env`. Alternatively,
 use a config-only target with `use.baseURL` and optional `webServer`.
 For isolated tests, URLs must be action-local and environment values explicit.
+`browser_process_test` needs none of these URL/server options; its compiled
+`config` is optional, and specs select their own declared executable inputs.
 
 Spec producers must include typechecking, module markers, imports, and generated
 files in their build graph. The rules request available `transitive_typecheck`

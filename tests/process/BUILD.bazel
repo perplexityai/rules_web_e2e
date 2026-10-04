@@ -29,3 +29,14 @@ browser_process_test(
         "OWNED_PROCESS_TOOL": "$(rootpath //tests/process/tool:echo.ts)",
     },
 )
+
+browser_process_test(
+    name = "without_config_test",
+    tests = ":compiled",
+    data = [":compiled", "//tests/process/tool:echo.ts"],
+    env = {
+        "OWNED_DEFAULT_CONFIG": "1",
+        "OWNED_PROCESS_VALUE": "declared",
+        "OWNED_PROCESS_TOOL": "$(rootpath //tests/process/tool:echo.ts)",
+    },
+)
