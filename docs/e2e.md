@@ -74,7 +74,7 @@ fixture APIs for deterministic data; declare any authentication state files in
 `data`. Keep credentials in explicitly declared environment variables rather
 than checked-in state. Host browsers use host networking; VRT uses separate offline Linux actions.
 
-E2E is manual, local, and uncached. It requires a provisioned host browser, not
+E2E is manual, local, and uncached by default. It requires a provisioned host browser, not
 Docker; see [host setup](host-browsers.md).
 Server processes and browser resources are cleaned up after completion. Failures
 return a nonzero status and preserve JUnit, screenshots, and traces in Bazel's
@@ -82,6 +82,39 @@ undeclared outputs. The host test process (including Playwright's `request`
 fixture), custom server code, and setup scripts remain trusted and unsandboxed;
 host browser and Node requests use host networking. Remote endpoints are caller-owned; automatic backend provisioning and authentication
 conventions remain consumer responsibilities.
+
+## Opt-in local result caching
+
+For deterministic host E2E and component tests, `cacheable = True` allows Bazel
+to reuse successful local results when declared inputs are unchanged. It removes
+`external` and `no-cache`; `manual`, `no-sandbox`, and `no-remote` remain. This
+neither enables remote cache sharing nor makes host execution hermetic.
+
+```starlark
+web_e2e_test(
+    name = "local_e2e_test",
+    tests = ":compiled_specs",
+    server = ":app_test_server",
+    data = [":pinned_browsers"],
+    env = {"PLAYWRIGHT_BROWSERS_PATH": "$(rootpath :pinned_browsers)"},
+    cacheable = True,
+)
+```
+
+Here `:pinned_browsers` must provide a declared directory containing the browser
+revisions required by the pinned Playwright package. Include all application
+assets, server executables, fixtures, authentication state, and browser artifacts
+in the dependency graph. Mock external services and reject unexpected requests,
+including requests made by Node setup and server code. A live endpoint hidden in
+Playwright config is still an undeclared input; the rule cannot detect it.
+
+The opt-in rejects `browser`, visual and process-owned modes, `base_url`,
+`base_url_env`, and `env_inherit`, and requires an explicit
+`env["PLAYWRIGHT_BROWSERS_PATH"]`. The path check does not verify that the browser
+is actually a declared artifact; callers own that contract. Host OS and native
+libraries remain implicit dependencies, so use a controlled host and force a
+fresh run after changing that environment. `--cache_test_results=no` forces
+execution. Caller-supplied `no-cache` or `external` tags continue to disable reuse.
 
 ## Existing application URLs
 

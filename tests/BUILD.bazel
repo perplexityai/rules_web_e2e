@@ -1,4 +1,7 @@
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load(":cacheable_test.bzl", "cacheable_tests")
+
+cacheable_tests()
 
 exports_files(["module_smoke_test.sh"])
 

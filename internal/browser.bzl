@@ -112,8 +112,13 @@ def browser_test(
         args = [],
         visual = False,
         component = False,
-        process_owned = False):
+        process_owned = False,
+        cacheable = False):
     """Internal common implementation; public wrappers select the test mode."""
+    if cacheable and (browser or visual or process_owned or base_url or base_url_env or env_inherit):
+        fail("cacheable requires local host tests with explicit declared inputs and no inherited environment")
+    if cacheable and "PLAYWRIGHT_BROWSERS_PATH" not in env:
+        fail("cacheable requires an explicit pinned PLAYWRIGHT_BROWSERS_PATH")
     if target_arch not in ["x64", "arm64"]:
         fail("target_arch must be x64 or arm64")
     if target_platform == None:
@@ -201,7 +206,7 @@ def browser_test(
         patch_node_fs = False,
         args = args,
         env_inherit = browser_env_inherit + env_inherit,
-        tags = ["manual", "external", "browser_process_test" if process_owned else "visual_test" if visual else "component_browser_test" if component else "e2e_test", "requires-network", "no-sandbox", "no-remote", "no-cache"] + tags,
+        tags = ([] if cacheable else ["external", "no-cache"]) + ["manual", "browser_process_test" if process_owned else "visual_test" if visual else "component_browser_test" if component else "e2e_test", "requires-network", "no-sandbox", "no-remote"] + tags,
         timeout = timeout,
         **common
     )
