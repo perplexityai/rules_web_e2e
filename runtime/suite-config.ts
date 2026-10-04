@@ -1,9 +1,9 @@
-// Copied beside the generated config so native Playwright imports resolve to the selected runtime.
+// Built into each suite by Bazel; only execution settings come from the runner.
 import {
-  defineConfig,
   type PlaywrightTestConfig,
   type ReporterDescription,
 } from '@playwright/test'
+import {defineConfig} from './playwright-test.js'
 import {pathToFileURL, fileURLToPath} from 'node:url'
 import {createRequire} from 'node:module'
 import path from 'node:path'

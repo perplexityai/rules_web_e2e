@@ -104,3 +104,14 @@ point within a built asset directory. The static server never transforms source.
 A reusable `playwright_runtime` groups version-matched client packages;
 `matching` separately supplies VRT comparison policy. Application bundlers,
 framework versions, and generated styles stay in the consumer build graph.
+
+## Declared suite harness
+
+Each input target builds a private `<target>_inputs.suite/` directory containing
+its compiled Playwright config, helper modules, package metadata, and (for a
+component visual suite) capture spec. These are immutable Bazel outputs carried
+in runfiles. Test startup does not copy harness code or create a `node_modules`
+link. The runner resolves and validates the caller's Playwright package, then
+passes its package location to the harness so specs and configuration share the
+same test instance. Dynamic URLs, gallery discovery, caches, and reports remain
+execution-time state.
