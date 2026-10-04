@@ -113,22 +113,20 @@ async function run(temp: string) {
   const resolvedCore = path.dirname(createRequire(playwrightPackage).resolve('playwright-core/package.json'))
   const core = descriptor.playwright.fromConsumer
     ? resolvedCore : fs.realpathSync(input(descriptor.playwright.core))
-  validatePlaywrightVersions(
-    descriptor.playwright.version,
-    packageVersion(testPackage),
-    packageVersion(core)
-  )
+  // Declared packages were validated by their build action. Consumer-inferred
+  // packages can differ, so check those at execution time.
+  if (descriptor.playwright.fromConsumer)
+    validatePlaywrightVersions(
+      descriptor.playwright.version,
+      packageVersion(testPackage),
+      packageVersion(core)
+    )
   if (fs.realpathSync(resolvedCore) !== fs.realpathSync(core))
     throw new Error('playwright_runtime.core must be the playwright-core package used by its test package')
   // Playwright requires one test-harness instance. The caller owns its dependency
   // graph; validate that graph rather than replacing packages inside it.
   for (const module of modules) {
     const directory = modulePackage(module)
-    validatePlaywrightVersions(
-      descriptor.playwright.version,
-      packageVersion(directory),
-      packageVersion(core)
-    )
     if (fs.realpathSync(directory) !== fs.realpathSync(testPackage))
       throw new Error(
         `Playwright package mismatch for ${module}: tests and config must resolve ` +

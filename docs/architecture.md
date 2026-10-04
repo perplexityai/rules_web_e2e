@@ -38,8 +38,8 @@ explicitly applies successful capture-action outputs.
 See [worker setup and isolation](actiond.md).
 
 Host E2E/component targets run their server and browser on host with
-provisioned Chromium. Shared runner checks Playwright package versions,
-resolves declared runfiles, and manages child processes and artifacts.
+provisioned Chromium. Build action checks declared Playwright package versions. Shared runner checks
+consumer-inferred packages, resolves runfiles, and manages child processes and artifacts.
 
 ## TypeScript and Bazel inputs
 
