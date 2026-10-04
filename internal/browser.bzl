@@ -48,8 +48,22 @@ def _inputs_impl(ctx):
     if visual and not ctx.attr.browser:
         fail("VRT requires a declared browser_runtime via browser")
     shell = ctx.attr.shell[ShellInfo] if ctx.attr.shell else None
+    # Use real declared files, rather than symlinks: Node resolves relative
+    # imports from the real path and Playwright discovers the gallery here.
+    harness = []
+    for template in ctx.files._harness_templates:
+        if template.basename == "capture.js" and ctx.attr.mode != "visual":
+            continue
+        name = ".rules-visual.spec.js" if template.basename == "capture.js" else template.basename
+        output = ctx.actions.declare_file(ctx.label.name + ".suite/" + name)
+        ctx.actions.expand_template(template = template, output = output, substitutions = {})
+        harness.append(output)
+    package = ctx.actions.declare_file(ctx.label.name + ".suite/package.json")
+    ctx.actions.write(package, '{"type":"module"}')
+    harness.append(package)
     result = ctx.actions.declare_file(ctx.label.name + ".json")
     ctx.actions.write(result, json.encode({
+        "harness": runfile(package).removesuffix("/package.json"),
         "tests": [runfile(f) for f in tests],
         "config": _compiled(ctx.attr.config, "config"),
         "matching": _compiled(ctx.attr.matching, "matching"),
@@ -63,7 +77,7 @@ def _inputs_impl(ctx):
         },
         "browser": ctx.attr.browser[BrowserRuntimeInfo].descriptor if ctx.attr.browser else None,
     }))
-    inputs = ctx.runfiles(files = [result])
+    inputs = ctx.runfiles(files = [result] + harness)
     for target in [ctx.attr.tests, ctx.attr.config, ctx.attr.matching, ctx.attr.server, ctx.attr.shell, ctx.attr.playwright, ctx.attr.browser, ctx.attr.sources]:
         if target:
             inputs = inputs.merge(target[DefaultInfo].default_runfiles)
@@ -82,6 +96,7 @@ _inputs = rule(
         "browser": attr.label(providers = [BrowserRuntimeInfo]),
         "sources": attr.label(),
         "mode": attr.string(),
+        "_harness_templates": attr.label(default = Label("//runtime:harness_templates")),
     },
 )
 

@@ -61,6 +61,7 @@ async function run(temp: string) {
   }
   const descriptorPath = input(required('VRT_DESCRIPTOR'))
   const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8')) as {
+    harness: string
     tests: string[]
     config: string | null
     matching: string | null
@@ -92,22 +93,7 @@ async function run(temp: string) {
   const testRoot = processOwned
     ? path.join(inputs, required('VRT_DESCRIPTOR').split('/')[0])
     : path.dirname(descriptorPath)
-  const generated = path.join(temp, 'config')
-  fs.mkdirSync(generated)
-  fs.writeFileSync(path.join(generated, 'package.json'), '{"type":"module"}')
-  for (const name of [
-    'suite-config',
-    'host-browser-check',
-    'versions',
-    'config',
-    'network',
-    'matching',
-    'visuals',
-  ])
-    fs.copyFileSync(
-      fileURLToPath(new URL(`./${name}.js`, import.meta.url)),
-      path.join(generated, `${name}.js`)
-    )
+  const generated = input(descriptor.harness)
   const config = path.join(generated, 'suite-config.js')
   const packageVersion = (directory: string) =>
     JSON.parse(fs.readFileSync(path.join(directory, 'package.json'), 'utf8'))
@@ -148,18 +134,6 @@ async function run(temp: string) {
         'the same @playwright/test package declared by playwright_runtime; fix the caller dependencies'
       )
   }
-  fs.mkdirSync(path.join(generated, 'node_modules', '@playwright'), {
-    recursive: true,
-  })
-  fs.symlinkSync(
-    testPackage,
-    path.join(generated, 'node_modules', '@playwright', 'test')
-  )
-  if (gallery)
-    fs.copyFileSync(
-      fileURLToPath(new URL('./capture.js', import.meta.url)),
-      path.join(generated, '.rules-visual.spec.js')
-    )
   const baselineInputs = visual
     ? path.join(
         inputs,
@@ -195,6 +169,7 @@ async function run(temp: string) {
     } : {}),
     VRT_INPUTS: inputs,
     VRT_PLAYWRIGHT_CORE: core,
+    VRT_PLAYWRIGHT_PACKAGE: path.join(testPackage, 'package.json'),
     VRT_ISOLATED: declaredBrowser ? '1' : '0',
     VRT_HOST_EXECUTION: process.env.VRT_HOST_EXECUTION === '1' ? '1' : '0',
     VRT_MODE: required('VRT_MODE'),

@@ -1,6 +1,6 @@
-// The runner copies this compiled template into the private consumer test directory.
+// Bazel installs this compiled template in the declared suite harness.
 import fs from 'node:fs'
-import {expect, test} from '@playwright/test'
+import {expect, test} from './playwright-test.js'
 import {validateCaptures} from './visuals.js'
 
 const catalog = process.env.VRT_VISUAL_CATALOG!

@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import {chromium, type FullConfig} from '@playwright/test'
+import type {FullConfig} from '@playwright/test'
+import {chromium} from './playwright-test.js'
 import {validateChromiumVersion} from './versions.js'
 
 /** Check the browser Playwright actually selects, including native project options. */

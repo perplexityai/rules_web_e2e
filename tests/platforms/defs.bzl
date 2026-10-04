@@ -81,6 +81,9 @@ def _runtime_inputs_test_impl(ctx):
     asserts.true(env, "typed.browser.spec.js" in names)
     asserts.true(env, "fixture-asset.txt" in names)
     asserts.false(env, "semantic-check.txt" in names)
+    for name in ["suite-config.js", "playwright-test.js", "package.json"]:
+        asserts.true(env, any([file.basename == name and ".suite/" in file.short_path and not file.is_source for file in files]), "Missing built harness file: " + name)
+    asserts.false(env, ".rules-visual.spec.js" in names)
     return analysistest.end(env)
 
 runtime_inputs_test = analysistest.make(_runtime_inputs_test_impl)

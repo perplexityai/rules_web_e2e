@@ -63,7 +63,7 @@ try {
   fs.mkdirSync(path.join(temp, 'node_modules', '@playwright'), {recursive:true})
   fs.symlinkSync(path.dirname(fs.realpathSync(require.resolve('@playwright/test/package.json'))),
     path.join(temp, 'node_modules', '@playwright', 'test'))
-  for (const name of ['capture', 'visuals'])
+  for (const name of ['capture', 'visuals', 'playwright-test'])
     fs.copyFileSync(new URL(`./${name}.js`, import.meta.url), path.join(temp, `${name}.js`))
   const catalog = path.join(temp, 'catalog.json')
   const baseURL = `http://127.0.0.1:${address.port}`
