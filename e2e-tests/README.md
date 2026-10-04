@@ -58,3 +58,11 @@ their runtime without FFmpeg, covering the optional-input behavior.
 Host CI runs `lingering.ts` with a real browser and a background process holding
 Playwright's output pipes open. It checks forced cleanup, bounded completion,
 credential filtering, retained screenshots, and scratch removal.
+
+`process-owned.ts` exercises config-free `browser_process_test` targets with
+caller-declared Chromium and checksum-pinned Electron 40.0.0. It clicks real
+windows, verifies persistent Chromium cookies across relaunch, and checks
+screenshots, process termination, and profile/scratch removal after success and
+runner timeout, including Electron children launched into separate process groups.
+Provision matching Playwright Chromium first; on Linux run under
+`xvfb-run -a`. CI runs both Linux and macOS. Tests never download executables.

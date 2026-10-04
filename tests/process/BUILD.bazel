@@ -1,0 +1,42 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//e2e:defs.bzl", "browser_process_test")
+
+ts_project(
+    name = "compiled",
+    srcs = ["owned.spec.ts", "process.config.ts"],
+    data = ["package.json"],
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = {"compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": True,
+        "declaration": True,
+        "skipLibCheck": True,
+        "types": ["node"],
+    }},
+    deps = ["//:node_modules/@playwright/test", "//:node_modules/@types/node"],
+)
+
+browser_process_test(
+    name = "owned_test",
+    tests = ":compiled",
+    config = ":process.config.js",
+    data = [":compiled", "//tests/process/tool:echo.ts"],
+    env = {
+        "OWNED_PROCESS_VALUE": "declared",
+        "OWNED_PROCESS_TOOL": "$(rootpath //tests/process/tool:echo.ts)",
+    },
+)
+
+browser_process_test(
+    name = "without_config_test",
+    tests = ":compiled",
+    data = [":compiled", "//tests/process/tool:echo.ts"],
+    env = {
+        "OWNED_DEFAULT_CONFIG": "1",
+        "OWNED_PROCESS_VALUE": "declared",
+        "OWNED_PROCESS_TOOL": "$(rootpath //tests/process/tool:echo.ts)",
+    },
+)
