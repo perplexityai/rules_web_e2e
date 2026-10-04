@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import {spawn} from 'node:child_process'
+import {execFileSync, spawn} from 'node:child_process'
 import {once} from 'node:events'
 import {test} from 'node:test'
 import {manageChild} from './child-process.js'
@@ -45,4 +45,28 @@ test('stop escalates when a live process ignores SIGTERM', {timeout: 10_000}, as
   managed.stop()
   assert.equal(await managed.closed, null)
   assert.equal(child.signalCode, 'SIGKILL')
+})
+
+test('stop also terminates detached descendant groups', {timeout: 10_000}, async context => {
+  const child = spawn(process.execPath, ['-e', `
+    const descendant = require('node:child_process').spawn(process.execPath, ['-e', \`
+      process.on('SIGTERM', () => {});
+      setInterval(() => {}, 1000);
+      process.send('ready');
+    \`], {detached: true, stdio: ['ignore', 'ignore', 'ignore', 'ipc']});
+    descendant.once('message', () => process.send(descendant.pid));
+    setInterval(() => {}, 1000);
+  `], {detached: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc']})
+  const managed = manageChild(child, true)
+  const [pid] = await once(child, 'message')
+  context.after(() => {
+    for (const group of [child.pid!, pid]) {
+      try { process.kill(-group, 'SIGKILL') } catch {}
+    }
+  })
+  managed.stop()
+  await managed.closed
+  const rows = execFileSync('/bin/ps', ['-axo', 'pid=,stat='], {encoding: 'utf8'})
+    .trim().split('\n').map(line => line.trim().split(/\s+/))
+  assert(!rows.some(([id, state]) => Number(id) === pid && !state.startsWith('Z')))
 })

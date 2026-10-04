@@ -22,11 +22,7 @@ function required(name: string): string {
   return value
 }
 
-/** Native Playwright E2E defaults for a consumer-owned server. */
-export function e2eConfig({
-  root,
-  viewport = {width: 1280, height: 720},
-}: BrowserConfigOptions): PlaywrightTestConfig {
+export function processConfig({root}: BrowserConfigOptions): PlaywrightTestConfig {
   return {
     testDir: root,
     testMatch: '**/*.spec.ts',
@@ -41,6 +37,15 @@ export function e2eConfig({
       ['list'],
       ['junit', {outputFile: path.join(required('VRT_OUTPUTS'), 'junit.xml')}],
     ],
+  }
+}
+
+export function e2eConfig({
+  root,
+  viewport = {width: 1280, height: 720},
+}: BrowserConfigOptions): PlaywrightTestConfig {
+  return {
+    ...processConfig({root}),
     use: {
       baseURL: required('VRT_APP_URL'),
       browserName: 'chromium',

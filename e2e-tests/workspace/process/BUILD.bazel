@@ -1,0 +1,37 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@rules_web_e2e//e2e:defs.bzl", "browser_process_test")
+
+ts_project(
+    name = "compiled",
+    srcs = ["owned.spec.ts"],
+    data = ["package.json"],
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = {"compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": True,
+        "declaration": True,
+        "skipLibCheck": True,
+        "types": ["node"],
+        "lib": ["ES2022", "DOM"],
+    }},
+    deps = ["//:node_modules/@playwright/test", "//:node_modules/playwright", "//:node_modules/@types/node"],
+)
+
+# The harness declares these caller-owned runtime repositories before building.
+[browser_process_test(
+    name = kind + ("_timeout_test" if hang else "_test"),
+    tests = ":compiled",
+    data = [":compiled", "electron-main.cjs", "@owned_" + kind + "//:files", "@owned_" + kind + "//:executable"],
+    env = {
+        "DEBUG": "pw:browser" if kind == "electron" else "",
+        "OWNED_KIND": kind,
+        "OWNED_HANG": "1" if hang else "0",
+        "OWNED_EXECUTABLE": "$(rootpath @owned_" + kind + "//:executable)",
+        "OWNED_APP": "$(rootpath electron-main.cjs)",
+    },
+    env_inherit = ["DISPLAY", "XAUTHORITY"],
+    execution_timeout_seconds = 30,
+) for kind in ["chromium", "electron"] for hang in [False, True]]

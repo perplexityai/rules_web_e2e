@@ -35,7 +35,7 @@ jobs:
       - name: Build
         run: bazelisk build //...
       - name: Test
-        run: bazelisk test //...
+        run: bazelisk test //... //tests/process:owned_test //tests/process:without_config_test
       - name: Build and test the BCR consumer
         working-directory: bcr_test
         run: |
@@ -69,6 +69,20 @@ jobs:
         run: |
           version=$(node -p 'require("./package.json").devDependencies.playwright')
           npx --yes "playwright@$version" install --with-deps chromium
+      - name: Test caller-owned Chromium and Electron processes
+        env:
+          E2E_TEST_ARTIFACTS: ${{ runner.temp }}/process-owned-results
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a node e2e-tests/process-owned.ts
+          else
+            node e2e-tests/process-owned.ts
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: process-owned-${{ matrix.os }}
+          path: ${{ runner.temp }}/process-owned-results
       - name: Run host browser suites without Docker
         working-directory: examples/react
         run: bazelisk test //:host_e2e_test //:host_component_test //:remote_integration_test //:host_native_config_test --test_output=errors

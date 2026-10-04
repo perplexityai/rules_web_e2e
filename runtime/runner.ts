@@ -30,6 +30,7 @@ async function main() {
 }
 
 async function run(temp: string) {
+  const processOwned = required('VRT_MODE') === 'process'
   const gallery = required('VRT_MODE') === 'visual'
   const visual = gallery || required('VRT_MODE') === 'visual-spec'
   const remote = remoteAppUrl(process.env)
@@ -73,9 +74,11 @@ async function run(temp: string) {
   const declaredBrowser = descriptor.browser
     ? browserRuntime(inputs, descriptor.browser, process.env.VRT_HOST_EXECUTION === '1')
     : undefined
-  const hostEnv = declaredBrowser ? {} : hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
+  const hostEnv = declaredBrowser || processOwned ? {} : hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
   const node = declaredBrowser?.node || fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
-  const testRoot = path.dirname(descriptorPath)
+  const testRoot = processOwned
+    ? path.join(inputs, required('VRT_DESCRIPTOR').split('/')[0])
+    : path.dirname(descriptorPath)
   const generated = path.join(temp, 'config')
   fs.mkdirSync(generated)
   fs.writeFileSync(path.join(generated, 'package.json'), '{"type":"module"}')
@@ -230,7 +233,7 @@ async function run(temp: string) {
   process.once('SIGINT', onSignal)
   try {
     let appUrl = remote
-    if (!appUrl) {
+    if (!appUrl && !processOwned) {
       const server = spawn(
         node,
         [
@@ -297,7 +300,7 @@ async function run(temp: string) {
         )
         if (child.stdout) forwardOutput(child.stdout, process.stdout)
         if (child.stderr) forwardOutput(child.stderr, process.stderr)
-        const managed = manageChild(child)
+        const managed = manageChild(child, processOwned)
         children.push(managed)
         let timedOut = false
         const timer = setTimeout(

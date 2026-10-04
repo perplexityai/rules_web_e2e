@@ -111,7 +111,8 @@ def browser_test(
         execution_timeout_seconds = 180,
         args = [],
         visual = False,
-        component = False):
+        component = False,
+        process_owned = False):
     """Internal common implementation; public wrappers select the test mode."""
     if target_arch not in ["x64", "arm64"]:
         fail("target_arch must be x64 or arm64")
@@ -121,6 +122,8 @@ def browser_test(
         fail("VRT_* environment names are reserved for the browser runtime")
     if visual and component:
         fail("Visual and component modes are separate targets")
+    if process_owned and (visual or component or browser or host_vrt or server or shell or base_url or base_url_env):
+        fail("Process-owned tests use their own executables and config; browser, server, shell, and remote URL options are unsupported")
     if visual and not browser:
         fail("VRT requires browser = <caller-owned browser_runtime target>")
     if host_vrt and not visual:
@@ -140,7 +143,7 @@ def browser_test(
     if not baseline_dir or baseline_dir.startswith("/") or any([p in ["", ".", ".."] for p in baseline_dir.split("/")]):
         fail("baseline_dir must be a nonempty relative directory without dot segments")
     sources = len([v for v in [server, shell, base_url, base_url_env] if v != None])
-    if sources > 1 or (sources == 0 and not config):
+    if not process_owned and (sources > 1 or (sources == 0 and not config)):
         fail("Supply one of server, shell, base_url, base_url_env, or a config with use.baseURL")
     if base_url_env != None and (not base_url_env or base_url_env.startswith("VRT_")):
         fail("base_url_env must be a nonempty consumer environment name")
@@ -155,7 +158,7 @@ def browser_test(
             tags = tags,
         )
         matching = ":" + name + "_matching"
-    js_library(name = name + "_sources", srcs = baselines, data = data)
+    js_library(name = name + "_sources", srcs = baselines, data = data, copy_data_to_bin = not process_owned)
     _inputs(
         name = name + "_inputs",
         tests = tests,
@@ -166,7 +169,7 @@ def browser_test(
         config = config,
         matching = matching,
         sources = ":" + name + "_sources",
-        mode = "visual-spec" if visual and tests else "visual" if visual else "component" if component else "e2e",
+        mode = "process" if process_owned else "visual-spec" if visual and tests else "visual" if visual else "component" if component else "e2e",
     )
     common = dict(
         copy_data_to_bin = False,
@@ -179,7 +182,7 @@ def browser_test(
             "VRT_DESCRIPTOR": "$(rlocationpath :%s_inputs)" % name,
             "VRT_BASE_URL": base_url or "",
             "VRT_BASE_URL_ENV": base_url_env or "",
-            "VRT_MODE": "visual-spec" if visual and tests else "visual" if visual else "component" if component else "e2e",
+            "VRT_MODE": "process" if process_owned else "visual-spec" if visual and tests else "visual" if visual else "component" if component else "e2e",
             "VRT_BASELINE_RELATIVE": (native.package_name() + "/" if native.package_name() else "") + baseline_dir if visual else "",
             "VRT_ENV_NAMES": json.encode(env.keys() + env_inherit),
             "VRT_TIMEOUT_MS": str(execution_timeout_seconds * 1000),
@@ -188,7 +191,7 @@ def browser_test(
     browser_env_inherit = [
         key
         for key in ["PLAYWRIGHT_BROWSERS_PATH"]
-        if key not in env and key not in env_inherit
+        if not process_owned and key not in env and key not in env_inherit
     ]
     if browser:
         remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256, host_vrt)
@@ -198,7 +201,7 @@ def browser_test(
         patch_node_fs = False,
         args = args,
         env_inherit = browser_env_inherit + env_inherit,
-        tags = ["manual", "external", "visual_test" if visual else "component_browser_test" if component else "e2e_test", "requires-network", "no-sandbox", "no-remote", "no-cache"] + tags,
+        tags = ["manual", "external", "browser_process_test" if process_owned else "visual_test" if visual else "component_browser_test" if component else "e2e_test", "requires-network", "no-sandbox", "no-remote", "no-cache"] + tags,
         timeout = timeout,
         **common
     )
