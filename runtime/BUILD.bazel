@@ -60,7 +60,6 @@ js_library(
 filegroup(
     name = "harness_templates",
     srcs = [
-        "capture.js",
         "config.js",
         "host-browser-check.js",
         "matching.js",
@@ -70,6 +69,12 @@ filegroup(
         "versions.js",
         "visuals.js",
     ],
+    visibility = ["//internal:__pkg__"],
+)
+
+filegroup(
+    name = "capture_template",
+    srcs = ["capture.js"],
     visibility = ["//internal:__pkg__"],
 )
 

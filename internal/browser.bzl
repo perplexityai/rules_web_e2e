@@ -51,10 +51,18 @@ def _inputs_impl(ctx):
     # A directory artifact preserves real spec files during remote runfile
     # mapping. Playwright does not discover individually symlinked specs.
     harness = ctx.actions.declare_directory(ctx.label.name + ".suite")
+    package = ctx.actions.declare_file(ctx.label.name + ".suite-package.json")
+    ctx.actions.write(package, '{"type":"module"}')
+    templates = ctx.files._harness_templates
+    destinations = {file.path: file.basename for file in templates}
+    destinations[package.path] = "package.json"
+    if ctx.attr.mode == "visual":
+        templates = templates + [ctx.file._capture_template]
+        destinations[ctx.file._capture_template.path] = ".rules-visual.spec.js"
     ctx.actions.run(
         executable = ctx.executable._prepare_suite,
-        arguments = [harness.path, ctx.attr.mode] + [file.path for file in ctx.files._harness_templates],
-        inputs = ctx.files._harness_templates,
+        arguments = [harness.path, json.encode(destinations)],
+        inputs = templates + [package],
         tools = [ctx.attr._prepare_suite[DefaultInfo].files_to_run],
         outputs = [harness],
         mnemonic = "BrowserSuite",
@@ -95,6 +103,7 @@ _inputs = rule(
         "sources": attr.label(),
         "mode": attr.string(),
         "_prepare_suite": attr.label(default = Label("//internal:prepare_suite"), executable = True, cfg = "exec"),
+        "_capture_template": attr.label(default = Label("//runtime:capture_template"), allow_single_file = True),
         "_harness_templates": attr.label(default = Label("//runtime:harness_templates")),
     },
 )

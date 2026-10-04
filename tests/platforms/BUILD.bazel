@@ -1,7 +1,7 @@
 load("//component:defs.bzl", "browser_shell", "component_browser_test")
 load("//playwright:defs.bzl", "browser_runtime")
-load("//vrt:defs.bzl", "component_visual_test")
-load(":defs.bzl", "capture_test", "directory", "failure_test", "properties_test", "runtime_inputs_test", "typed_fixture")
+load("//vrt:defs.bzl", "component_visual_test", "visual_test")
+load(":defs.bzl", "capture_test", "directory", "failure_test", "harness_selection_test", "properties_test", "runtime_inputs_test", "typed_fixture")
 
 directory(
     name = "files",
@@ -153,3 +153,23 @@ properties_test(
     target_under_test = ":arm64_capture",
     worker_sha256 = "",
 )
+
+visual_test(
+    name = "native_visual_fixture",
+    browser = ":x64_browser",
+    shell = ":shell",
+    tests = ":typed_fixture",
+)
+
+[
+    harness_selection_test(
+        name = name + "_harness_selection_test",
+        target_under_test = target,
+        gallery = gallery,
+    )
+    for name, target, gallery in [
+        ("gallery", ":x64_inputs", True),
+        ("component", ":typed_browser_inputs", False),
+        ("visual_spec", ":native_visual_fixture_inputs", False),
+    ]
+]

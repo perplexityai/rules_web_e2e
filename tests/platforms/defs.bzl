@@ -90,3 +90,21 @@ def _runtime_inputs_test_impl(ctx):
     return analysistest.end(env)
 
 runtime_inputs_test = analysistest.make(_runtime_inputs_test_impl)
+
+def _harness_selection_test_impl(ctx):
+    env = analysistest.begin(ctx)
+    action = [action for action in analysistest.target_actions(env) if action.mnemonic == "BrowserSuite"][0]
+    destinations = json.decode(action.argv[-1])
+    captures = [source for source, destination in destinations.items() if destination == ".rules-visual.spec.js"]
+    asserts.equals(env, 1 if ctx.attr.gallery else 0, len(captures))
+    inputs = [file.path for file in action.inputs.to_list()]
+    for source in destinations:
+        asserts.true(env, source in inputs, "Mapped source must be a declared action input: " + source)
+    # Ordinary suites should not depend on an unused capture template either.
+    asserts.equals(env, ctx.attr.gallery, any([file.basename == "capture.js" for file in action.inputs.to_list()]))
+    return analysistest.end(env)
+
+harness_selection_test = analysistest.make(
+    _harness_selection_test_impl,
+    attrs = {"gallery": attr.bool()},
+)

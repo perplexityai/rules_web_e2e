@@ -1,21 +1,18 @@
-"""Install the compiled suite harness as an immutable Bazel directory artifact."""
+"""Materialize Bazel's source-to-destination mapping as a directory artifact."""
+import json
 from pathlib import Path
 import shutil
 import sys
 
 
-def prepare(output, mode, templates):
+def prepare(output, destinations):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
-    (output / "package.json").write_text('{"type":"module"}')
-    for template in map(Path, templates):
-        name = template.name
-        if name == "capture.js":
-            if mode != "visual":
-                continue
-            name = ".rules-visual.spec.js"
-        shutil.copyfile(template, output / name)
+    for source, name in destinations.items():
+        target = output / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
 
 
 if __name__ == "__main__":
-    prepare(sys.argv[1], sys.argv[2], sys.argv[3:])
+    prepare(sys.argv[1], json.loads(sys.argv[2]))
