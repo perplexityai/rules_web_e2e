@@ -89,47 +89,52 @@ def _remote_impl(ctx):
     if ctx.attr._platform[0][LinuxPlatformInfo].arch != ctx.attr.target_arch:
         fail("target_platform CPU must match target_arch")
     root = ctx.file.browser
-    output = None if native_test else ctx.actions.declare_directory(ctx.label.name + ".results")
     files = []
-    manifest = {}
+    runfiles = ctx.runfiles(files = [root, ctx.file._bootstrap])
     for target in [ctx.attr.inputs[0], ctx.attr._runtime, ctx.attr._runner]:
         info = target[DefaultInfo]
-        runfiles = info.default_runfiles
-        for file in depset(transitive = [info.files, runfiles.files]).to_list():
-            files.append(file)
-            manifest[runfile(file)] = file.path
-        for link in runfiles.symlinks.to_list():
-            files.append(link.target_file)
-            manifest["_main/" + link.path] = link.target_file.path
-        for link in runfiles.root_symlinks.to_list():
-            files.append(link.target_file)
-            manifest[link.path] = link.target_file.path
+        files.extend(info.files.to_list())
+        runfiles = runfiles.merge(info.default_runfiles).merge(ctx.runfiles(transitive_files = info.files))
     locations = ctx.attr.data + ctx.attr.inputs
     env = {key: ctx.expand_location(value, targets = locations) for key, value in ctx.attr.env.items() if key != "VRT_DESCRIPTOR"}
     env["VRT_DESCRIPTOR"] = runfile(ctx.file.inputs)
     job = ctx.actions.declare_file(ctx.label.name + ".job.json")
     ctx.actions.write(job, json.encode({
-        "runfiles": {} if native_test else manifest,
-        "runner": runfile(ctx.file._runner) if native_test else ctx.file._runner.path,
+        "runner": runfile(ctx.file._runner),
         "env": env,
         "args": [] if native_test else [ctx.expand_location(value, targets = locations) for value in ctx.attr.args],
-        "output": "" if native_test else output.path,
+        "output": "",
         "mode": ctx.attr.mode,
-        "runtime": dict(browser.descriptor, path = runfile(root) if native_test else root.path),
+        "runtime": dict(browser.descriptor, path = runfile(root)),
     }))
     descriptor = browser.descriptor
     if native_test:
         return _native_test(ctx, root, descriptor, files, job)
+    executable = ctx.actions.declare_file(ctx.label.name)
+    ctx.actions.write(executable, "\n".join([
+        "#!/bin/bash",
+        "set -euo pipefail",
+        # FilesToRunProvider asks Bazel to supply this executable's runfiles tree.
+        'export RUNFILES_DIR="$0.runfiles"',
+        'case "$RUNFILES_DIR" in /*) ;; *) RUNFILES_DIR="$PWD/$RUNFILES_DIR" ;; esac',
+        'root="$RUNFILES_DIR/%s"' % runfile(root),
+        'export LD_LIBRARY_PATH="%s"' % _library_path("$root", descriptor),
+        'exec "$root/%s" "$RUNFILES_DIR/%s" "$RUNFILES_DIR/%s" "$@"' % (
+            descriptor["node"],
+            runfile(ctx.file._bootstrap),
+            runfile(job),
+        ),
+    ]) + "\n", is_executable = True)
+    return [DefaultInfo(executable = executable, runfiles = runfiles.merge(ctx.runfiles(files = [job])))]
+
+def _artifact_impl(ctx):
+    output = ctx.actions.declare_directory(ctx.label.name + ".results")
+    launcher = ctx.attr.launcher[DefaultInfo]
     ctx.actions.run(
-        executable = root.path + "/" + descriptor["node"],
-        arguments = [
-            ctx.file._bootstrap.path,
-            job.path,
-        ],
-        inputs = depset(files + [root, job, ctx.file._bootstrap]),
+        executable = launcher.files_to_run,
+        arguments = [output.path],
         outputs = [output],
         env = {
-            "LD_LIBRARY_PATH": _library_path(root.path, descriptor),
             "HOME": "/tmp",
             "TMPDIR": "/tmp",
             "LANG": "C.UTF-8",
@@ -137,12 +142,21 @@ def _remote_impl(ctx):
             "VRT_HOST_EXECUTION": "1" if ctx.attr.host_vrt else "0",
         },
         execution_requirements = {"no-remote": "1", "no-cache": "1"} if ctx.attr.host_vrt else {"no-local": "1"},
-        mnemonic = {"capture": "VrtCapture", "compare": "VrtCompare", "test": "BrowserTest"}[ctx.attr.mode],
+        mnemonic = "VrtCapture" if ctx.attr.mode == "capture" else "VrtCompare",
     )
     return [
         DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output])),
-        OutputGroupInfo(inputs = depset(files + [root, job, ctx.file._bootstrap])),
+        OutputGroupInfo(inputs = depset(transitive = [launcher.files, launcher.default_runfiles.files])),
     ]
+
+_artifact = rule(
+    implementation = _artifact_impl,
+    attrs = {
+        "launcher": attr.label(executable = True, cfg = "target", mandatory = True),
+        "host_vrt": attr.bool(),
+        "mode": attr.string(values = ["capture", "compare"]),
+    },
+)
 
 _attrs = {
     "inputs": attr.label(mandatory = True, allow_single_file = True, cfg = _linux),
@@ -152,7 +166,6 @@ _attrs = {
     "_platform": attr.label(default = Label("//internal:target_platform"), cfg = _linux),
     "target_arch": attr.string(mandatory = True, values = ["x64", "arm64"]),
     "env": attr.string_dict(),
-    "args": attr.string_list(),
     "mode": attr.string(mandatory = True, values = ["capture", "compare", "test"]),
     "host_vrt": attr.bool(default = False),
     "_runtime": attr.label(default = Label("//runtime:files")),
@@ -160,10 +173,9 @@ _attrs = {
     "_bootstrap": attr.label(default = Label("//runtime:remote_runner_entry"), allow_single_file = True),
     "_allowlist_function_transition": attr.label(default = "@bazel_tools//tools/allowlists/function_transition_allowlist"),
 }
-_remote = rule(implementation = _remote_impl, attrs = _attrs)
+_remote = rule(implementation = _remote_impl, attrs = _attrs, executable = True)
 
 _test_attrs = dict(_attrs)
-_test_attrs.pop("args")  # Native test rules already have this attribute.
 _test_attrs["_test_tools"] = attr.label(default = Label("//internal/test_tools:tools"), providers = [TestToolsInfo])
 _native_browser_test = rule(
     implementation = _remote_impl,
@@ -210,7 +222,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         capture = mode == "capture"
         action = name + "_" + mode
         _remote(
-            name = action,
+            name = action + "_launcher",
             inputs = ":" + name + "_inputs",
             browser = browser,
             env = env,
@@ -219,6 +231,15 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             data = data,
             target_platform = target_platform,
             target_arch = target_arch,
+            host_vrt = host_vrt,
+            exec_compatible_with = constraints,
+            exec_properties = execution_properties,
+            tags = ["manual"],
+        )
+        _artifact(
+            name = action,
+            launcher = ":" + action + "_launcher",
+            mode = mode,
             host_vrt = host_vrt,
             exec_compatible_with = constraints,
             exec_properties = execution_properties,

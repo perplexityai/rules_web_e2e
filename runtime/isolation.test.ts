@@ -3,40 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
-import {browserTempRoot, removeScratch, linkRunfiles, testEnvironment} from './isolation.js'
-
-test('runfile mapping preserves declared artifact identity and excludes adjacent files', t => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-staging-'))
-  t.after(() => fs.rmSync(root, {recursive: true, force: true}))
-  const source = path.join(root, 'bin')
-  const staged = path.join(root, 'inputs')
-  fs.mkdirSync(path.join(source, 'package'), {recursive: true})
-  fs.writeFileSync(path.join(source, 'config.ts'), 'declared')
-  fs.writeFileSync(path.join(source, '.env.local'), 'VITE_LEAK=ambient')
-  fs.writeFileSync(
-    path.join(source, 'package', 'index.js'),
-    'module.exports = {}'
-  )
-  linkRunfiles({
-    '_main/config.ts': `${source}/config.ts`,
-    '_main/node_modules/.store/pkg': `${source}/package`,
-    '_main/node_modules/pkg': `${source}/package`,
-  }, staged)
-  assert.equal(
-    fs.readFileSync(path.join(staged, '_main/config.ts'), 'utf8'),
-    'declared'
-  )
-  assert.equal(fs.existsSync(path.join(staged, '_main/.env.local')), false)
-  assert.equal(
-    fs.realpathSync(path.join(staged, '_main/node_modules/pkg')),
-    fs.realpathSync(path.join(staged, '_main/node_modules/.store/pkg'))
-  )
-  fs.writeFileSync(path.join(source, 'config.ts'), 'changed after staging')
-  assert.equal(
-    fs.readFileSync(path.join(staged, '_main/config.ts'), 'utf8'),
-    'changed after staging'
-  )
-})
+import {browserTempRoot, removeScratch, testEnvironment} from './isolation.js'
 
 test('undeclared shell variables cannot change compare versus update', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-env-'))
