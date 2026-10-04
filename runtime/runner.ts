@@ -147,10 +147,9 @@ async function run(temp: string) {
       path.join(path.dirname(captureOutput), 'baseline-before.json'),
       JSON.stringify(baselineInputs ? baselineHashes(baselineInputs, true) : {})
     )
-  const baselines = path.join(temp, 'baselines')
-  fs.mkdirSync(baselines)
-  if (!update && baselineInputs && fs.existsSync(baselineInputs))
-    materializeSnapshots(baselineInputs, baselines)
+  // Comparisons read immutable runfiles; only capture needs writable snapshots.
+  const baselines = visual && !update ? baselineInputs! : path.join(temp, 'baselines')
+  if (update) fs.mkdirSync(baselines)
   const fixtureEnv = testEnvironment(
     process.env,
     [...JSON.parse(required('VRT_ENV_NAMES')) as string[], 'TEST_RUN_NUMBER', 'TEST_RANDOM_SEED'],
@@ -312,7 +311,9 @@ async function run(temp: string) {
     const discoveryCode = gallery ? await run(true) : 0
     const code = discoveryCode === 0 ? await run(false) : discoveryCode
     if (code !== 0) {
-      if (visual)
+      // Preserve partial captures. Comparison failures already have Playwright's
+      // per-assertion expected/actual/diff attachments in the test outputs.
+      if (visual && update)
         materializeSnapshots(baselines, path.join(outputs, 'reference'))
       process.exitCode = code
       console.error(`VRT artifacts: ${outputs}`)
