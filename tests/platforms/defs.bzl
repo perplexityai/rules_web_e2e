@@ -108,3 +108,16 @@ harness_selection_test = analysistest.make(
     _harness_selection_test_impl,
     attrs = {"gallery": attr.bool()},
 )
+
+def _native_visual_test_impl(ctx):
+    env = analysistest.begin(ctx)
+    target = analysistest.target_under_test(env)
+    # Assert the public visual target owns remote execution, rather than a
+    # local JS wrapper reporting the status of a cached build action.
+    asserts.equals(env, "1", target[testing.ExecutionInfo].requirements.get("no-local"))
+    asserts.true(env, any([file.basename.endswith(".job.json") for file in target[DefaultInfo].default_runfiles.files.to_list()]))
+    asserts.false(env, any([file.basename.endswith(".results") for file in target[DefaultInfo].default_runfiles.files.to_list()]))
+    asserts.false(env, any([action.mnemonic == "VrtCompare" for action in analysistest.target_actions(env)]))
+    return analysistest.end(env)
+
+native_visual_test = analysistest.make(_native_visual_test_impl, config_settings = _PLATFORMS)

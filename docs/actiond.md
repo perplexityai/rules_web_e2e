@@ -62,10 +62,15 @@ Ordinary browser tests are native Bazel test actions. Bazel owns their exit
 status, retries, repeated runs, and test-result caching. `--nocache_test_results`
 reruns Chromium; failure reports are standard test artifacts.
 
-With actiond, VRT comparison and capture are cacheable build actions. Their result directory
-contains test status and artifacts even when the suite fails. A local test
-wrapper reports comparison failure, copies reports into Bazel test outputs, and
-forwards per-case JUnit to Bazel’s XML output for failure/quarantine matching.
+Linux amd64 VRT comparisons also use native Bazel test actions. Retries and
+`--runs_per_test` launch fresh browser executions; `--nocache_test_results`
+reruns comparison even when all build inputs are unchanged. Failed comparisons
+publish screenshots and per-case JUnit through Bazel test outputs and XML.
+ARM64 still uses a comparison build action and a local result test until its
+native launcher tools are available.
+
+VRT capture remains a cacheable build action. Its result directory contains
+status and artifacts even when capture fails.
 The local update wrapper applies successful, nonempty captures to the source
 baseline directory. Failed, timed-out, and empty captures preserve references.
 A cancelled build never runs the local update wrapper.

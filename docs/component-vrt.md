@@ -65,13 +65,17 @@ A custom compiled `server` or action-local URL can replace `shell`; see
   keep its browser compatible with the consumer's Playwright packages.
 - The fixture server and browser share an action-local loopback network. External
   services and inherited environment are unsupported; declare fixtures and `env`.
-- By default, capture and comparison are cacheable remote actions. Their local
-  wrappers download artifacts and report results; only `.update` writes source
-  baselines. With `host_vrt = True`, comparison is a native Bazel test and
-  capture is a local action. Use `--nocache_test_results` to repeat a host
-  comparison with unchanged inputs.
-- Built inputs are staged from their runfiles manifest into a private tree with
-  fresh home/cache directories. See [the isolation boundaries](actiond.md).
+- Linux amd64 comparison is a native Bazel test. Test retries,
+  `--runs_per_test`, `--nocache_test_results`, and Bazel's test timeout apply
+  to browser execution. Screenshots and JUnit are ordinary test outputs.
+  ARM64 retains the artifact-producing comparison action and local result
+  wrapper until its native test-launcher tools are available.
+- Capture remains a cacheable remote action; only `.update` applies successful
+  captures to source baselines. With `host_vrt = True`, comparison and capture
+  run locally. Capture actions still use `execution_timeout_seconds` because
+  Bazel test timeouts do not bound build actions.
+- Built inputs and harnesses are immutable declared files; home/cache directories
+  and browser outputs use private scratch space. See [isolation](actiond.md).
 - Compare mode copies declared baselines to a temporary directory. Missing or
   changed screenshots fail without modifying source baselines. Playwright writes
   JUnit and image attachments under `TEST_UNDECLARED_OUTPUTS_DIR`.
@@ -83,7 +87,7 @@ A custom compiled `server` or action-local URL can replace `shell`; see
   beside the baselines; inspect the baselines before removing that stale lock.
 - `execution_timeout_seconds` bounds each Playwright invocation (default: 180
   seconds each for discovery and capture). Managed server startup has a separate
-  30-second deadline; Bazel’s `timeout` bounds the local result test, not its input build actions. Failed updates leave existing
+  30-second deadline; Bazel’s `timeout` also bounds native comparison tests, but does not bound capture or legacy ARM64 comparison build actions. Failed updates leave existing
   baselines intact and print the artifact directory.
 
 ## Fixed and portaled visuals

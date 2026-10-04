@@ -1,7 +1,7 @@
 # Architecture
 
-Keep Bazel integration small and test-runner configuration consumer-owned.
-The rules declare inputs and execution constraints; TypeScript helpers handle
+Bazel owns deterministic suite preparation and the test execution contract.
+Test-runner configuration stays consumer-owned; TypeScript helpers handle
 processes, browser connections, and artifacts. Application conventions stay in
 the consuming repository.
 
@@ -10,7 +10,7 @@ the consuming repository.
 | Layer              | Owns                                                                                                    |
 | ------------------ | ------------------------------------------------------------------------------------------------------- |
 | Consumer           | Specs, React providers, CSS, fonts, fixtures, aliases, authentication, and server configuration.        |
-| Bazel macro        | Source staging, runner labels, runfiles locations, environment, timeouts, and target tags.              |
+| Bazel rules        | Built harnesses and helper layouts, runner labels, runfiles, execution constraints, and test lifecycle.              |
 | TypeScript runtime | VRT action bootstrap, host browser configuration, isolated capture directories, and baseline synchronization. |
 | Playwright Test    | Test execution, assertions, browser automation, and screenshot comparison.                              |
 | Consumer CI        | Scheduling, artifact upload, and review of baseline changes.                                            |
@@ -23,22 +23,25 @@ additional environment variables and dependencies.
 
 ```mermaid
 flowchart TD
-  Inputs[Compiled specs, assets, runtime, baselines] --> Build[Bazel input build]
-  Build --> Action[Linux action: fixture, Playwright, Chromium]
-  Action --> Results[Declared status, reports, screenshots]
-  Results --> Compare[Local test reports status]
-  Results --> Update[Local update applies successful captures]
+  Inputs[Compiled specs, assets, runtime, baselines] --> Build[Bazel input and harness build]
+  Build --> Test[Native amd64 test: fixture, Playwright, Chromium]
+  Test --> Reports[Test status, JUnit, screenshots]
+  Build --> Capture[Capture action]
+  Capture --> Update[Local update applies successful captures]
 ```
 
 VRT runs in an actiond Linux amd64 worker using declared runtime files as its
 root filesystem. The entire suite has loopback-only networking. No browser
-server tunnel or Docker daemon participates in execution. Bazel downloads
-results even for suite failures; the local wrapper reports failure or explicitly
-applies successful captures. See [worker setup and isolation](actiond.md).
+server tunnel or Docker daemon participates in execution. On amd64, Bazel runs
+comparison as a native test and downloads failure reports
+and screenshots through its test output mechanism. The local update command
+explicitly applies successful capture-action outputs. ARM64 comparison retains
+the build-action/result-wrapper path until its native launcher tools are available.
+See [worker setup and isolation](actiond.md).
 
 Host E2E/component targets run their server and browser on the host with
 provisioned Chromium. The shared runner checks Playwright package versions,
-stages declared runfiles, and manages child processes and artifacts.
+resolves declared runfiles, and manages child processes and artifacts.
 
 ## TypeScript and Bazel inputs
 
