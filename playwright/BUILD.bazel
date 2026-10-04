@@ -23,6 +23,7 @@ py_test(
 
 py_binary(
     name = "browser_files",
+    visibility = ["//internal:__pkg__"],
     srcs = ["browser_files.py"],
     main = "browser_files.py",
 )

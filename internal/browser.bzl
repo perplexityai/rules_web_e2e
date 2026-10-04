@@ -67,8 +67,28 @@ def _inputs_impl(ctx):
         outputs = [harness],
         mnemonic = "BrowserSuite",
     )
+    browser = ctx.attr.browser[BrowserRuntimeInfo] if ctx.attr.browser else None
+    browser_cache = None
+    if browser and browser.descriptor.get("ffmpeg"):
+        browser_cache = ctx.actions.declare_directory(ctx.label.name + ".browser-cache")
+        cache_config = ctx.actions.declare_file(ctx.label.name + ".browser-cache.json")
+        ctx.actions.write(cache_config, json.encode({
+            "mode": "ffmpeg-cache",
+            "core": runtime.core_file.path,
+            "runtime": browser.root_file.path,
+            "ffmpeg": browser.descriptor["ffmpeg"],
+        }))
+        ctx.actions.run(
+            executable = ctx.executable._browser_files,
+            arguments = [cache_config.path, browser_cache.path],
+            inputs = [cache_config, runtime.core_file, browser.root_file],
+            tools = [ctx.attr._browser_files[DefaultInfo].files_to_run],
+            outputs = [browser_cache],
+            mnemonic = "PlaywrightBrowserCache",
+        )
     result = ctx.actions.declare_file(ctx.label.name + ".json")
     ctx.actions.write(result, json.encode({
+        "browserCache": runfile(browser_cache) if browser_cache else None,
         "harness": runfile(harness),
         "tests": [runfile(f) for f in tests],
         "config": _compiled(ctx.attr.config, "config"),
@@ -83,7 +103,7 @@ def _inputs_impl(ctx):
         },
         "browser": ctx.attr.browser[BrowserRuntimeInfo].descriptor if ctx.attr.browser else None,
     }))
-    inputs = ctx.runfiles(files = [result, harness])
+    inputs = ctx.runfiles(files = [result, harness] + ([browser_cache] if browser_cache else []))
     for target in [ctx.attr.tests, ctx.attr.config, ctx.attr.matching, ctx.attr.server, ctx.attr.shell, ctx.attr.playwright, ctx.attr.browser, ctx.attr.sources]:
         if target:
             inputs = inputs.merge(target[DefaultInfo].default_runfiles)
@@ -102,6 +122,7 @@ _inputs = rule(
         "browser": attr.label(providers = [BrowserRuntimeInfo]),
         "sources": attr.label(),
         "mode": attr.string(),
+        "_browser_files": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
         "_prepare_suite": attr.label(default = Label("//internal:prepare_suite"), executable = True, cfg = "exec"),
         "_capture_template": attr.label(default = Label("//runtime:capture_template"), allow_single_file = True),
         "_harness_templates": attr.label(default = Label("//runtime:harness_templates")),

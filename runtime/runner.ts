@@ -12,7 +12,7 @@ import {testArguments} from './arguments.js'
 import {applyBaselineUpdate, baselineDestination, baselineHashes, materializeSnapshots, updateBaselines} from './baselines.js'
 import {browserTempRoot, removeScratch, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
-import {browserRuntime, stageFfmpeg, type BrowserRuntime} from './browser-runtime.js'
+import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
 
 function required(name: string) {
   const value = process.env[name]
@@ -62,6 +62,7 @@ async function run(temp: string) {
   const descriptorPath = input(required('VRT_DESCRIPTOR'))
   const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8')) as {
     harness: string
+    browserCache: string | null
     tests: string[]
     config: string | null
     matching: string | null
@@ -155,12 +156,11 @@ async function run(temp: string) {
     [...JSON.parse(required('VRT_ENV_NAMES')) as string[], 'TEST_RUN_NUMBER', 'TEST_RANDOM_SEED'],
     temp
   )
-  if (declaredBrowser?.ffmpeg)
-    stageFfmpeg(core, declaredBrowser.ffmpeg, fixtureEnv.XDG_CACHE_HOME!)
   const env = {
     ...fixtureEnv,
     ...hostEnv,
     ...declaredBrowser?.env,
+    ...(descriptor.browserCache ? {PLAYWRIGHT_BROWSERS_PATH: input(descriptor.browserCache)} : {}),
     ...(declaredBrowser ? {
       NODE_OPTIONS: [
         fixtureEnv.NODE_OPTIONS || '',

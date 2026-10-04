@@ -1,8 +1,8 @@
 """A reusable, version-matched Playwright runtime."""
 
-PlaywrightInfo = provider(fields = ["test", "core", "version"])
+PlaywrightInfo = provider(fields = ["test", "core", "core_file", "version"])
 
-BrowserRuntimeInfo = provider(fields = ["descriptor"])
+BrowserRuntimeInfo = provider(fields = ["descriptor", "root_file"])
 
 def _relative_path(value, name):
     if not value or value.startswith("/") or any([p in ["", ".", ".."] for p in value.split("/")]):
@@ -25,7 +25,7 @@ def _browser_runtime_impl(ctx):
     }
     return [
         DefaultInfo(files = depset([ctx.file.root]), runfiles = ctx.runfiles(files = [ctx.file.root])),
-        BrowserRuntimeInfo(descriptor = descriptor),
+        BrowserRuntimeInfo(descriptor = descriptor, root_file = ctx.file.root),
     ]
 
 browser_runtime = rule(
@@ -60,7 +60,7 @@ def _runtime_impl(ctx):
         runfiles = runfiles.merge(target[DefaultInfo].default_runfiles)
     return [
         DefaultInfo(files = depset(files), runfiles = runfiles),
-        PlaywrightInfo(test = runfile(ctx.file.test), core = runfile(ctx.file.core), version = ctx.attr.version),
+        PlaywrightInfo(test = runfile(ctx.file.test), core = runfile(ctx.file.core), core_file = ctx.file.core, version = ctx.attr.version),
     ]
 
 playwright_runtime = rule(
