@@ -24,6 +24,7 @@ def _capture_impl(ctx):
     asserts.true(env, action.argv[0].endswith("_capture_launcher"))
     # Bazel 8 exposes a runfiles middleman; Bazel 9 exposes a runfiles tree.
     asserts.true(env, any([file.basename.endswith(".runfiles") or file.basename.endswith("-runfiles") for file in action.inputs.to_list()]), "Bazel must supply launcher runfiles")
+    asserts.true(env, any([file.basename.endswith(".job.json") for file in action.inputs.to_list()]), "Execpath inputs must remain available outside the runfiles tree")
     asserts.equals(env, action.outputs.to_list()[0].path, action.argv[1])
     return analysistest.end(env)
 

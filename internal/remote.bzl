@@ -132,6 +132,8 @@ def _artifact_impl(ctx):
     launcher = ctx.attr.launcher[DefaultInfo]
     ctx.actions.run(
         executable = launcher.files_to_run,
+        # Preserve declared execpaths used by expanded env/args, not only rlocations.
+        inputs = launcher.default_runfiles.files,
         arguments = [output.path],
         outputs = [output],
         env = {
