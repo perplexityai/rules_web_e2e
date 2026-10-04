@@ -6,9 +6,9 @@ TestToolsInfo = provider(fields = ["shell_setup"])
 
 _MULTICALL_COMMANDS = ["cat", "date", "dirname", "find", "grep", "ln", "mkdir", "ps", "rm", "sed", "sleep", "sort", "stat", "touch"]
 
-def _linux_impl(settings, _attr):
+def _linux_impl(settings, attr):
     return {
-        "//command_line_option:platforms": [str(Label("@llvm//platforms:linux_x86_64_musl"))],
+        "//command_line_option:platforms": [str(Label("@llvm//platforms:linux_" + ("aarch64" if attr.target_arch == "arm64" else "x86_64") + "_musl"))],
         "//command_line_option:extra_toolchains": [str(Label("@llvm//toolchain:all"))] + settings["//command_line_option:extra_toolchains"],
     }
 
@@ -44,6 +44,7 @@ test_tools = rule(
     attrs = dict(
         {name: attr.label(executable = True, cfg = "target", mandatory = True) for name in ["toybox", "file", "zip"]},
         _allowlist_function_transition = attr.label(default = "@bazel_tools//tools/allowlists/function_transition_allowlist"),
+        target_arch = attr.string(default = "x64", values = ["x64", "arm64"]),
         magic = attr.label(allow_single_file = True, mandatory = True),
     ),
 )

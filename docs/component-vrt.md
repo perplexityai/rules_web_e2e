@@ -65,11 +65,9 @@ Custom compiled `server` or action-local URL can replace `shell`; see
   keep its browser compatible with consumer's Playwright packages.
 - Fixture server and browser share action-local loopback network. External
   services and inherited environment unsupported; declare fixtures and `env`.
-- Linux amd64 comparison native Bazel test. Test retries,
+- Linux amd64 and ARM64 comparison use native Bazel tests. Test retries,
   `--runs_per_test`, `--nocache_test_results`, and Bazel's test timeout apply
   to browser execution. Screenshots and JUnit ordinary test outputs.
-  ARM64 retains artifact-producing comparison action and local result
-  wrapper until its native test-launcher tools available.
 - Capture remains cacheable remote action; only `.update` applies successful
   captures to source baselines. With `host_vrt = True`, comparison and capture
   run locally. Capture actions still use `execution_timeout_seconds` because
@@ -87,7 +85,7 @@ Custom compiled `server` or action-local URL can replace `shell`; see
   beside baselines; inspect baselines before removing that stale lock.
 - `execution_timeout_seconds` bounds each Playwright invocation (default: 180
   seconds each for discovery and capture). Managed server startup has separate
-  30-second deadline; Bazel’s `timeout` also bounds native comparison tests, but does not bound capture or legacy ARM64 comparison build actions. Failed updates leave existing
+  30-second deadline; Bazel’s `timeout` also bounds native comparison tests, but does not bound capture build actions. Failed updates leave existing
   baselines intact and print artifact directory.
 
 ## Fixed and portaled visuals

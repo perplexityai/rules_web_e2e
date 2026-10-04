@@ -32,7 +32,6 @@ def bazel_config(endpoint):
         f"--remote_cache={endpoint}",
         "--spawn_strategy=sandboxed,local",
         "--strategy=VrtCapture=remote",
-        "--strategy=VrtCompare=remote",
         # Native browser tests declare no-local; VRT's report wrapper declares no-remote.
         "--strategy=TestRunner=remote,local",
         "--remote_local_fallback=false",

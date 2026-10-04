@@ -25,10 +25,9 @@ test('failed remote capture preserves local baselines and returns failure artifa
   fs.writeFileSync(path.join(remote, 'baselines/partial.png'), 'partial')
   fs.writeFileSync(path.join(remote, 'artifacts/junit.xml'), '<testsuite failures="1"/>')
   fs.writeFileSync(path.join(remote, 'result.json'), JSON.stringify({schemaVersion: 1, mode: 'capture', exitCode: 7}))
-  const artifacts = path.join(root, 'downloaded')
   const update = {workspace, baselineRelative: 'screenshots'}
-  assert.equal(consumeRemoteResult(remote, {artifacts, update}), 7)
-  assert.equal(fs.readFileSync(path.join(artifacts, 'junit.xml'), 'utf8'), '<testsuite failures="1"/>')
+  assert.equal(consumeRemoteResult(remote, {update}), 7)
+  assert.equal(fs.readFileSync(path.join(remote, 'artifacts/junit.xml'), 'utf8'), '<testsuite failures="1"/>')
   assert.deepEqual(fs.readdirSync(path.join(workspace, 'screenshots')), ['old.png'])
 
   fs.writeFileSync(path.join(remote, 'result.json'), JSON.stringify({schemaVersion: 1, mode: 'capture', exitCode: 0}))
@@ -84,25 +83,22 @@ test('a concurrent update cannot write into a locked baseline directory', t => {
   assert.equal(fs.existsSync(path.join(destination, 'new.png')), false)
 })
 
-test('result metadata and artifact links cannot bypass local validation', t => {
+test('result metadata cannot bypass local validation', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-result-'))
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))
   fs.mkdirSync(path.join(root, 'artifacts'))
   for (const result of [
-    {schemaVersion: 2, mode: 'compare', exitCode: 0},
-    {schemaVersion: 1, mode: 'capture', exitCode: 0},
-    {schemaVersion: 1, mode: 'compare', exitCode: -1},
-    {schemaVersion: 1, mode: 'compare', exitCode: null},
+    {schemaVersion: 2, mode: 'capture', exitCode: 0},
+    {schemaVersion: 1, mode: 'compare', exitCode: 0},
+    {schemaVersion: 1, mode: 'capture', exitCode: -1},
+    {schemaVersion: 1, mode: 'capture', exitCode: null},
   ]) {
     fs.writeFileSync(path.join(root, 'result.json'), JSON.stringify(result))
     assert.throws(() => consumeRemoteResult(root), /Invalid remote VRT result/)
   }
-  fs.writeFileSync(path.join(root, 'result.json'), JSON.stringify({schemaVersion: 1, mode: 'compare', exitCode: 1}))
-  fs.symlinkSync(process.execPath, path.join(root, 'artifacts/escape'))
-  assert.throws(() => consumeRemoteResult(root, {artifacts: path.join(root, 'downloads')}), /only regular files/)
 })
 
-test('remote job preserves a failing subprocess result for the local test', t => {
+test('remote job preserves a failing subprocess result for the update command', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-bootstrap-'))
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))
   const runner = path.join(root, 'consumer.mjs')
@@ -111,10 +107,9 @@ test('remote job preserves a failing subprocess result for the local test', t =>
     process.exitCode = 7;`)
   const output = path.join(root, 'output')
   const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
-  runRemoteJob({runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output, mode: 'compare'}, node, {NODE_OPTIONS: ''})
-  const artifacts = path.join(root, 'test-artifacts')
-  assert.equal(consumeRemoteResult(output, {artifacts, mode: 'compare'}), 7)
-  assert.equal(fs.readFileSync(path.join(artifacts, 'junit.xml'), 'utf8'), '<failure/>')
+  runRemoteJob({runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output, mode: 'capture'}, node, {NODE_OPTIONS: ''})
+  assert.equal(consumeRemoteResult(output), 7)
+  assert.equal(fs.readFileSync(path.join(output, 'artifacts/junit.xml'), 'utf8'), '<failure/>')
 })
 
 for (const exitCode of [0, 7]) {
@@ -125,11 +120,10 @@ for (const exitCode of [0, 7]) {
     fs.writeFileSync(runner, `process.exitCode = ${exitCode};`)
     const output = path.join(root, 'output')
     const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
-    runRemoteJob({runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output, mode: 'compare'}, node, {NODE_OPTIONS: ''})
+    runRemoteJob({runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output, mode: 'capture'}, node, {NODE_OPTIONS: ''})
     fs.rmdirSync(path.join(output, 'artifacts'))
-    const artifacts = path.join(root, 'test-artifacts')
-    assert.equal(consumeRemoteResult(output, {artifacts, mode: 'compare'}), exitCode)
-    assert.equal(fs.existsSync(artifacts), false)
+    assert.equal(consumeRemoteResult(output), exitCode)
+    assert.equal(fs.existsSync(path.join(output, 'artifacts')), false)
   })
 }
 
@@ -151,23 +145,3 @@ test('native browser failure exits the test process and preserves standard artif
   assert.equal(fs.existsSync(path.join(root, 'result.json')), false)
   assert.equal(fs.readFileSync(path.join(root, 'test.xml'), 'utf8'), '<failure/>')
 })
-
-for (const exitCode of [0, 7]) {
-  test(`local result wrapper preserves per-case JUnit with exit ${exitCode}`, t => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-junit-'))
-    t.after(() => fs.rmSync(root, {recursive: true, force: true}))
-    const result = path.join(root, 'result')
-    fs.mkdirSync(path.join(result, 'artifacts'), {recursive: true})
-    const xml = '<testsuite tests="1"><testcase name="Button / default"/></testsuite>'
-    fs.writeFileSync(path.join(result, 'artifacts/junit.xml'), xml)
-    fs.writeFileSync(path.join(result, 'result.json'), JSON.stringify({schemaVersion: 1, mode: 'compare', exitCode}))
-    const xmlOutput = path.join(root, 'test.xml')
-    const child = spawnSync(process.execPath, [new URL('./remote-result-entry.js', import.meta.url).pathname], {
-      env: {...process.env, RUNFILES_DIR: root, VRT_RESULT: 'result', VRT_APPLY_BASELINES: '', VRT_RESULT_MODE: '', XML_OUTPUT_FILE: xmlOutput, TEST_UNDECLARED_OUTPUTS_DIR: path.join(root, 'outputs')},
-      encoding: 'utf8',
-    })
-    assert.equal(child.status, exitCode, child.stderr)
-    assert.equal(fs.readFileSync(xmlOutput, 'utf8'), xml)
-    assert.equal(fs.readFileSync(path.join(root, 'outputs/junit.xml'), 'utf8'), xml)
-  })
-}

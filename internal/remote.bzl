@@ -1,6 +1,6 @@
 """Native browser tests and VRT artifact-producing actions."""
 
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@web_e2e_worker_identity//:defs.bzl", "WORKER_SHA256")
 load("//internal/test_tools:defs.bzl", "TestToolsInfo")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "runfile")
@@ -42,7 +42,7 @@ _WORKER_LIBRARIES = ":".join([
 def _library_path(root, descriptor):
     return _WORKER_LIBRARIES + ":" + ":".join([root + "/" + p for p in descriptor["libraryDirs"]])
 
-def _native_test(ctx, root, descriptor, files, job):
+def _native_test(ctx, root, descriptor, runfiles, job):
     executable = ctx.actions.declare_file(ctx.label.name)
     setup = ctx.actions.declare_file(ctx.label.name + ".bash-env")
     tools = ctx.attr._test_tools[TestToolsInfo]
@@ -65,12 +65,11 @@ def _native_test(ctx, root, descriptor, files, job):
             runfile(job),
         ),
     ]) + "\n", is_executable = True)
-    inputs = files + [root, job, ctx.file._bootstrap, setup] + ctx.attr._test_tools[DefaultInfo].files.to_list()
+    inputs = [executable, job, setup] + ctx.attr._test_tools[DefaultInfo].files.to_list()
+    runfiles = runfiles.merge(ctx.runfiles(files = inputs))
     return [
-        DefaultInfo(executable = executable, runfiles = ctx.runfiles(files = inputs).merge_all([
-            target[DefaultInfo].default_runfiles
-            for target in [ctx.attr.inputs[0], ctx.attr._runtime, ctx.attr._runner]
-        ])),
+        DefaultInfo(executable = executable, runfiles = runfiles),
+        OutputGroupInfo(inputs = runfiles.files),
         testing.TestEnvironment({
             "BASH_ENV": executable.path + ".runfiles/" + runfile(setup),
             "USER": "test",
@@ -89,11 +88,9 @@ def _remote_impl(ctx):
     if ctx.attr._platform[0][LinuxPlatformInfo].arch != ctx.attr.target_arch:
         fail("target_platform CPU must match target_arch")
     root = ctx.file.browser
-    files = []
     runfiles = ctx.runfiles(files = [root, ctx.file._bootstrap])
     for target in [ctx.attr.inputs[0], ctx.attr._runtime, ctx.attr._runner]:
         info = target[DefaultInfo]
-        files.extend(info.files.to_list())
         runfiles = runfiles.merge(info.default_runfiles).merge(ctx.runfiles(transitive_files = info.files))
     locations = ctx.attr.data + ctx.attr.inputs
     env = {key: ctx.expand_location(value, targets = locations) for key, value in ctx.attr.env.items() if key != "VRT_DESCRIPTOR"}
@@ -109,7 +106,7 @@ def _remote_impl(ctx):
     }))
     descriptor = browser.descriptor
     if native_test:
-        return _native_test(ctx, root, descriptor, files, job)
+        return _native_test(ctx, root, descriptor, runfiles, job)
     executable = ctx.actions.declare_file(ctx.label.name)
     ctx.actions.write(executable, "\n".join([
         "#!/bin/bash",
@@ -144,7 +141,7 @@ def _artifact_impl(ctx):
             "VRT_HOST_EXECUTION": "1" if ctx.attr.host_vrt else "0",
         },
         execution_requirements = {"no-remote": "1", "no-cache": "1"} if ctx.attr.host_vrt else {"no-local": "1"},
-        mnemonic = "VrtCapture" if ctx.attr.mode == "capture" else "VrtCompare",
+        mnemonic = "VrtCapture",
     )
     return [
         DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output])),
@@ -156,7 +153,6 @@ _artifact = rule(
     attrs = {
         "launcher": attr.label(executable = True, cfg = "target", mandatory = True),
         "host_vrt": attr.bool(),
-        "mode": attr.string(values = ["capture", "compare"]),
     },
 )
 
@@ -168,7 +164,7 @@ _attrs = {
     "_platform": attr.label(default = Label("//internal:target_platform"), cfg = _linux),
     "target_arch": attr.string(mandatory = True, values = ["x64", "arm64"]),
     "env": attr.string_dict(),
-    "mode": attr.string(mandatory = True, values = ["capture", "compare", "test"]),
+    "mode": attr.string(mandatory = True, values = ["capture", "test"]),
     "host_vrt": attr.bool(default = False),
     "_runtime": attr.label(default = Label("//runtime:files")),
     "_runner": attr.label(default = Label("//runtime:runner_entry"), allow_single_file = True),
@@ -186,8 +182,17 @@ _native_browser_test = rule(
     exec_groups = {"test": exec_group(exec_compatible_with = [str(Label("@platforms//os:linux")), str(Label("@platforms//cpu:x86_64"))])},
 )
 
+_arm64_test_attrs = dict(_test_attrs)
+_arm64_test_attrs["_test_tools"] = attr.label(default = Label("//internal/test_tools:tools_arm64"), providers = [TestToolsInfo])
+_native_arm64_browser_test = rule(
+    implementation = _remote_impl,
+    attrs = _arm64_test_attrs,
+    test = True,
+    exec_groups = {"test": exec_group(exec_compatible_with = [str(Label("@platforms//os:linux")), str(Label("@platforms//cpu:arm64"))])},
+)
+
 def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256 = None, host_vrt = False):
-    """Run native browser tests or produce downloadable VRT comparisons/captures."""
+    """Run native browser tests and produce downloadable VRT captures."""
     if worker_sha256 != None and (len(worker_sha256) != 64 or any([c not in "0123456789abcdef" for c in worker_sha256.elems()])):
         fail("worker_sha256 must be a lowercase SHA256 digest")
     if worker_sha256 == None:
@@ -198,66 +203,54 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
     constraints = [Label("@platforms//os:linux"), Label("@platforms//cpu:" + ("x86_64" if target_arch == "x64" else "arm64"))]
     if not visual and target_arch == "arm64":
         fail("ARM64 isolated execution currently supports VRT only; omit browser for host interaction tests")
-    # Native launcher tools currently target amd64. Keep ARM64's existing
-    # artifact comparison until those tools support its execution platform.
-    native_comparison = not visual or target_arch == "x64"
-    if native_comparison:
-        _native_browser_test(
-            name = name,
-            inputs = ":" + name + "_inputs",
-            browser = browser,
-            env = env,
-            args = args,
-            mode = "test",
-            data = data,
-            target_platform = target_platform,
-            target_arch = target_arch,
-            host_vrt = host_vrt,
-            exec_properties = execution_properties,
-            exec_compatible_with = constraints,
-            tags = ["manual", "visual_test" if visual else "browser_test"] + tags,
-            timeout = timeout,
-        )
+    native_test = _native_arm64_browser_test if target_arch == "arm64" else _native_browser_test
+    native_test(
+        name = name,
+        inputs = ":" + name + "_inputs",
+        browser = browser,
+        env = env,
+        args = args,
+        mode = "test",
+        data = data,
+        target_platform = target_platform,
+        target_arch = target_arch,
+        host_vrt = host_vrt,
+        exec_properties = execution_properties,
+        exec_compatible_with = constraints,
+        tags = ["manual", "visual_test" if visual else "browser_test"] + tags,
+        timeout = timeout,
+    )
     if not visual:
         return
-    for mode in (["capture"] if native_comparison else ["compare", "capture"]):
-        capture = mode == "capture"
-        action = name + "_" + mode
-        _remote(
-            name = action + "_launcher",
-            inputs = ":" + name + "_inputs",
-            browser = browser,
-            env = env,
-            args = args,
-            mode = mode,
-            data = data,
-            target_platform = target_platform,
-            target_arch = target_arch,
-            host_vrt = host_vrt,
-            exec_compatible_with = constraints,
-            exec_properties = execution_properties,
-            tags = ["manual"],
-        )
-        _artifact(
-            name = action,
-            launcher = ":" + action + "_launcher",
-            mode = mode,
-            host_vrt = host_vrt,
-            exec_compatible_with = constraints,
-            exec_properties = execution_properties,
-            tags = ["manual"],
-        )
-        common = dict(
-            entry_point = Label("//runtime:remote_result_entry"),
-            data = [":" + action, Label("//runtime:remote_result_files")],
-            env = {
-                "VRT_RESULT": "$(rlocationpath :%s)" % action,
-                "VRT_RESULT_MODE": mode,
-                "VRT_APPLY_BASELINES": "1" if capture else "0",
-                "VRT_BASELINE_RELATIVE": env["VRT_BASELINE_RELATIVE"],
-            },
-        )
-        if capture:
-            js_binary(name = name + ".update", tags = ["manual"], **common)
-        else:
-            js_test(name = name, tags = ["manual", "visual_test", "no-remote"] + tags, timeout = timeout, **common)
+    action = name + "_capture"
+    _remote(
+        name = action + "_launcher",
+        inputs = ":" + name + "_inputs",
+        browser = browser,
+        env = env,
+        args = args,
+        mode = "capture",
+        data = data,
+        target_platform = target_platform,
+        target_arch = target_arch,
+        host_vrt = host_vrt,
+        tags = ["manual"],
+    )
+    _artifact(
+        name = action,
+        launcher = ":" + action + "_launcher",
+        host_vrt = host_vrt,
+        exec_compatible_with = constraints,
+        exec_properties = execution_properties,
+        tags = ["manual"],
+    )
+    js_binary(
+        name = name + ".update",
+        tags = ["manual"],
+        entry_point = Label("//runtime:remote_result_entry"),
+        data = [":" + action, Label("//runtime:remote_result_files")],
+        env = {
+            "VRT_RESULT": "$(rlocationpath :%s)" % action,
+            "VRT_BASELINE_RELATIVE": env["VRT_BASELINE_RELATIVE"],
+        },
+    )

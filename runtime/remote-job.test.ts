@@ -18,13 +18,13 @@ test('bounds a remote child that never exits', () => {
       env: {VRT_TIMEOUT_MS: '100'},
       args: [],
       output,
-      mode: 'compare',
+      mode: 'capture',
     }, fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath))
 
     assert.ok(performance.now() - start < 5000)
     assert.deepEqual(JSON.parse(fs.readFileSync(path.join(output, 'result.json'), 'utf8')), {
       schemaVersion: 1,
-      mode: 'compare',
+      mode: 'capture',
       exitCode: 1,
     })
   } finally {

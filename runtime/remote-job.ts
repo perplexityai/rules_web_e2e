@@ -8,7 +8,7 @@ export interface RemoteJob {
   env: Record<string, string>
   args: string[]
   output: string
-  mode: 'capture' | 'compare' | 'test'
+  mode: 'capture' | 'test'
 }
 
 /** Preserve child failure reports as build outputs for the local result consumer. */
@@ -52,7 +52,7 @@ export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.P
     return
   }
   // Return a successful build action even when tests fail, so Bazel downloads
-  // their reports and screenshots. The local test wrapper returns this status.
+  // their reports and screenshots. The update command checks this status before changing baselines.
   fs.writeFileSync(path.join(output, 'result.json'), JSON.stringify({
     schemaVersion: 1,
     mode: job.mode,

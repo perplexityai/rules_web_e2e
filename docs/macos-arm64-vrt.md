@@ -40,11 +40,12 @@ Worker stops when script exits. Downloads need network access during
 setup; screenshot actions have only loopback networking.
 
 Suite checks native screenshot specs, component galleries, network isolation,
-empty/failed updates, screenshot diffs, deadlines, and cancellation. It writes
+empty/failed updates, screenshot diffs, deadlines, cancellation, native test
+retries, repeated runs, and test-cache bypass. It writes
 baselines into temporary example checkout under `WORK/public`, leaving
 repository's baselines untouched. Logs `WORK/worker-build.log`, `WORK/vm.log`,
 and `WORK/results/`. Ordinary isolated E2E/component tests not included in
-this ARM64 lane; their native test-launcher tools currently target amd64.
+this ARM64 lane; public isolated E2E/component API remains amd64-only.
 
 Worker source pinned in `MODULE.bazel` to actiond `4b767e8`. This already
 includes memory-advice kernel fix required by Node/V8. No additional upstream

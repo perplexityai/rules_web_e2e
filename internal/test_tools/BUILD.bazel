@@ -1,14 +1,18 @@
 load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 load(":defs.bzl", "test_tools")
 
-test_tools(
-    name = "tools",
-    file = "@test_tools_libmagic//:file",
-    magic = "@test_tools_libmagic//:magic.mgc",
-    toybox = "@test_tools_toybox//:toybox",
-    visibility = ["//:__subpackages__"],
-    zip = "@zip//:zip",
-)
+[
+    test_tools(
+        name = "tools" if arch == "x64" else "tools_arm64",
+        target_arch = arch,
+        file = "@test_tools_libmagic//:file",
+        magic = "@test_tools_libmagic//:magic.mgc",
+        toybox = "@test_tools_toybox//:toybox",
+        visibility = ["//:__subpackages__"],
+        zip = "@zip//:zip",
+    )
+    for arch in ["x64", "arm64"]
+]
 
 py_binary(
     name = "compile_magic",
@@ -28,6 +32,19 @@ py_test(
     ],
     deps = ["@rules_python//python/runfiles"],
 )
+
+[
+    py_test(
+        name = "elf_" + arch + "_test",
+        size = "small",
+        srcs = ["elf_test.py"],
+        main = "elf_test.py",
+        args = [str(machine), "$(rlocationpaths " + tools + ")"],
+        data = [tools],
+        deps = ["@rules_python//python/runfiles"],
+    )
+    for arch, machine, tools in [("x64", 62, ":tools"), ("arm64", 183, ":tools_arm64")]
+]
 
 config_setting(
     name = "linux_x86_64",
