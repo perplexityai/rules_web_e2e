@@ -1,24 +1,24 @@
 # rules_web_e2e
 
-Bazel rules for Playwright E2E, component interactions, and visual regression
-tests (VRT). Bring compiled specs and a built app; the rules manage test
-execution, reports, and screenshot updates.
+Build app. Compile specs. Bazel runs Playwright E2E, component interactions,
+and visual regression tests (VRT). Rules handle execution, reports, and
+screenshot updates.
 
 ## Choose a setup
 
 | Path | Use it for | You configure |
 | --- | --- | --- |
-| **Basic: presets** | Isolated Linux amd64 tests | One browser release and the worker launcher |
+| **Basic: presets** | Isolated Linux amd64 tests | One browser release and worker launcher |
 | **Advanced: custom** | Custom browsers, fonts, ARM64, or worker infrastructure | Runtime inputs and/or worker execution settings |
-| **Host tests** | Live services or E2E/component tests without a VM | A version-matched host Playwright browser; no VRT |
-| **Host VRT** | Screenshot tests on a controlled Linux amd64 host without a VM | `host_vrt = True`, a declared browser runtime, and host environment parity |
+| **Host tests** | Live services or E2E/component tests without VM | Version-matched host Playwright browser; no VRT |
+| **Host VRT** | Screenshot tests on controlled Linux amd64 host without VM | `host_vrt = True`, declared browser runtime, and host environment parity |
 
-The preset supplies Chromium, Node, libraries, and fonts. Its worker supervisor
+Preset supplies Chromium, Node, libraries, and fonts. Its worker supervisor
 handles download, startup, execution flags, logs, and cleanup. You still own
-app/spec builds, matching Playwright packages, and a Linux runner with KVM/vsock.
-Runtime and worker customization are independent.
+app/spec builds, matching Playwright packages, and Linux runner with KVM/vsock.
+Runtime and worker customization independent.
 
-Start with [Getting started](docs/getting-started.md) or the runnable
+Start with [Getting started](docs/getting-started.md) or runnable
 [React example](examples/react/README.md).
 
 ## API
@@ -54,10 +54,10 @@ component_visual_test(
 
 Use `visual_test(tests = ":compiled_specs", ...)` for native Playwright
 `toHaveScreenshot` assertions. Gallery VRT generates captures from registered
-`.visual.tsx` modules. Each visual target owns its baseline directory and an
+`.visual.tsx` modules. Each visual target owns its baseline directory and
 explicit `.update` target; review PNG changes before committing.
 
-See the [API reference](docs/api.md), [documentation index](docs/README.md),
+See [API reference](docs/api.md), [documentation index](docs/README.md),
 and [development guide](docs/development.md).
 
 Host suites can [own snapshots and run `.update`](docs/e2e.md#snapshot-updates).

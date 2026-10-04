@@ -1,9 +1,9 @@
 # Native component browser tests
 
 Playwright **1.63.0** supplies `mount()` in `@playwright/test`. Use
-`component_browser_test` with a [preset browser](getting-started.md) for isolated
+`component_browser_test` with [preset browser](getting-started.md) for isolated
 Linux execution, or omit `browser` and [provision a host browser](host-browsers.md).
-No experimental React package or second bundler is needed.
+No experimental React package or second bundler needed.
 
 ```mermaid
 flowchart LR
@@ -14,19 +14,19 @@ flowchart LR
   Story --> Assert[Interactions or screenshot comparison]
 ```
 
-A consumer-owned gallery exposes `window.mount({story, props})` and
+Consumer-owned gallery exposes `window.mount({story, props})` and
 `window.unmount()`, rendering into `#root`. Its registry imports declared visual
-modules. `.visual.tsx` declares `ComponentVisualModule` scenarios; the `story` field is part of
-Playwright's native mount protocol. No Storybook integration is involved. Reuse the React root for prop updates, reject unknown stories and render
-errors, and release the root on unmount. Put providers and callbacks in browser
-stories; pass serializable props from specs. The runtime remains framework-free.
+modules. `.visual.tsx` declares `ComponentVisualModule` scenarios; `story` field part of
+Playwright's native mount protocol. No Storybook integration involved. Reuse React root for prop updates, reject unknown stories and render
+errors, and release root on unmount. Put providers and callbacks in browser
+stories; pass serializable props from specs. Runtime remains framework-free.
 
-The [typed React gallery](../examples/react/gallery.tsx) uses a consumer-owned
+[typed React gallery](../examples/react/gallery.tsx) uses consumer-owned
 UI shell. Build its HTML, JavaScript, CSS, and assets before testing and wrap
-the output directory with `browser_shell`. The runner serves it without a
-bundler and selects the compiled `*.browser.spec.js` files from `tests`.
-Service workers are blocked by default; an optional compiled Playwright config
-can set `use.serviceWorkers` to `"allow"` when a fixture needs one.
+output directory with `browser_shell`. Runner serves it without
+bundler and selects compiled `*.browser.spec.js` files from `tests`.
+Service workers blocked by default; optional compiled Playwright config
+can set `use.serviceWorkers` to `"allow"` when fixture needs one.
 
 ```ts
 import {expect, test} from '@playwright/test'
@@ -44,8 +44,8 @@ test('retains state across prop updates', async ({mount}) => {
 })
 ```
 
-VRT consumes the **same visual modules and gallery** through `component_visual_test`. The runtime generates screenshot tests from each enabled
-visual's `vrt` options and capture hooks. There are no separate consumer screenshot
+VRT consumes **same visual modules and gallery** through `component_visual_test`. Runtime generates screenshot tests from each enabled
+visual's `vrt` options and capture hooks. No separate consumer screenshot
 specs. Independent VRT targets must own separate baseline directories.
 
 After [materializing the launcher](getting-started.md#run-the-example):
@@ -58,21 +58,21 @@ cd examples/react
 
 ## Migrating experimental component tests
 
-| Previous convention                              | Playwright 1.63 convention                             |
+| Previous convention | Playwright 1.63 convention |
 | ------------------------------------------------ | ------------------------------------------------------ |
-| Imports from `@playwright/experimental-ct-react` | `@playwright/test`                                     |
-| `mount(<Widget ... />)` in Node                  | Browser fixture plus `mount('Widget/Scenario', props)` |
-| `component.update(<Widget ... />)`               | `component.update(props)`                              |
-| Node callbacks and JSX children                  | Browser-owned scenario; assert DOM or network effects  |
-| Mount hooks and provider wrappers                | Consumer gallery shell and fixture setup               |
-| `ctViteConfig` and CT-managed server             | Built shell or compiled server adapter                 |
-| `*.browser.spec.tsx` with inline JSX             | `*.browser.spec.tsx` and typed `*.visual.tsx`          |
+| Imports from `@playwright/experimental-ct-react` | `@playwright/test` |
+| `mount(<Widget ... />)` in Node | Browser fixture plus `mount('Widget/Scenario', props)` |
+| `component.update(<Widget ... />)` | `component.update(props)` |
+| Node callbacks and JSX children | Browser-owned scenario; assert DOM or network effects |
+| Mount hooks and provider wrappers | Consumer gallery shell and fixture setup |
+| `ctViteConfig` and CT-managed server | Built shell or compiled server adapter |
+| `*.browser.spec.tsx` with inline JSX | `*.browser.spec.tsx` and typed `*.visual.tsx` |
 
-Existing JSX-based specs require migration; this is not a compatibility shim.
-Large repositories can adapt an existing preview registry to the gallery
+Existing JSX-based specs require migration; this not compatibility shim.
+Large repositories can adapt existing preview registry to gallery
 contract and retain their aliases, generated styles, auth fixtures, and CI
-reporters internally. Keep both behavioral specs and VRT targets throughout the
-migration. Playwright/browser pins must match; the minimum supported version is 1.63.0.
+reporters internally. Keep both behavioral specs and VRT targets throughout
+migration. Playwright/browser pins must match; minimum supported version 1.63.0.
 
 ## Bazel target
 
@@ -88,11 +88,11 @@ component_browser_test(
 )
 ```
 
-The source producer owns strict typechecking and transpilation; the bundle
-producer owns providers, templates, and assets. For existing app servers, the
+Source producer owns strict typechecking and transpilation; bundle
+producer owns providers, templates, and assets. For existing app servers,
 same target also accepts `server`, `base_url`, or `base_url_env` instead of
-`shell`. See the [API reference](api.md).
+`shell`. See [API reference](api.md).
 
-The component target forwards the same selector flags as E2E. It rejects
-baseline options and does not create an update target. Keep the separate VRT
-target for screenshot coverage from the shared visual modules.
+Component target forwards same selector flags as E2E. It rejects
+baseline options and does not create update target. Keep separate VRT
+target for screenshot coverage from shared visual modules.
