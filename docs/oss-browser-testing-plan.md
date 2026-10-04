@@ -1,10 +1,10 @@
 # Scope and roadmap
 
-The supported APIs are documented in the [API reference](api.md). Current
+Supported APIs documented in [API reference](api.md). Current
 capabilities include managed and remote E2E, native component mounts, shared
 visual modules, generated VRT captures, and explicit baseline updates.
 
-The runtime uses Playwright Test and actiond, with Bazel integration
+Runtime uses Playwright Test and actiond, with Bazel integration
 through `rules_js` and strict TypeScript compilation through `rules_ts`.
 Applications supply their own rendering framework, servers, and fixtures.
 
@@ -19,9 +19,9 @@ flowchart LR
 
 ## Possible extensions
 
-Generic `playwright_test` and page-oriented `web_visual_test` wrappers are
-not implemented. A Starlark `component_visual_module` macro is not exported;
-use the TypeScript `ComponentVisualModule` interface today.
+Generic `playwright_test` and page-oriented `web_visual_test` wrappers
+not implemented. Starlark `component_visual_module` macro not exported;
+use TypeScript `ComponentVisualModule` interface today.
 
 Native ARM64 screenshot baselines, macOS VM validation, and interchangeable
 baselines across architectures need separate validation before support.

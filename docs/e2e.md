@@ -1,8 +1,8 @@
 # End-to-end tests
 
-`web_e2e_test` runs ordinary Playwright specs against a managed or existing application server.
+`web_e2e_test` runs ordinary Playwright specs against managed or existing application server.
 Write clicks, navigation, form interactions, and assertions with `@playwright/test`.
-No screenshot baseline or `.update` target is required.
+No screenshot baseline or `.update` target required.
 
 ```ts
 import {expect, test} from '@playwright/test'
@@ -18,7 +18,7 @@ test('saves a draft', async ({page}) => {
 ## Setup
 
 Compile `*.spec.ts` with strict typechecking and declare its runtime dependencies.
-Pass the resulting target and a compiled server adapter to `web_e2e_test`:
+Pass resulting target and compiled server adapter to `web_e2e_test`:
 
 ```starlark
 load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_test")
@@ -30,14 +30,14 @@ web_e2e_test(
 )
 ```
 
-For an existing Playwright setup, pass `config = ":compiled_config"` instead of
+For existing Playwright setup, pass `config = ":compiled_config"` instead of
 `server`. Set `use.baseURL` and optional `webServer` in that config; Playwright
-starts and stops the declared server. Declare its executable and assets as data.
-A built `shell` or existing URL is also supported. See the
+starts and stops declared server. Declare its executable and assets as data.
+Built `shell` or existing URL also supported. See
 [setup guide](getting-started.md) and [all attributes](api.md).
-The runner selects emitted `*.spec.js`, excluding component/visual specs.
-It supplies `baseURL` and `VRT_APP_URL`; use `page.goto('./')` to preserve a
-server base path. Most consumers need no Playwright config. Pass an optional
+Runner selects emitted `*.spec.js`, excluding component/visual specs.
+It supplies `baseURL` and `VRT_APP_URL`; use `page.goto('./')` to preserve
+server base path. Most consumers need no Playwright config. Pass optional
 compiled config for custom fixtures, timeouts, global setup, or E2E projects.
 
 ```sh
@@ -47,9 +47,9 @@ cd examples/react
 .web-e2e/run test //:e2e_test --test_arg=--grep=save
 ```
 
-Selection flags `--grep`, `--grep-invert`, `--project`, and `--shard` are forwarded
-through `--test_arg`. Configure other Playwright settings in the declared config;
-Add custom reporters through the [compiled Playwright config](api.md#optional-playwright-configuration). CLI overrides of config, reporters, output paths, and in-place snapshot updates are rejected.
+Selection flags `--grep`, `--grep-invert`, `--project`, and `--shard` forwarded
+through `--test_arg`. Configure other Playwright settings in declared config;
+Add custom reporters through [compiled Playwright config](api.md#optional-playwright-configuration). CLI overrides of config, reporters, output paths, and in-place snapshot updates rejected.
 
 ## Snapshot updates
 
@@ -71,18 +71,18 @@ bazel run //path:e2e_test.update --@rules_web_e2e//:snapshot_filter=checkout
 bazel test //path:e2e_test
 ```
 
-`snapshot_dir` is package-relative; define update targets in the consuming workspace. Normal tests read declared `snapshots`;
-`<name>_snapshot_capture` builds a declared tree containing existing baselines plus successful captures.
+`snapshot_dir` package-relative; define update targets in consuming workspace. Normal tests read declared `snapshots`;
+`<name>_snapshot_capture` builds declared tree containing existing baselines plus successful captures.
 `.update` applies that tree with `write_source_files`. Building alone never changes sources.
 Missing/mismatched baselines fail normal tests. Failed or empty captures apply nothing.
-Filtered updates preserve unselected declared files. Declare the entire snapshot directory.
+Filtered updates preserve unselected declared files. Declare entire snapshot directory.
 Undeclared files or edits since capture block application. Use separate directories per target.
-Updates share the VRT lock and change checks; directory replacement is not atomic. Review diffs before committing.
+Updates share VRT lock and change checks; directory replacement not atomic. Review diffs before committing.
 
-Capture runs locally. Unchanged build inputs can reuse the previous capture. Set
+Capture runs locally. Unchanged build inputs can reuse previous capture. Set
 `--@rules_web_e2e//:snapshot_refresh=<new-value>` to recapture after host or service changes.
 Selection belongs in `snapshot_filter` or target `args`, not arguments after `--`.
-For an inherited browser installation, pass `--action_env=PLAYWRIGHT_BROWSERS_PATH`
+For inherited browser installation, pass `--action_env=PLAYWRIGHT_BROWSERS_PATH`
 to build/run; likewise forward any required inherited environment variables.
 
 Layout: `default/<compiled-spec-path>-snapshots/<snapshot-name>`, or
@@ -92,9 +92,9 @@ including screenshot/ARIA matcher templates. Existing custom layouts need migrat
 No source filename guessing or consumer-specific paths.
 
 For export only, use `bazel test //path:e2e_test --test_arg=--export-snapshots`.
-Captures stay under `test.outputs/snapshots/` using the same layout.
+Captures stay under `test.outputs/snapshots/` using same layout.
 `snapshot-sources.json` maps compiled spec paths to declared runfiles paths.
-Export alone never applies files. `snapshot_dir` is optional for export.
+Export alone never applies files. `snapshot_dir` optional for export.
 
 Isolated browser tests support export only. Visual targets retain full-suite `.update`
 and `baseline_dir`; they reject snapshot export and `snapshot_dir`.
@@ -115,21 +115,21 @@ flowchart LR
   Tests --> Results[JUnit, failure screenshots and traces]
 ```
 
-The server adapter can coordinate an existing dev server and local test services,
-returning one ready frontend URL and a cleanup callback. UI shells, provider setup,
-route registries, and framework conventions remain in the consuming repository.
+Server adapter can coordinate existing dev server and local test services,
+returning one ready frontend URL and cleanup callback. UI shells, provider setup,
+route registries, and framework conventions remain in consuming repository.
 Page objects and `test.extend` fixtures work normally. Prefer `page.route` or local
 fixture APIs for deterministic data; declare any authentication state files in
 `data`. Keep credentials in explicitly declared environment variables rather
 than checked-in state. Host browsers use host networking; VRT uses separate offline Linux actions.
 
-E2E is manual, local, and uncached by default. It requires a provisioned host browser, not
+E2E manual, local, and uncached by default. It requires provisioned host browser, not
 Docker; see [host setup](host-browsers.md).
-Server processes and browser resources are cleaned up after completion. Failures
-return a nonzero status and preserve JUnit, screenshots, and traces in Bazel's
-undeclared outputs. The host test process (including Playwright's `request`
+Server processes and browser resources cleaned up after completion. Failures
+return nonzero status and preserve JUnit, screenshots, and traces in Bazel's
+undeclared outputs. Host test process (including Playwright's `request`
 fixture), custom server code, and setup scripts remain trusted and unsandboxed;
-host browser and Node requests use host networking. Remote endpoints are caller-owned; automatic backend provisioning and authentication
+host browser and Node requests use host networking. Remote endpoints caller-owned; automatic backend provisioning and authentication
 conventions remain consumer responsibilities.
 
 ## Opt-in local result caching
@@ -162,10 +162,10 @@ Use caller-pinned browser downloads; see [browser provisioning](host-browsers.md
 Declare specs, app assets, servers, mocks, fixtures, and browser files. Mock external
 services, including calls from Node setup/server code. Reject unexpected requests.
 
-`cacheable = True` promises results depend on declared inputs plus a controlled
+`cacheable = True` promises results depend on declared inputs plus controlled
 host environment. Rules cannot verify mocks or browser pinning. Explicit
 `PLAYWRIGHT_BROWSERS_PATH` prevents implicit browser inheritance; it does not
-prove browser files are declared. Live URLs hidden in config remain undeclared inputs.
+prove browser files declared. Live URLs hidden in config remain undeclared inputs.
 
 Unsupported: `browser`, visual/process-owned modes, URL attributes, `env_inherit`.
 Host execution stays manual, unsandboxed, and network-enabled. After host OS/library
@@ -175,7 +175,7 @@ changes, force execution with `--cache_test_results=no`. Caller `no-cache` or
 ## Existing application URLs
 
 Choose exactly one endpoint source: `server`, `shell`,
-`base_url`, or `base_url_env`. For a deployed app, replace the server attributes:
+`base_url`, or `base_url_env`. For deployed app, replace server attributes:
 
 ```starlark
 web_e2e_test(
@@ -189,40 +189,40 @@ web_e2e_test(
 bazel test //path:deployed_test --test_env=TEST_APP_URL=https://preview.example.test/app/
 ```
 
-`base_url_env` explicitly inherits that one variable; an unset or empty value
-fails. For a fixed endpoint use `base_url = "https://preview.example.test/app/"`.
-HTTP(S) paths and queries are preserved; credentials, fragments, and wildcard
-hosts are rejected. Use `page.goto('./')` to retain a base path.
+`base_url_env` explicitly inherits that one variable; unset or empty value
+fails. For fixed endpoint use `base_url = "https://preview.example.test/app/"`.
+HTTP(S) paths and queries preserved; credentials, fragments, and wildcard
+hosts rejected. Use `page.goto('./')` to retain base path.
 
-The runner starts no app process, performs no provisioning or health-check login,
-and never stops the endpoint. Specs or consumer setup own readiness and auth.
-Browser traffic originates on the runner host, which must have the required
-DNS/VPN access. E2E does not enforce an origin allowlist.
+Runner starts no app process, performs no provisioning or health-check login,
+and never stops endpoint. Specs or consumer setup own readiness and auth.
+Browser traffic originates on runner host, which must have required
+DNS/VPN access. E2E does not enforce origin allowlist.
 Supply credentials through declared environment or private generated inputs.
 
-The version-matched host browser, staged specs, clean environment, and artifacts
-are shared with local E2E.
-Live data and remote deployments are external inputs, so these tests remain
+Version-matched host browser, staged specs, clean environment, and artifacts
+ shared with local E2E.
+Live data and remote deployments external inputs, so these tests remain
 uncached and do not promise reproducible application state. VRT fixtures must run inside their Linux action; deployed URLs belong in host E2E.
 
-`//:remote_integration_test` in the React example starts an independent fixture
-on a random port and verifies base paths, interactions, host-network
+`//:remote_integration_test` in React example starts independent fixture
+on random port and verifies base paths, interactions, host-network
 access and caller-owned server lifetime. CI needs no public test site.
 
 ## Interaction-driven visual tests
 
 Use `visual_test` from `@rules_web_e2e//vrt:defs.bzl` for ordinary Playwright specs
-that click around and call `expect(page).toHaveScreenshot('saved.png')`. Pass the
+that click around and call `expect(page).toHaveScreenshot('saved.png')`. Pass
 compiled specs, config (or server/shell/URL), matching policy, and baseline inputs.
-`bazel run //:visual_test.update` replaces baselines only after the full suite succeeds.
-The [native example](../examples/react/native.visual.spec.ts) exercises this path.
+`bazel run //:visual_test.update` replaces baselines only after full suite succeeds.
+[native example](../examples/react/native.visual.spec.ts) exercises this path.
 
-VRT requires a declared `browser` and action-local fixture services. See
-[actiond execution](actiond.md); external origin exceptions are unsupported.
+VRT requires declared `browser` and action-local fixture services. See
+[actiond execution](actiond.md); external origin exceptions unsupported.
 
 ## Suite selection belongs to Bazel
 
-Explicit `testMatch`, `testIgnore`, and `testDir` settings are rejected at the
+Explicit `testMatch`, `testIgnore`, and `testDir` settings rejected at
 config and project level. Declare preselected compiled specs through `tests`.
 Projects can vary execution settings (such as viewport) over that same suite.
 For independent suites, use separate targets and configs without discovery filters:
@@ -232,7 +232,7 @@ web_e2e_test(name = "auth_test", tests = ":compiled_auth_specs", config = ":conf
 web_e2e_test(name = "app_test", tests = ":compiled_app_specs", config = ":config")
 ```
 
-If authentication is setup rather than a test suite, put it in an app-suite
+If authentication setup rather than test suite, put it in app-suite
 fixture. Bazel tests do not order other tests or consume their mutable outputs.
 Declare hermetically generated static fixture files through `data` instead.
 
@@ -241,18 +241,18 @@ Declare hermetically generated static fixture files through `data` instead.
 Use `browser_process_test` from `@rules_web_e2e//e2e:defs.bzl` for compiled
 Playwright specs that launch their own Electron app or persistent browser process.
 Pass compiled `tests`, optional compiled `config`, and executable runfiles in `data`.
-The rule does not provision Chromium, discover an application URL, or override
-native launch settings. The caller owns executable selection and any native
-Playwright `webServer` setup. It is host execution, not a sandboxed browser mode.
+Rule does not provision Chromium, discover application URL, or override
+native launch settings. Caller owns executable selection and any native
+Playwright `webServer` setup. It host execution, not sandboxed browser mode.
 
 Bazel still owns spec selection, timeouts, output reports, and scratch cleanup.
-Fixtures must close their browser/context during normal teardown. The runner
+Fixtures must close their browser/context during normal teardown. Runner
 snapshots descendant process groups before timeout/cancellation, terminates them,
 and waits before deleting scratch. Host process suites require `/bin/ps` (Linux/macOS).
 Callers remain responsible for processes that reparent themselves before cleanup.
-Do not set `testDir`, `testMatch`, or `testIgnore` in the compiled config. `browser`, `server`, `shell`, and base-URL rule options are not
+Do not set `testDir`, `testMatch`, or `testIgnore` in compiled config. `browser`, `server`, `shell`, and base-URL rule options not
 supported; use `web_e2e_test` for managed browser/server execution.
-Process-owned suites run with the runfiles workspace as their working directory,
+Process-owned suites run with runfiles workspace as their working directory,
 so `$(rootpath ...)` values in declared environment variables resolve without
-depending on the config package's location. Runtime `data` stays in runfiles;
-native executables are not copied into the test package.
+depending on config package's location. Runtime `data` stays in runfiles;
+native executables not copied into test package.

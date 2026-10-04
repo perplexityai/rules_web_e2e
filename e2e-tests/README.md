@@ -1,25 +1,25 @@
 # Isolated E2E tests
 
-`workspace/` is a separate Bazel module with its own dependency lockfile. It
+`workspace/` separate Bazel module with its own dependency lockfile. It
 contains one page server and one component gallery, plus focused regression specs.
-The page checks combine interaction, native Playwright configuration, and reload
-isolation. The gallery covers component interaction and visual capture, including
-caller-owned package and executable preservation. Unused example targets and static baselines are omitted.
+Page checks combine interaction, native Playwright configuration, and reload
+isolation. Gallery covers component interaction and visual capture, including
+caller-owned package and executable preservation. Unused example targets and static baselines omitted.
 
-Use Node 24+ and Bazelisk. CI typechecks the harness with the root Bazel build;
-Node executes the TypeScript directly, without Python or a separate JS build.
+Use Node 24+ and Bazelisk. CI typechecks harness with root Bazel build;
+Node executes TypeScript directly, without Python or separate JS build.
 
 ```sh
 # After installing the Chromium version pinned in the root package.json:
 node e2e-tests/run.ts
 ```
 
-The runner copies the consumer to a temporary directory, rewrites its repository
-override, and uses a separate Bazel output base. Tests execute with result caching
+Runner copies consumer to temporary directory, rewrites its repository
+override, and uses separate Bazel output base. Tests execute with result caching
 disabled. Set `BAZEL`, `PLAYWRIGHT_BROWSERS_PATH`, and `E2E_TEST_ARTIFACTS` to override
-the executable, browser cache, and saved reports. CI runs on Linux and macOS.
+executable, browser cache, and saved reports. CI runs on Linux and macOS.
 
-For the real Linux VM suite, use a KVM/vsock host:
+For real Linux VM suite, use KVM/vsock host:
 
 ```sh
 work=$(mktemp -d)
@@ -31,31 +31,31 @@ bazelisk run --script_path="$work/run-web-e2e" //worker:runner
 
 `vm.ts` shares one worker across execution, retry, isolation, capture/compare,
 empty/failed capture, timeout, cancellation, and recovery checks. It creates real
-PNG references in the disposable consumer, checks downloaded failure artifacts,
+PNG references in disposable consumer, checks downloaded failure artifacts,
 and deliberately swaps references to prove comparison fails. Source baselines
 must remain unchanged after unsuccessful captures; recovery actions bypass caches.
-The package fixture starts a real server through a transitive npm graph, checks
-an internal symlink, invokes an unchanged Bash executable and Node subprocess,
-and carries an unused foreign ELF. The VM suite captures and compares its page.
+Package fixture starts real server through transitive npm graph, checks
+internal symlink, invokes unchanged Bash executable and Node subprocess,
+and carries unused foreign ELF. VM suite captures and compares its page.
 
-The two shell scripts under `actiond/` only provision the Linux runtime and macOS
-worker; browser assertions and process supervision are TypeScript.
+Two shell scripts under `actiond/` only provision Linux runtime and macOS
+worker; browser assertions and process supervision TypeScript.
 
-The Linux VM workflow also runs `capacity.ts` under a second supervisor with 8192 MiB RAM and an 8192 MiB CAS disk. It verifies the actual disk size, guest-visible memory, and a browser screenshot.
+Linux VM workflow also runs `capacity.ts` under second supervisor with 8192 MiB RAM and 8192 MiB CAS disk. It verifies actual disk size, guest-visible memory, and browser screenshot.
 
-The VM suite also freezes the runner after a real screenshot and verifies the parent deadline, downloaded evidence, untouched baselines, and an uncached recovery run.
+VM suite also freezes runner after real screenshot and verifies parent deadline, downloaded evidence, untouched baselines, and uncached recovery run.
 
 Host CI also runs `temp-paths.ts` with deep and symlinked temp roots, checking real Chromium screenshots and scratch cleanup.
 
-The VM gallery also captures and compares a real pointer-hover state, asserting CSS `:hover` inside `beforeCapture`.
+VM gallery also captures and compares real pointer-hover state, asserting CSS `:hover` inside `beforeCapture`.
 
-The Linux amd64 VM suite also records a page interaction using a caller-pinned
-FFmpeg helper and verifies the downloaded video is nonempty with a WebM header.
-A paired run without the helper must fail with the missing-FFmpeg diagnostic.
+Linux amd64 VM suite also records page interaction using caller-pinned
+FFmpeg helper and verifies downloaded video nonempty with WebM header.
+Paired run without helper must fail with missing-FFmpeg diagnostic.
 Both actions bypass remote action and test-result caches. Other suites keep
-their runtime without FFmpeg, covering the optional-input behavior.
+their runtime without FFmpeg, covering optional-input behavior.
 
-Host CI runs `lingering.ts` with a real browser and a background process holding
+Host CI runs `lingering.ts` with real browser and background process holding
 Playwright's output pipes open. It checks forced cleanup, bounded completion,
 credential filtering, retained screenshots, and scratch removal.
 
@@ -67,7 +67,7 @@ runner timeout, including Electron children launched into separate process group
 Provision matching Playwright Chromium first; on Linux run under
 `xvfb-run -a`. CI runs both Linux and macOS. Tests never download executables.
 
-On Linux amd64 the VM suite checks that visual comparisons are native tests:
+On Linux amd64 VM suite checks that visual comparisons native tests:
 flaky retries and repeated runs launch distinct browsers, disabling test-result
 caching causes fresh executions, and failed comparisons download JUnit and diff
-images through Bazel test outputs. ARM64 retains the comparison-action checks.
+images through Bazel test outputs. ARM64 retains comparison-action checks.

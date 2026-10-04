@@ -1,7 +1,7 @@
 # Getting started
 
-Use the presets for Linux amd64 tests. Customize the runtime or worker only when
-you need different versions, fonts, architecture, or infrastructure.
+Linux amd64? Use presets. Customize runtime or worker only when you need
+different versions, fonts, architecture, or infrastructure.
 
 ## Basic: presets
 
@@ -21,13 +21,13 @@ Use Playwright **1.63.0** with this preset. Set
 Your Bazel build must supply:
 
 - Compiled ESM specs with typechecking and runtime dependencies.
-- A built HTML/JS/CSS directory wrapped in `browser_shell`, or a compiled server
-  adapter. Component tests and gallery VRT need a gallery that registers visual
+- Built HTML/JS/CSS directory wrapped in `browser_shell`, or compiled server
+  adapter. Component tests and gallery VRT need gallery that registers visual
   modules with `installVisualGallery`.
 - Playwright packages from your npm lockfile. Use `playwright_runtime` to select
-  them; otherwise tests use the rules' pinned packages.
+  them; otherwise tests use rules' pinned packages.
 
-Link the gallery/server TypeScript API when needed:
+Link gallery/server TypeScript API when needed:
 
 ```starlark
 load("@aspect_rules_js//npm:defs.bzl", "npm_link_package")
@@ -38,15 +38,15 @@ npm_link_package(
 )
 ```
 
-See the [test declarations](../README.md#api) and [complete React build](../examples/react/BUILD.bazel).
-The rules consume build outputs; your existing TypeScript and bundler pipeline
+See [test declarations](../README.md#api) and [complete React build](../examples/react/BUILD.bazel).
+Rules consume build outputs; your existing TypeScript and bundler pipeline
 owns their production.
 
 ## Run the example
 
 Use Linux amd64 with writable `/dev/kvm` and `/dev/vhost-vsock`, usable
-`io_uring`, and room for a 6 GiB VM. The supervisor checks prerequisites but does
-not provision the host.
+`io_uring`, and room for 6 GiB VM. Supervisor checks prerequisites but does
+not provision host.
 
 ```sh
 cd examples/react
@@ -58,10 +58,10 @@ bazel run --script_path="$PWD/.web-e2e/run" @rules_web_e2e//worker:runner
 ```
 
 Use `--bazel=bazelisk` before `doctor`, `test`, or `run` if needed. Ignore
-`.web-e2e/` in Git and regenerate the launcher after dependency upgrades. Run it
+`.web-e2e/` in Git and regenerate launcher after dependency upgrades. Run it
 outside `bazel run` to avoid holding Bazel's lock. Review screenshot updates.
 
-Browser targets are `manual`; select them explicitly in CI. Retain
+Browser targets `manual`; select them explicitly in CI. Retain
 `bazel-testlogs/` and `.web-e2e/logs/`. See [worker options and CI buckets](worker-preset.md).
 
 ## Advanced: custom inputs or workers
@@ -74,8 +74,8 @@ Browser targets are `manual`; select them explicitly in CI. Retain
 | Live deployed service, or host E2E/component tests | [Host browsers](host-browsers.md) |
 | Custom server, providers, fixtures | [Customization](customization.md) |
 
-Custom runtimes can use the supported worker supervisor; custom workers can use
-the runtime preset. Isolated tests use declared inputs and loopback-only
+Custom runtimes can use supported worker supervisor; custom workers can use
+runtime preset. Isolated tests use declared inputs and loopback-only
 networking. Live-service checks use host tests; VRT always requires isolation.
 
 ## Migrating from 1.0.0
@@ -83,4 +83,4 @@ networking. Live-service checks use host tests; VRT always requires isolation.
 Replace raw `srcs`/`deps` and Vite attributes with built `tests` and `browser_shell`
 targets. Replace `image` with `browser`, client package attributes with
 `playwright_runtime`, and `visualConfig({tolerance})` with `matching`.
-Keep visual IDs and baseline filenames stable. See the [API reference](api.md).
+Keep visual IDs and baseline filenames stable. See [API reference](api.md).
