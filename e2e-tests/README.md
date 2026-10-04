@@ -66,3 +66,8 @@ screenshots, process termination, and profile/scratch removal after success and
 runner timeout, including Electron children launched into separate process groups.
 Provision matching Playwright Chromium first; on Linux run under
 `xvfb-run -a`. CI runs both Linux and macOS. Tests never download executables.
+
+On Linux amd64 the VM suite checks that visual comparisons are native tests:
+flaky retries and repeated runs launch distinct browsers, disabling test-result
+caching causes fresh executions, and failed comparisons download JUnit and diff
+images through Bazel test outputs. ARM64 retains the comparison-action checks.

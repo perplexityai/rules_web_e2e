@@ -34,7 +34,9 @@ const result = (name: string, mode = 'capture') => {
   assert.notEqual(status.exitCode, 0, JSON.stringify(status))
   return directory
 }
-const ids = (name: string) => new Set(files(`bazel-testlogs/${name}`).filter(p => p.endsWith('.log'))
+// Bazel can retain old single-run logs when a later invocation uses runs_per_test.
+const ids = (name: string, repeated = false) => new Set(files(`bazel-testlogs/${name}`)
+  .filter(p => p.endsWith('.log') && /\/run_[12]_of_2\//.test(p) === repeated)
   .flatMap(p => [...text(p).matchAll(/BROWSER_EXECUTION ([a-f0-9-]{36})/g)].map(match => match[1])))
 
 async function cancelCapture(original: Buffer) {
@@ -109,7 +111,7 @@ try {
     let previous = new Set<string>()
     for (let round = 0; round < 2; round++) {
       test('//:actiond_rerun_test', '--runs_per_test=2', '--nocache_test_results')
-      const current = ids('actiond_rerun_test')
+      const current = ids('actiond_rerun_test', true)
       assert.equal(current.size, 2, 'runs_per_test must launch two browsers')
       assert([...current].every(id => !previous.has(id)), 'nocache_test_results replayed a browser run')
       previous = current
@@ -123,6 +125,22 @@ try {
   nonempty('__actiond_native__/saved.png')
   nonempty('__actiond_gallery__/counter.png')
   test('//:actiond_native_test', '//:actiond_gallery_test', '//:actiond_isolation_test')
+  if (arch === 'x64') {
+    run([...command, 'test', '//:actiond_failure_test', ...flags,
+      '--flaky_test_attempts=2', '--nocache_test_results', '--test_output=errors'], {fail: true})
+    assert.equal(ids('actiond_failure_test').size, 2, 'Visual retries must launch two browsers')
+    const outputs = outputFiles('bazel-testlogs/actiond_failure_test/test.outputs')
+    assert(outputs.some(file => file.name.endsWith('junit.xml')))
+    assert(outputs.some(file => file.name.endsWith('.png')), 'Failed native comparison must download screenshots')
+    let previous = new Set<string>()
+    for (let round = 0; round < 2; round++) {
+      test('//:actiond_native_test', '--runs_per_test=2', '--nocache_test_results')
+      const current = ids('actiond_native_test', true)
+      assert.equal(current.size, 2, 'Visual runs_per_test must launch two browsers')
+      assert([...current].every(id => !previous.has(id)), 'Visual nocache_test_results replayed a browser run')
+      previous = current
+    }
+  }
   const original = fs.readFileSync('__actiond_native__/saved.png')
   // Empty, failed, and timed-out captures must all preserve source references.
   for (const [name, directory] of [
@@ -159,7 +177,13 @@ try {
   fs.copyFileSync('__actiond_gallery__/counter.png', '__actiond_native__/saved.png')
   try {
     run([...command, 'test', '//:actiond_native_test', ...flags, '--test_output=errors'], {fail: true})
-    assert(files(`${result('actiond_native_test', 'compare')}/artifacts`).some(p => p.endsWith('-diff.png')))
+    if (arch === 'x64') {
+      const outputs = outputFiles('bazel-testlogs/actiond_native_test/test.outputs')
+      assert(outputs.some(file => file.name.endsWith('-diff.png')), 'Native comparison must download diff images')
+      nonempty('bazel-testlogs/actiond_native_test/test.xml')
+    } else {
+      assert(files(`${result('actiond_native_test', 'compare')}/artifacts`).some(p => p.endsWith('-diff.png')))
+    }
   } finally {
     fs.writeFileSync('__actiond_native__/saved.png', original)
   }

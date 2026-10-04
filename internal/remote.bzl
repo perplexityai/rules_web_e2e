@@ -184,7 +184,10 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
     constraints = [Label("@platforms//os:linux"), Label("@platforms//cpu:" + ("x86_64" if target_arch == "x64" else "arm64"))]
     if not visual and target_arch == "arm64":
         fail("ARM64 isolated execution currently supports VRT only; omit browser for host interaction tests")
-    if not visual:
+    # Native launcher tools currently target amd64. Keep ARM64's existing
+    # artifact comparison until those tools support its execution platform.
+    native_comparison = not visual or target_arch == "x64"
+    if native_comparison:
         _native_browser_test(
             name = name,
             inputs = ":" + name + "_inputs",
@@ -195,29 +198,15 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
             data = data,
             target_platform = target_platform,
             target_arch = target_arch,
+            host_vrt = host_vrt,
             exec_properties = execution_properties,
             exec_compatible_with = constraints,
-            tags = ["manual", "browser_test"] + tags,
+            tags = ["manual", "visual_test" if visual else "browser_test"] + tags,
             timeout = timeout,
         )
+    if not visual:
         return
-    if host_vrt:
-        _native_browser_test(
-            name = name,
-            inputs = ":" + name + "_inputs",
-            browser = browser,
-            env = env,
-            args = args,
-            mode = "test",
-            data = data,
-            target_platform = target_platform,
-            target_arch = target_arch,
-            host_vrt = True,
-            exec_compatible_with = constraints,
-            tags = ["manual", "visual_test"] + tags,
-            timeout = timeout,
-        )
-    for mode in (["capture"] if host_vrt else ["compare", "capture"]):
+    for mode in (["capture"] if native_comparison else ["compare", "capture"]):
         capture = mode == "capture"
         action = name + "_" + mode
         _remote(
