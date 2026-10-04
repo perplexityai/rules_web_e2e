@@ -7,6 +7,56 @@ from playwright.browser_files import assemble
 
 
 class BrowserFilesTest(unittest.TestCase):
+    def test_ffmpeg_cache_is_relocatable_and_preserves_declared_input(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            core = root / "core"
+            core.mkdir()
+            (core / "browsers.json").write_text(json.dumps({"browsers": [
+                {"name": "ffmpeg", "revision": "1011"},
+            ]}))
+            runtime = root / "runtime"
+            runtime.mkdir()
+            source = root / "declared-helper"
+            (runtime / "helper").symlink_to(source)
+            source.write_bytes(b"declared ffmpeg")
+            source.chmod(0o555)
+            output = root / "cache"
+            assemble({"mode": "ffmpeg-cache", "core": str(core),
+                      "runtime": str(runtime), "ffmpeg": "helper"}, output)
+            moved = output.rename(root / "moved")
+            self.assertEqual(source.stat().st_mode & 0o777, 0o555)
+            source.unlink()
+            helper = moved / "ffmpeg-1011/ffmpeg-linux"
+            self.assertEqual(helper.read_bytes(), b"declared ffmpeg")
+            self.assertFalse(helper.is_symlink())
+            self.assertEqual(helper.stat().st_mode & 0o777, 0o755)
+
+    def test_ffmpeg_cache_rejects_unsupported_metadata_and_escaping_helpers(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            core = root / "core"
+            core.mkdir()
+            runtime = root / "runtime"
+            runtime.mkdir()
+            (root / "outside").write_text("undeclared")
+            (runtime / "helper").symlink_to(root / "outside")
+            manifest = {"mode": "ffmpeg-cache", "core": str(core),
+                        "runtime": str(runtime), "ffmpeg": "helper"}
+            for metadata in [[], [{"name": "ffmpeg", "revision": "../outside"}],
+                             [{"name": "ffmpeg", "revision": "1011", "revisionOverrides": {}}]]:
+                with self.subTest(metadata=metadata):
+                    (core / "browsers.json").write_text(json.dumps({"browsers": metadata}))
+                    with self.assertRaisesRegex(ValueError, "platform-independent FFmpeg revision"):
+                        assemble(manifest, root / "cache")
+            (core / "browsers.json").write_text(json.dumps({"browsers": [
+                {"name": "ffmpeg", "revision": "1011"},
+            ]}))
+            for relative in ["../outside", "/outside", "bin/../helper", ""]:
+                manifest["ffmpeg"] = relative
+                with self.assertRaisesRegex(ValueError, "relative path inside the declared browser runtime"):
+                    assemble(manifest, root / "cache")
+
     def bundle(self, root):
         root.mkdir()
         (root / "chrome-headless-shell").write_text("declared browser")

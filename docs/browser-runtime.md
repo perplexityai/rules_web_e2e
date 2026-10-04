@@ -39,9 +39,12 @@ linux_chromium_runtime(
 supplies the executable/loader paths and assembles the default
 `@rules_web_e2e//playwright/presets:noble_20260901` library/font preset. Its package
 URLs and checksums are checked in; consumers do not resolve APT dependencies.
-If tests record video, pass `ffmpeg = "//:pinned_ffmpeg"`. The helper stages the
-declared Linux executable at the revision selected by the test's Playwright
-package, without downloading a browser helper at test time.
+If tests record video, pass `ffmpeg = "//:pinned_ffmpeg"`. A cached Bazel action builds the
+versioned helper directory from the declared Playwright core metadata and browser
+runtime. The test consumes this immutable directory through
+`PLAYWRIGHT_BROWSERS_PATH`; it does not stage or download a helper at startup.
+As with other declared runtime inputs, the selected Playwright packages must
+match the declared version.
 Add `fonts = [":brand_fonts"]` for declared font files/directories, or set `system`
 to a custom declared directory containing `lib/`, `bin/bash`, `etc/fonts/`, and
 `fonts/` with the same layout. A system preset must not contain Node or Chromium.

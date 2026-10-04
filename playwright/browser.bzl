@@ -30,7 +30,7 @@ def _linux_impl(ctx):
     }, ctx.files.chromium + ctx.files.ffmpeg + [ctx.file.node, ctx.file.system] + ctx.files.fonts)
     return [
         DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output])),
-        BrowserRuntimeInfo(descriptor = {
+        BrowserRuntimeInfo(root_file = output, descriptor = {
             "root": runfile(output),
             "executable": "chromium/chrome-headless-shell",
             "node": "bin/node",

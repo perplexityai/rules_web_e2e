@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
-import {browserRuntime, stageFfmpeg, workerLibraryPath, type BrowserRuntime} from './browser-runtime.js'
+import {browserRuntime, workerLibraryPath, type BrowserRuntime} from './browser-runtime.js'
 
 test('declared browser resolution refuses host fallback and escaping files', {
   skip: process.platform !== 'linux',
@@ -35,30 +35,5 @@ test('declared browser resolution refuses host fallback and escaping files', {
     assert.throws(() => browserRuntime(inputs, {...runtime, arch: process.arch === 'x64' ? 'arm64' : 'x64'}), /select a matching execution platform/)
   } finally {
     fs.rmSync(inputs, {recursive: true, force: true})
-  }
-})
-
-test('stages declared FFmpeg at the selected Playwright revision', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ffmpeg-runtime-'))
-  try {
-    const core = path.join(root, 'core')
-    const cache = path.join(root, 'cache')
-    const executable = path.join(root, 'ffmpeg-linux')
-    fs.mkdirSync(core)
-    fs.writeFileSync(executable, 'declared helper')
-    fs.writeFileSync(path.join(core, 'browsers.json'), JSON.stringify({
-      browsers: [{name: 'ffmpeg', revision: '1011'}],
-    }))
-    stageFfmpeg(core, executable, cache)
-    assert.equal(
-      fs.realpathSync(path.join(cache, 'ms-playwright', 'ffmpeg-1011', 'ffmpeg-linux')),
-      fs.realpathSync(executable),
-    )
-    fs.writeFileSync(path.join(core, 'browsers.json'), JSON.stringify({
-      browsers: [{name: 'ffmpeg', revision: '../outside'}],
-    }))
-    assert.throws(() => stageFfmpeg(core, executable, cache), /platform-independent FFmpeg revision/)
-  } finally {
-    fs.rmSync(root, {recursive: true, force: true})
   }
 })

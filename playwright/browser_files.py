@@ -1,5 +1,6 @@
 """Assemble caller-declared browsers without hardcoded Playwright cache revisions."""
 import json
+import re
 from pathlib import Path
 import shutil
 import sys
@@ -35,7 +36,24 @@ def check_elf_arch(file, arch):
 
 def assemble(manifest, output):
     output = Path(output)
-    if manifest["mode"] == "linux":
+    if manifest["mode"] == "ffmpeg-cache":
+        metadata = json.loads((Path(manifest["core"]) / "browsers.json").read_text())
+        helpers = [entry for entry in metadata["browsers"] if entry["name"] == "ffmpeg"]
+        if (len(helpers) != 1 or not isinstance(helpers[0].get("revision"), str)
+                or not re.fullmatch(r"[0-9]+", helpers[0]["revision"])
+                or helpers[0].get("revisionOverrides") is not None):
+            raise ValueError("Playwright must declare one platform-independent FFmpeg revision")
+        relative = manifest["ffmpeg"]
+        if not relative or Path(relative).is_absolute() or any(part in ("", ".", "..") for part in relative.split("/")):
+            raise ValueError("FFmpeg must use a relative path inside the declared browser runtime")
+        # Bazel may represent a tree artifact's files as sandbox symlinks to
+        # its execroot. The declared tree, not realpath containment, owns them.
+        executable = Path(manifest["runtime"]) / relative
+        directory = output / ("ffmpeg-" + helpers[0]["revision"])
+        directory.mkdir(parents=True)
+        shutil.copyfile(executable, directory / "ffmpeg-linux")
+        (directory / "ffmpeg-linux").chmod(0o755)
+    elif manifest["mode"] == "linux":
         shutil.copytree(manifest["system"], output, dirs_exist_ok=True)
         # Sandbox input links are copied as regular declared files.
         for directory in [output, *output.rglob("*")]:
