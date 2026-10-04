@@ -5,6 +5,7 @@ import {testArguments} from './arguments.js'
 test('E2E selection preserves regex values and rejects execution-policy overrides', () => {
   const selectors = ['--grep', 'edit|load', '--project=chromium', '--shard=1/2']
   assert.deepEqual(testArguments(false, selectors), selectors)
+  assert.deepEqual(testArguments(false, ['--export-snapshots', ...selectors]), selectors)
   for (const args of [
     ['--config=/host/config.ts'],
     ['--output=/host'],
@@ -20,6 +21,7 @@ test('E2E selection preserves regex values and rejects execution-policy override
 test('visual updates cannot silently select only part of the baseline set', () => {
   assert.deepEqual(testArguments(true, ['--update']), [])
   assert.throws(() => testArguments(true, ['--update', '--grep=only-one']))
+  assert.throws(() => testArguments(true, ['--export-snapshots']))
 })
 
 test('CI file selection maps source names to declared compiled specs only', () => {

@@ -49,7 +49,56 @@ cd examples/react
 
 Selection flags `--grep`, `--grep-invert`, `--project`, and `--shard` are forwarded
 through `--test_arg`. Configure other Playwright settings in the declared config;
-Add custom reporters through the [compiled Playwright config](api.md#optional-playwright-configuration). CLI overrides of config, reporters, output paths, and snapshot updates are rejected.
+Add custom reporters through the [compiled Playwright config](api.md#optional-playwright-configuration). CLI overrides of config, reporters, output paths, and in-place snapshot updates are rejected.
+
+## Snapshot updates
+
+Host E2E, component, and process-owned targets can own snapshots:
+
+```starlark
+web_e2e_test(
+    name = "e2e_test",
+    tests = ":compiled_specs",
+    config = ":compiled_config",
+    snapshot_dir = "snapshots",
+    snapshots = glob(["snapshots/**"], allow_empty = True),
+)
+```
+
+```sh
+bazel run //path:e2e_test.update
+bazel run //path:e2e_test.update --@rules_web_e2e//:snapshot_filter=checkout
+bazel test //path:e2e_test
+```
+
+`snapshot_dir` is package-relative; define update targets in the consuming workspace. Normal tests read declared `snapshots`;
+`<name>_snapshot_capture` builds a declared tree containing existing baselines plus successful captures.
+`.update` applies that tree with `write_source_files`. Building alone never changes sources.
+Missing/mismatched baselines fail normal tests. Failed or empty captures apply nothing.
+Filtered updates preserve unselected declared files. Declare the entire snapshot directory.
+Undeclared files or edits since capture block application. Use separate directories per target.
+Updates share the VRT lock and change checks; directory replacement is not atomic. Review diffs before committing.
+
+Capture runs locally. Unchanged build inputs can reuse the previous capture. Set
+`--@rules_web_e2e//:snapshot_refresh=<new-value>` to recapture after host or service changes.
+Selection belongs in `snapshot_filter` or target `args`, not arguments after `--`.
+For an inherited browser installation, pass `--action_env=PLAYWRIGHT_BROWSERS_PATH`
+to build/run; likewise forward any required inherited environment variables.
+
+Layout: `default/<compiled-spec-path>-snapshots/<snapshot-name>`, or
+`project-<URL-encoded-project-name>/...` for configured projects. Screenshot names
+retain Playwright's platform suffix. Managed paths override caller snapshot templates,
+including screenshot/ARIA matcher templates. Existing custom layouts need migration.
+No source filename guessing or consumer-specific paths.
+
+For export only, use `bazel test //path:e2e_test --test_arg=--export-snapshots`.
+Captures stay under `test.outputs/snapshots/` using the same layout.
+`snapshot-sources.json` maps compiled spec paths to declared runfiles paths.
+Export alone never applies files. `snapshot_dir` is optional for export.
+
+Isolated browser tests support export only. Visual targets retain full-suite `.update`
+and `baseline_dir`; they reject snapshot export and `snapshot_dir`.
+
 No matching tests fail by default. Visual targets keep their separate full-capture
 policy. See [the example BUILD file](../examples/react/BUILD.bazel).
 

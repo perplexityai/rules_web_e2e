@@ -36,6 +36,10 @@ async function run(temp: string) {
   const remote = remoteAppUrl(process.env)
   const args = process.argv.slice(2)
   const update = args.includes('--update')
+  const exportSnapshots = !visual && args.includes('--export-snapshots')
+  const snapshotRelative = process.env.VRT_SNAPSHOT_RELATIVE || ''
+  const snapshotCapture = process.env.VRT_SNAPSHOT_CAPTURE_OUTPUT
+    ? path.resolve(required('JS_BINARY__EXECROOT'), process.env.VRT_SNAPSHOT_CAPTURE_OUTPUT) : undefined
   if (!visual && update) throw new Error('E2E tests do not update baselines')
   const captureOutput = update ? process.env.VRT_CAPTURE_OUTPUT : undefined
   const destination = update && !captureOutput
@@ -46,10 +50,15 @@ async function run(temp: string) {
     : undefined
   const baselineBefore = destination ? baselineHashes(destination) : undefined
   const outputs =
-    process.env.TEST_UNDECLARED_OUTPUTS_DIR || fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-artifacts-'))
+    (snapshotCapture ? path.join(snapshotCapture, 'artifacts') : process.env.TEST_UNDECLARED_OUTPUTS_DIR) || fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-artifacts-'))
   fs.mkdirSync(outputs, {recursive: true})
   const inputs = process.env.RUNFILES_DIR || required('JS_BINARY__RUNFILES')
   const input = (relative: string) => path.join(inputs, relative)
+  const snapshotInputs = snapshotRelative ? path.join(inputs, required('VRT_DESCRIPTOR').split('/')[0], snapshotRelative) : undefined
+  if (snapshotCapture) {
+    if (!exportSnapshots || !snapshotInputs) throw new Error('Snapshot capture requires export mode and snapshot_dir')
+    fs.writeFileSync(path.join(snapshotCapture, 'baseline-before.json'), JSON.stringify({workspace: required('VRT_DESCRIPTOR').split('/')[0], hashes: baselineHashes(snapshotInputs, true, true)}))
+  }
   const descriptorPath = input(required('VRT_DESCRIPTOR'))
   const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8')) as {
     tests: string[]
@@ -70,6 +79,10 @@ async function run(temp: string) {
   while (testFiles.some(file => path.relative(discoveryRoot, file).split(path.sep)[0] === '..'))
     discoveryRoot = path.dirname(discoveryRoot)
   const selectors = testArguments(visual, args, descriptor.tests)
+  if (exportSnapshots)
+    fs.writeFileSync(path.join(outputs, 'snapshot-sources.json'), JSON.stringify(
+      Object.fromEntries(testFiles.map((file, index) => [path.relative(discoveryRoot, file), descriptor.tests[index]]))
+    ))
   if (visual && !descriptor.browser) throw new Error("VRT requires a declared browser runtime")
   const declaredBrowser = descriptor.browser
     ? browserRuntime(inputs, descriptor.browser, process.env.VRT_HOST_EXECUTION === '1')
@@ -199,6 +212,8 @@ async function run(temp: string) {
         }
       : {}),
     VRT_UPDATE: update ? '1' : '0',
+    VRT_EXPORT_SNAPSHOTS: exportSnapshots ? '1' : '0',
+    VRT_SNAPSHOT_ROOT: snapshotRelative ? path.join(inputs, required('VRT_DESCRIPTOR').split('/')[0], snapshotRelative) : '',
     VRT_BASELINES: baselines,
     VRT_OUTPUTS: outputs,
     VRT_VISUAL_CATALOG: path.join(temp, 'visual-catalog.json'),
@@ -328,6 +343,14 @@ async function run(temp: string) {
       console.error(`VRT artifacts: ${outputs}`)
       return
     }
+    if (snapshotCapture) {
+      const captured = path.join(outputs, 'snapshots')
+      if (!Object.keys(baselineHashes(captured, false, true)).length)
+        throw new Error('Capture produced no snapshots; nothing was applied')
+      const merged = path.join(snapshotCapture, 'snapshots')
+      if (fs.existsSync(snapshotInputs!)) materializeSnapshots(snapshotInputs!, merged)
+      materializeSnapshots(captured, merged, true)
+    }
     if (destination) {
       applyBaselineUpdate(baselines, destination, baselineBefore!)
       console.log(`Updated baselines: ${destination}`)
@@ -341,7 +364,7 @@ async function run(temp: string) {
     killChildren()
     await Promise.allSettled(children.map(child => child.closed))
     if (interrupted) process.exitCode = 143
-    if (succeeded && !process.env.TEST_UNDECLARED_OUTPUTS_DIR) removeScratch(outputs)
+    if (succeeded && !process.env.TEST_UNDECLARED_OUTPUTS_DIR && !exportSnapshots && !snapshotCapture) removeScratch(outputs)
     process.removeListener('SIGTERM', onSignal)
     process.removeListener('SIGINT', onSignal)
   }

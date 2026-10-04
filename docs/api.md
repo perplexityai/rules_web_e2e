@@ -43,6 +43,8 @@ and application-specific output can still contain sensitive data.
 | `target_platform` | Linux platform for `target_arch` | Override for native ABI constraints; must match the runtime |
 | `execution_timeout_seconds` | `180` | Per Playwright invocation; discovery and capture have separate deadlines |
 | `timeout` | `"long"` | Independent Bazel test timeout |
+| `snapshot_dir` | None | Host E2E/component/process snapshot directory, relative to package. Enables `.update`; owns snapshot layout. |
+| `snapshots` | `[]` | Declared baseline files for `snapshot_dir`, usually `glob(["snapshots/**"], allow_empty = True)`. |
 | `cacheable` | `False` | Opt in to local result caching for deterministic host E2E/component tests; requires explicit browser path and caller-declared inputs. No URL attributes, env inheritance, visual, process-owned, or isolated browser modes. See [caching contract](e2e.md#opt-in-local-result-caching). |
 | `tags` | `[]` | Additional tags; browser targets are manual |
 
@@ -58,6 +60,7 @@ outputs; shell producers must depend on their own typecheck action.
 
 E2E/component tests accept `--grep`, `--grep-invert`, `--project`, `--shard`,
 declared spec paths, and `--pass-with-no-tests` in `args` or `--test_arg`.
+`--export-snapshots` captures replacement images under test outputs with a runfiles-path manifest; it never updates checked-in files. See [snapshot export](e2e.md).
 Source `.spec.ts`/`.spec.tsx` paths map to emitted `.spec.js`.
 Visual targets reject these filters and runtime arguments; use separate targets
 and baseline directories for different suites.

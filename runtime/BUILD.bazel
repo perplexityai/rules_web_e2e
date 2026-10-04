@@ -293,3 +293,9 @@ js_test(
     data = ["package.json", ":typecheck"],
     entry_point = "child-process.test.js",
 )
+
+filegroup(
+    name = "snapshot_result_entry",
+    srcs = ["snapshot-result-entry.js"],
+    visibility = ["//visibility:public"],
+)
