@@ -26,6 +26,7 @@ js_library(name = "cache_component_specs", srcs = [":cache_component_spec"], dep
     fs.appendFileSync(path.join(consumer, 'BUILD.bazel'), `
 ${macro}(
     name = "${name}", tests = ":${specs}", config = ":cache_config",
+    playwright = ":playwright",
     data = [":cache_browsers", "cache-app.html", "cache-mock.json"],
     env = {
         "PLAYWRIGHT_BROWSERS_PATH": ${JSON.stringify(browserFiles)},
