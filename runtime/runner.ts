@@ -227,7 +227,7 @@ async function run(temp: string) {
       if (server.stderr) forwardOutput(server.stderr, process.stderr)
       children.push(manageChild(server))
       appUrl = await new Promise<string>((resolve, reject) => {
-        const timer = setTimeout(
+        const timer = process.env.TEST_TIMEOUT ? undefined : setTimeout(
           () => reject(new Error('Fixture server startup timed out')),
           30_000
         )
@@ -273,7 +273,7 @@ async function run(temp: string) {
         const managed = manageChild(child, processOwned)
         children.push(managed)
         let timedOut = false
-        const timer = setTimeout(
+        const timer = process.env.TEST_TIMEOUT ? undefined : setTimeout(
           () => {
             timedOut = true
             console.error('VRT exceeded its execution timeout')

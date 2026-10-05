@@ -104,7 +104,6 @@ def _remote_impl(ctx):
         "args": [] if native_test else [ctx.expand_location(value, targets = locations) for value in ctx.attr.args],
         "output": "",
         "mode": ctx.attr.mode,
-        "runtime": dict(browser.descriptor, path = to_rlocation_path(ctx, root)),
         # Make the local environment identity an input to every cache layer.
         "execution_properties": ctx.attr.exec_properties if ctx.attr.execution == "local" else {},
     }))

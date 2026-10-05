@@ -35,7 +35,7 @@ jobs:
       - name: Build
         run: bazelisk build //...
       - name: Test
-        run: bazelisk test //... //tests/process:owned_test //tests/process:without_config_test
+        run: bazelisk test //... //tests/process:owned_test //tests/process:without_config_test //tests/process:timeout_contract_test
       - name: Build and test the BCR consumer
         working-directory: bcr_test
         run: |
