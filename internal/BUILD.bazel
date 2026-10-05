@@ -2,6 +2,7 @@ load(":remote.bzl", "linux_platform")
 load("@rules_python//python:defs.bzl", "py_binary")
 
 exports_files([
+    "capture-launcher.sh.tpl",
     "browser.bzl",
     "snapshots.bzl",
     "matching.bzl",

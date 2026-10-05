@@ -15,7 +15,6 @@ class SupervisorConfigTest(unittest.TestCase):
         self.assertIn("--remote_local_fallback=false", flags)
         self.assertIn("--remote_download_outputs=all", flags)
         self.assertIn("--strategy=VrtCapture=remote", flags)
-        self.assertIn("--strategy=VrtCompare=remote", flags)
         self.assertFalse(any(flag.startswith("--remote_default_exec_properties") for flag in flags))
 
 

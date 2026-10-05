@@ -34,8 +34,8 @@ if [[ $mode == --build-only ]]; then
   codesign --verify --strict "$work/actiond-worker"
   cd "$work/public"
   "$bazel_bin" --output_base="$work/public-bazel-output" build \
-    //:actiond_native_test_capture //:actiond_native_test_compare \
-    //:actiond_gallery_test_capture //:actiond_gallery_test_compare \
+    //:actiond_native_test_capture //:actiond_native_test \
+    //:actiond_gallery_test_capture //:actiond_gallery_test \
     --output_groups=inputs --jobs=2 \
     --extra_execution_platforms=@platforms//host:host,@rules_web_e2e//internal:linux_arm64
   exit 0

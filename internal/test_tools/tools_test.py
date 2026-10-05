@@ -3,7 +3,6 @@
 import base64
 import os
 from pathlib import Path
-import struct
 import subprocess
 import sys
 import tempfile
@@ -28,20 +27,6 @@ class TestTools(unittest.TestCase):
             ["/bin/bash", "-c", 'source "$1"; shift; "$@"', "tools", _FILES["tools.bash-env"], command, *args],
             cwd=self.root, env=self.env, text=True,
         )
-
-    def test_static_elf(self):
-        for name in ("toybox", "file", "zip"):
-            with self.subTest(name=name):
-                data = Path(_FILES[name]).read_bytes()
-                self.assertEqual(data[:6], b"\x7fELF\x02\x01")
-                offset = struct.unpack_from("<Q", data, 32)[0]
-                size, count = struct.unpack_from("<HH", data, 54)
-                for i in range(count):
-                    kind, _, position, _, _, length = struct.unpack_from("<IIQQQQ", data, offset + i * size)
-                    self.assertNotEqual(kind, 3, "ELF interpreter requires an external loader")
-                    if kind == 2:
-                        tags = [struct.unpack_from("<q", data, j)[0] for j in range(position, position + length, 16)]
-                        self.assertNotIn(1, tags, "DT_NEEDED requires shared libraries")
 
     def test_files_and_output_metadata(self):
         self.run_tool("mkdir", "-p", "outputs/nested")

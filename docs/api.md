@@ -227,10 +227,10 @@ and `host` (`127.0.0.1`). Return ready HTTP `url` with explicit port and
 ## VRT execution
 
 Use [worker preset](worker-preset.md) or [manual worker setup](actiond.md).
-Linux amd64 VRT comparisons and isolated E2E/component tests use native Bazel
-test caching, retries, repeated runs, and timeouts. VRT capture remains build
-action with local update command. ARM64 comparison retains legacy build
-action and local result wrapper. Host E2E/component tests default to local, manual,
+Linux amd64 and ARM64 VRT comparisons use native Bazel test caching, retries,
+repeated runs, and timeouts. Isolated amd64 E2E/component tests use same path.
+VRT capture remains build action with local update command.
+Host E2E/component tests default to local, manual,
 uncached execution; see `cacheable` for explicit opt-in.
 
 ### Runtime convenience rules

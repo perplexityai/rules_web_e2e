@@ -29,7 +29,6 @@ build:vrt --remote_executor=grpc://127.0.0.1:8980
 build:vrt --remote_cache=grpc://127.0.0.1:8980
 build:vrt --spawn_strategy=sandboxed,local
 build:vrt --strategy=VrtCapture=remote
-build:vrt --strategy=VrtCompare=remote
 build:vrt --strategy=TestRunner=remote,local
 build:vrt --remote_local_fallback=false
 build:vrt --remote_upload_local_results=false
@@ -62,12 +61,10 @@ Ordinary browser tests native Bazel test actions. Bazel owns their exit
 status, retries, repeated runs, and test-result caching. `--nocache_test_results`
 reruns Chromium; failure reports standard test artifacts.
 
-Linux amd64 VRT comparisons also use native Bazel test actions. Retries and
+Linux amd64 and ARM64 VRT comparisons use native Bazel test actions. Retries and
 `--runs_per_test` launch fresh browser executions; `--nocache_test_results`
 reruns comparison even when all build inputs unchanged. Failed comparisons
 publish screenshots and per-case JUnit through Bazel test outputs and XML.
-ARM64 still uses comparison build action and local result test until its
-native launcher tools available.
 
 VRT capture remains cacheable build action. Its result directory contains
 status and artifacts even when capture fails.
@@ -85,7 +82,8 @@ Docker, registry credentials, Testcontainers, and Ryuk absent from action.
 Caller owns compilation, typechecking, bundling, executable permissions, and
 its complete dependency layout. Native tests and VRT build actions use Bazel's
 runfile trees. Build actions invoke declared launchers through `FilesToRunProvider`;
-Bazel prepares their runfiles. Runtime does not copy packages, repair npm links,
+Bazel prepares their runfiles. Capture launcher resolves inputs with standard
+Bash runfiles library and declared lookup utilities. Runtime does not copy packages, repair npm links,
 scan executables, or rewrite ELF
 interpreters and shebangs. Missing required dependencies fail at caller's
 import or launch. Unused platform artifacts not inspected.

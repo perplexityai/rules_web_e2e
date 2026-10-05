@@ -178,3 +178,8 @@ native_visual_test(
     name = "native_visual_contract_test",
     target_under_test = ":x64",
 )
+
+native_visual_test(
+    name = "arm64_native_visual_contract_test",
+    target_under_test = ":arm64",
+)

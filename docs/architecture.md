@@ -23,7 +23,7 @@ additional environment variables and dependencies.
 ```mermaid
 flowchart TD
   Inputs[Compiled specs, assets, runtime, baselines] --> Build[Bazel input and harness build]
-  Build --> Test[Native amd64 test: fixture, Playwright, Chromium]
+  Build --> Test[Native Linux test: fixture, Playwright, Chromium]
   Test --> Reports[Test status, JUnit, screenshots]
   Build --> Capture[Capture action]
   Capture --> Update[Local update applies successful captures]
@@ -31,11 +31,10 @@ flowchart TD
 
 VRT runs in actiond Linux amd64 worker using declared runtime files as its
 root filesystem. Entire suite has loopback-only networking. No browser
-server tunnel or Docker daemon participates in execution. On amd64, Bazel runs
+server tunnel or Docker daemon participates in execution. On amd64 and ARM64, Bazel runs
 comparison as native test and downloads failure reports
 and screenshots through its test output mechanism. Local update command
-explicitly applies successful capture-action outputs. ARM64 comparison retains
-build-action/result-wrapper path until its native launcher tools available.
+explicitly applies successful capture-action outputs.
 See [worker setup and isolation](actiond.md).
 
 Host E2E/component targets run their server and browser on host with

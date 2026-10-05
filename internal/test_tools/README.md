@@ -1,7 +1,7 @@
 # Native test tools
 
 Bazel's `test-setup.sh` executes before our native browser test. Its utilities
- declared test runfiles, built for Linux x86-64 with hermetic LLVM and musl:
+declared test runfiles, built for Linux x86-64 or ARM64 with hermetic LLVM and musl:
 
 - Toybox: filesystem operations, find, grep, sed, ps, and pgrep.
 - libmagic: file and its compiled MIME database.
@@ -36,7 +36,13 @@ because these patched sources repositories, not independent Bazel modules.
 Info-ZIP uses BCR module unchanged. These compatibility/build fixes can be
 upstreamed, after which patched repositories can become ordinary module deps.
 
-`bazel test //internal/test_tools:tools_test` checks ELF dependencies and
+`bazel test //internal/test_tools:elf_x64_test //internal/test_tools:elf_arm64_test` checks both bundles' CPU type and
+static linkage. `bazel test //internal/test_tools:tools_test` checks amd64
 launcher's actual command flags with empty PATH, including process groups,
 symlinks, MIME detection, and ZIP output. Actiond integration suite exercises
 actual Bazel test launcher, retries, cancellation, and browser execution.
+
+Capture launcher uses standard Bash runfiles library. Separate `runfiles_tools`
+bundle supplies only Toybox for library commands; capture does not need ZIP or
+libmagic. Bootstrap loads declared library and tools by action execpath, then
+uses `rlocation` for browser runtime, bootstrap module, and job descriptor.
