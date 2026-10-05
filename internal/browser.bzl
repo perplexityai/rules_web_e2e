@@ -18,7 +18,7 @@ def _shell_impl(ctx):
     if entry.startswith("/") or any([p in ["", ".", ".."] for p in entry.split("/")]) or not entry.endswith(".html"):
         fail("entry_point must be a relative HTML path without dot segments")
     return [
-        DefaultInfo(files = depset([ctx.file.assets]), runfiles = ctx.runfiles(files = [ctx.file.assets]).merge(ctx.attr.assets[DefaultInfo].default_runfiles)),
+        DefaultInfo(files = depset([ctx.file.assets]), runfiles = ctx.runfiles(files = [ctx.file.assets])),
         ShellInfo(directory = to_rlocation_path(ctx, ctx.file.assets), entry_point = entry),
     ]
 

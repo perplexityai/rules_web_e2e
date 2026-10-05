@@ -99,7 +99,8 @@ Load `browser_shell` from `@rules_web_e2e//component:defs.bzl`:
 browser_shell(name = "gallery", assets = ":built_gallery", entry_point = "gallery.html")
 ```
 
-`assets` one built directory. `entry_point` defaults to `index.html` and must
+`assets` one built directory. Only that directory reaches the browser;
+compiler inputs stay out of runtime runfiles. `entry_point` defaults to `index.html` and must
 be relative HTML inside it; it served at `/`. Component tests and gallery VRT
 require that page to install gallery registry. Asset URLs resolve within
 served directory. Server rejects traversal and links outside that directory.
