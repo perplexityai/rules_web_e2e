@@ -9,6 +9,7 @@ import {createRequire} from 'node:module'
 import path from 'node:path'
 import {e2eConfig, componentBrowserConfig, visualConfig, processConfig} from './config.js'
 import {screenshotMatching, type VisualMatching} from './matching.js'
+import {remoteAppUrl} from './network.js'
 
 const mode = process.env.VRT_MODE!
 const processOwned = mode === 'process'
@@ -30,6 +31,20 @@ function snapshotExpect(expect: PlaywrightTestConfig['expect'], project?: string
   }
 }
 const isolated = process.env.VRT_ISOLATED === '1'
+const custom = process.env.VRT_CONFIG_OVERRIDE
+  ? ((await import(pathToFileURL(process.env.VRT_CONFIG_OVERRIDE).href))
+      .default as PlaywrightTestConfig)
+  : {}
+// Config-only suites already load this module in Playwright. Resolve their URL
+// here instead of importing the consumer config in a second Node process.
+if (!processOwned && !process.env.VRT_APP_URL) {
+  const url = remoteAppUrl({VRT_BASE_URL: custom.use?.baseURL})
+  if (!url) throw new Error('A config-only target must set use.baseURL')
+  for (const project of custom.projects ?? [])
+    if (project.use?.baseURL && new URL(project.use.baseURL).origin !== new URL(url).origin)
+      throw new Error('Projects with different origins need separate browser targets')
+  process.env.VRT_APP_URL = url
+}
 const defaults = processOwned
   ? processConfig({root})
   : visual
@@ -37,10 +52,6 @@ const defaults = processOwned
   : mode === 'component'
     ? componentBrowserConfig({root, gallery: process.env.VRT_APP_URL!})
     : e2eConfig({root})
-const custom = process.env.VRT_CONFIG_OVERRIDE
-  ? ((await import(pathToFileURL(process.env.VRT_CONFIG_OVERRIDE).href))
-      .default as PlaywrightTestConfig)
-  : {}
 // Bazel declares the suite. Native projects may vary execution settings, but
 // cannot silently repartition those inputs with a second discovery policy.
 for (const [scope, selection] of [

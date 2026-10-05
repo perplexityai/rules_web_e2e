@@ -203,17 +203,12 @@ async function run(temp: string) {
   process.once('SIGINT', onSignal)
   try {
     let appUrl = remote
-    if (!appUrl && !processOwned) {
+    if (!appUrl && !processOwned && (descriptor.server || descriptor.shell)) {
       const server = spawn(
         node,
         [
           fileURLToPath(
-            new URL(
-              descriptor.server || descriptor.shell
-                ? './server.js'
-                : './config-url.js',
-              import.meta.url
-            )
+            new URL('./server.js', import.meta.url)
           ),
         ],
         {
