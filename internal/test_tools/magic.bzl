@@ -7,6 +7,7 @@ def _magic_impl(ctx):
     args.add_all(ctx.files.srcs)
     ctx.actions.run(
         executable = ctx.executable._generator,
+        env = {"BAZEL_BINDIR": ctx.bin_dir.path},
         arguments = [args],
         inputs = ctx.files.srcs,
         tools = [ctx.attr.compiler[DefaultInfo].files_to_run],

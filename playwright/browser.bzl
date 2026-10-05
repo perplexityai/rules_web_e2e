@@ -9,6 +9,7 @@ def _assemble(ctx, manifest, inputs):
     ctx.actions.write(config, json.encode(manifest))
     ctx.actions.run(
         executable = ctx.executable._assemble,
+        env = {"BAZEL_BINDIR": ctx.bin_dir.path},
         arguments = [config.path, output.path],
         inputs = inputs + [config],
         tools = [ctx.attr._assemble[DefaultInfo].files_to_run],

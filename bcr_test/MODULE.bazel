@@ -8,4 +8,5 @@ local_path_override(
 
 bazel_dep(name = "rules_shell", version = "0.8.0")
 
-bazel_dep(name = "rules_python", version = "1.8.0")
+
+bazel_dep(name = "aspect_rules_js", version = "3.4.1")

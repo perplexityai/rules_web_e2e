@@ -55,6 +55,7 @@ def _runtime_impl(ctx):
     validation = ctx.actions.declare_file(ctx.label.name + ".validated.json")
     ctx.actions.run(
         executable = ctx.executable._validate_packages,
+        env = {"BAZEL_BINDIR": ctx.bin_dir.path},
         arguments = [ctx.file.test.path, ctx.file.core.path, ctx.attr.version, validation.path],
         inputs = [ctx.file.test, ctx.file.core],
         outputs = [validation],

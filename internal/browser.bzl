@@ -85,6 +85,7 @@ def _inputs_impl(ctx):
         }))
         ctx.actions.run(
             executable = ctx.executable._browser_files,
+            env = {"BAZEL_BINDIR": ctx.bin_dir.path},
             arguments = [cache_config.path, browser_cache.path],
             inputs = [cache_config, runtime.core_file, browser.root_file],
             tools = [ctx.attr._browser_files[DefaultInfo].files_to_run],
