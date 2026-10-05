@@ -17,3 +17,6 @@ For Linux ARM64 inputs, build `//:browser_arm64`. Both browser and Node download
  pinned to same versions as amd64 example. This target assembles files
 on host; running VRT requires matching worker. See
 [local Apple Silicon VRT](../../docs/macos-arm64-vrt.md).
+
+[Local Linux prototype](local-prototype/README.md) runs this bundle in a minimal
+Bubblewrap namespace without actiond or KVM. Experimental; not a public mode.
