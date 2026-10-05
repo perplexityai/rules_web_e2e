@@ -74,5 +74,11 @@ export function withBaselineUpdate(destination: string, before: Record<string, s
 
 /** Snapshots are owned working/output data, never links into the input tree. */
 export function materializeSnapshots(source: string, destination: string, overwrite = false): void {
-  fs.cpSync(source, destination, {recursive: true, dereference: true, force: overwrite, errorOnExist: !overwrite})
+  fs.mkdirSync(destination, {recursive: true})
+  for (const name of fs.readdirSync(source)) {
+    const input = path.join(source, name)
+    const output = path.join(destination, name)
+    if (fs.statSync(input).isDirectory()) materializeSnapshots(input, output, overwrite)
+    else fs.writeFileSync(output, fs.readFileSync(input), {flag: overwrite ? 'w' : 'wx'})
+  }
 }
