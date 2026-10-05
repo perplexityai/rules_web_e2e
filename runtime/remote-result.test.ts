@@ -19,13 +19,17 @@ test('failed remote capture preserves local baselines and returns failure artifa
   fs.mkdirSync(path.join(remote, 'baselines'))
   fs.mkdirSync(path.join(workspace, 'screenshots'), {recursive: true})
   fs.writeFileSync(path.join(workspace, 'screenshots/old.png'), 'keep')
-  fs.writeFileSync(path.join(remote, 'baseline-before.json'), JSON.stringify({
+  fs.writeFileSync(path.join(remote, 'baseline-before.json'), JSON.stringify({workspace: '_main', hashes: {
     'old.png': createHash('sha256').update('keep').digest('hex'),
-  }))
+  }}))
   fs.writeFileSync(path.join(remote, 'baselines/partial.png'), 'partial')
   fs.writeFileSync(path.join(remote, 'artifacts/junit.xml'), '<testsuite failures="1"/>')
   fs.writeFileSync(path.join(remote, 'result.json'), JSON.stringify({schemaVersion: 1, mode: 'capture', exitCode: 7}))
-  const update = {workspace, baselineRelative: 'screenshots'}
+  const update = {workspace, baselineRelative: 'screenshots', write: () => {
+    // External writer seam. Real bazel-lib writer is exercised by the source-update integration test.
+    fs.rmSync(path.join(workspace, 'screenshots'), {recursive: true})
+    fs.cpSync(path.join(remote, 'baselines'), path.join(workspace, 'screenshots'), {recursive: true})
+  }}
   assert.equal(consumeRemoteResult(remote, {update}), 7)
   assert.equal(fs.readFileSync(path.join(remote, 'artifacts/junit.xml'), 'utf8'), '<testsuite failures="1"/>')
   assert.deepEqual(fs.readdirSync(path.join(workspace, 'screenshots')), ['old.png'])
@@ -50,13 +54,13 @@ test('edits made during capture are not overwritten by the result consumer', t =
   fs.mkdirSync(destination, {recursive: true})
   fs.writeFileSync(path.join(destination, 'old.png'), 'before capture')
   const before = createHash('sha256').update('before capture').digest('hex')
-  fs.writeFileSync(path.join(remote, 'baseline-before.json'), JSON.stringify({'old.png': before}))
+  fs.writeFileSync(path.join(remote, 'baseline-before.json'), JSON.stringify({workspace: '_main', hashes: {'old.png': before}}))
   fs.writeFileSync(path.join(remote, 'baselines/new.png'), 'new capture')
   fs.writeFileSync(path.join(remote, 'result.json'), JSON.stringify({schemaVersion: 1, mode: 'capture', exitCode: 0}))
 
   fs.writeFileSync(path.join(destination, 'old.png'), 'edited during capture')
   assert.throws(
-    () => consumeRemoteResult(remote, {update: {workspace, baselineRelative: 'screenshots'}}),
+    () => consumeRemoteResult(remote, {update: {workspace, baselineRelative: 'screenshots', write: () => assert.fail('writer ran')}}),
     /changed during capture/
   )
   assert.equal(fs.readFileSync(path.join(destination, 'old.png'), 'utf8'), 'edited during capture')
@@ -71,13 +75,13 @@ test('a concurrent update cannot write into a locked baseline directory', t => {
   const destination = path.join(workspace, 'screenshots')
   fs.mkdirSync(path.join(remote, 'baselines'), {recursive: true})
   fs.mkdirSync(destination, {recursive: true})
-  fs.writeFileSync(path.join(remote, 'baseline-before.json'), '{}')
+  fs.writeFileSync(path.join(remote, 'baseline-before.json'), JSON.stringify({workspace: '_main', hashes: {}}))
   fs.writeFileSync(path.join(remote, 'baselines/new.png'), 'new capture')
   fs.writeFileSync(path.join(remote, 'result.json'), JSON.stringify({schemaVersion: 1, mode: 'capture', exitCode: 0}))
   fs.mkdirSync(destination + '.vrt-update.lock')
 
   assert.throws(
-    () => consumeRemoteResult(remote, {update: {workspace, baselineRelative: 'screenshots'}}),
+    () => consumeRemoteResult(remote, {update: {workspace, baselineRelative: 'screenshots', write: () => assert.fail('writer ran')}}),
     /already updating/
   )
   assert.equal(fs.existsSync(path.join(destination, 'new.png')), false)

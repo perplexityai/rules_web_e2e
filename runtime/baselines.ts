@@ -26,29 +26,12 @@ export function baselineDestination(workspace: string, relative: string) {
   return current
 }
 
-export function updateBaselines(generated: string, destination: string) {
-  const names = fs.readdirSync(generated).filter(name => name.endsWith('.png'))
-  if (!names.length)
-    throw new Error(
-      'Capture produced no screenshots; refusing to remove existing baselines'
-    )
-  const images = names.map(name => {
-    const file = path.join(generated, name)
-    if (!fs.lstatSync(file).isFile())
-      throw new Error('Captured screenshots must be regular files')
-    return [name, fs.readFileSync(file)] as const
-  })
-  fs.mkdirSync(destination, {recursive: true})
-  for (const [name, bytes] of images) {
-    // Rename a regular temporary file instead of following an existing symlink.
-    const temp = path.join(destination, `.${name}.${process.pid}.tmp`)
-    fs.writeFileSync(temp, bytes, {flag: 'wx'})
-    fs.renameSync(temp, path.join(destination, name))
-  }
-  for (const name of fs.readdirSync(destination)) {
-    if (name.endsWith('.png') && !names.includes(name))
-      fs.unlinkSync(path.join(destination, name))
-  }
+/** The Bazel writer owns this directory; never delete unrelated source files. */
+export function validateBaselines(directory: string, requireImages = false) {
+  const names = fs.existsSync(directory) ? fs.readdirSync(directory) : []
+  if (names.some(name => !name.endsWith('.png') || !fs.lstatSync(path.join(directory, name)).isFile()))
+    throw new Error('Baseline directory must contain only regular PNG files; move unrelated files outside it')
+  if (requireImages && !names.length) throw new Error('Capture produced no screenshots')
 }
 
 export function baselineHashes(directory: string, followRunfileSymlinks = false, recursive = false): Record<string, string> {
@@ -67,14 +50,6 @@ export function baselineHashes(directory: string, followRunfileSymlinks = false,
     }
   }
   return Object.fromEntries(entries)
-}
-
-export function applyBaselineUpdate(
-  generated: string,
-  destination: string,
-  before: Record<string, string>
-) {
-  withBaselineUpdate(destination, before, () => updateBaselines(generated, destination))
 }
 
 /** Guard VRT and declared snapshot writers with the same edit/lock checks. */
@@ -99,11 +74,5 @@ export function withBaselineUpdate(destination: string, before: Record<string, s
 
 /** Snapshots are owned working/output data, never links into the input tree. */
 export function materializeSnapshots(source: string, destination: string, overwrite = false): void {
-  fs.mkdirSync(destination, {recursive: true})
-  for (const name of fs.readdirSync(source)) {
-    const input = path.join(source, name)
-    const output = path.join(destination, name)
-    if (fs.statSync(input).isDirectory()) materializeSnapshots(input, output, overwrite)
-    else fs.writeFileSync(output, fs.readFileSync(input), {flag: overwrite ? 'w' : 'wx'})
-  }
+  fs.cpSync(source, destination, {recursive: true, dereference: true, force: overwrite, errorOnExist: !overwrite})
 }

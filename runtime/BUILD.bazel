@@ -90,11 +90,6 @@ js_library(
     visibility = ["//visibility:public"],
 )
 
-filegroup(
-    name = "remote_result_entry",
-    srcs = ["remote-result-entry.js"],
-    visibility = ["//visibility:public"],
-)
 
 filegroup(
     name = "remote_runner_entry",

@@ -136,3 +136,11 @@ and must tolerate repeated invocation. Empty catalog fails, including updates.
 
 Comparison and `.update` use same generated cases and existing baseline
 synchronization contract. Discovery failure prevents capture and baseline updates.
+
+## Baseline directory ownership
+
+`.update` uses bazel-lib `write_source_files`. The baseline directory belongs to
+that target and must contain only regular PNG files. Move README files and other
+content outside it. Mixed-content directories are rejected before writing.
+Failed or empty captures, concurrent updates, and edits made during capture leave
+source files untouched. Only `bazel run <target>.update` writes source baselines.

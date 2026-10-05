@@ -1,8 +1,8 @@
 """Native browser tests and VRT artifact-producing actions."""
 
 load("@bazel_lib//lib:paths.bzl", "to_rlocation_path")
-load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@web_e2e_worker_identity//:defs.bzl", "WORKER_SHA256")
+load(":snapshots.bzl", "source_update")
 load("//internal/local:launch.bzl", "local_browser_launch")
 load("//internal/test_tools:defs.bzl", "TestToolsInfo")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo")
@@ -293,13 +293,5 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         exec_properties = execution_properties,
         tags = ["manual"],
     )
-    js_binary(
-        name = name + ".update",
-        tags = ["manual"],
-        entry_point = Label("//runtime:remote_result_entry"),
-        data = [":" + action, Label("//runtime:remote_result_files")],
-        env = {
-            "VRT_RESULT": "$(rlocationpath :%s)" % action,
-            "VRT_BASELINE_RELATIVE": env["VRT_BASELINE_RELATIVE"],
-        },
-    )
+    prefix = native.package_name() + "/" if native.package_name() else ""
+    source_update(name, action, "baselines", env["VRT_BASELINE_RELATIVE"].removeprefix(prefix), visual = True)
