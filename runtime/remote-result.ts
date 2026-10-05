@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import {applyBaselineUpdate, baselineDestination} from './baselines.js'
+import {baselineDestination, validateBaselines, withBaselineUpdate} from './baselines.js'
 
 export interface RemoteVrtResult {
   schemaVersion: 1
@@ -12,7 +12,7 @@ export interface RemoteVrtResult {
 export function consumeRemoteResult(
   directory: string,
   options: {
-    update?: {workspace: string; baselineRelative: string}
+    update?: {workspace: string; baselineRelative: string; write: () => void}
   } = {}
 ) {
   const result = JSON.parse(
@@ -32,8 +32,11 @@ export function consumeRemoteResult(
     )
     const before = JSON.parse(
       fs.readFileSync(path.join(directory, 'baseline-before.json'), 'utf8')
-    ) as Record<string, string>
-    applyBaselineUpdate(path.join(directory, 'baselines'), destination, before)
+    ) as {workspace: string; hashes: Record<string, string>}
+    if (before.workspace !== '_main') throw new Error('Snapshot updates require a target in the invoking workspace')
+    validateBaselines(path.join(directory, 'baselines'), true)
+    validateBaselines(destination)
+    withBaselineUpdate(destination, before.hashes, options.update.write)
   }
   return 0
 }

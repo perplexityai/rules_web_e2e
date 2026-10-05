@@ -9,7 +9,7 @@ import {validatePlaywrightVersions, validateChromiumVersion} from './versions.js
 import {spawn, execFileSync} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
-import {applyBaselineUpdate, baselineDestination, baselineHashes, materializeSnapshots, updateBaselines} from './baselines.js'
+import {baselineHashes, materializeSnapshots, validateBaselines} from './baselines.js'
 import {browserTempRoot, removeScratch, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
 import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
@@ -42,13 +42,7 @@ async function run(temp: string) {
     ? path.resolve(required('JS_BINARY__EXECROOT'), process.env.VRT_SNAPSHOT_CAPTURE_OUTPUT) : undefined
   if (!visual && update) throw new Error('E2E tests do not update baselines')
   const captureOutput = update ? process.env.VRT_CAPTURE_OUTPUT : undefined
-  const destination = update && !captureOutput
-    ? baselineDestination(
-        required('BUILD_WORKSPACE_DIRECTORY'),
-        required('VRT_BASELINE_RELATIVE')
-      )
-    : undefined
-  const baselineBefore = destination ? baselineHashes(destination) : undefined
+  if (update && !captureOutput) throw new Error('Use the Bazel .update target to update baselines')
   const outputs =
     (snapshotCapture ? path.join(snapshotCapture, 'artifacts') : process.env.TEST_UNDECLARED_OUTPUTS_DIR) || fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-artifacts-'))
   fs.mkdirSync(outputs, {recursive: true})
@@ -143,7 +137,7 @@ async function run(temp: string) {
   if (captureOutput)
     fs.writeFileSync(
       path.join(path.dirname(captureOutput), 'baseline-before.json'),
-      JSON.stringify(baselineInputs ? baselineHashes(baselineInputs, true) : {})
+      JSON.stringify({workspace: required('VRT_DESCRIPTOR').split('/')[0], hashes: baselineInputs ? baselineHashes(baselineInputs, true) : {}})
     )
   // Comparisons read immutable runfiles; only capture needs writable snapshots.
   const baselines = visual && !update ? baselineInputs! : path.join(temp, 'baselines')
@@ -327,12 +321,9 @@ async function run(temp: string) {
       if (fs.existsSync(snapshotInputs!)) materializeSnapshots(snapshotInputs!, merged)
       materializeSnapshots(captured, merged, true)
     }
-    if (destination) {
-      applyBaselineUpdate(baselines, destination, baselineBefore!)
-      console.log(`Updated baselines: ${destination}`)
-    }
     if (captureOutput) {
-      updateBaselines(baselines, captureOutput)
+      validateBaselines(baselines, true)
+      materializeSnapshots(baselines, captureOutput)
       console.log(`Captured baselines: ${captureOutput}`)
     }
     succeeded = true

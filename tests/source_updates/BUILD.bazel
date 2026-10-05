@@ -1,0 +1,19 @@
+load("@bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//internal:snapshots.bzl", "source_update")
+
+copy_to_directory(
+    name = "capture",
+    srcs = glob(["capture/**"]),
+    root_paths = ["tests/source_updates/capture"],
+)
+
+source_update("visual", "capture", "baselines", "baselines", visual = True)
+
+sh_test(
+    name = "update_test",
+    srcs = ["update_test.sh"],
+    args = ["$(rootpath :visual.update)"],
+    data = [":visual.update"],
+    size = "small",
+)
