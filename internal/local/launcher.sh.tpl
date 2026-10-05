@@ -24,7 +24,7 @@ runfiles_export_envvars
 }
 runfiles=$(cd "$RUNFILES_DIR" && pwd -P)
 bwrap=$(rlocation '%{bwrap}' '')
-if ! "$bwrap" --unshare-all --die-with-parent --ro-bind "$lookup" /toybox /toybox true; then
+if ! "$bwrap" --unshare-all --uid 1000 --gid 1000 --die-with-parent --ro-bind "$lookup" /toybox /toybox true; then
   echo 'Local browser execution needs unprivileged user, mount, PID, and network namespaces. Check kernel/AppArmor policy; see docs/local-linux.md. No host fallback is used.' >&2
   exit 1
 fi
@@ -64,7 +64,8 @@ exec 3< <(
     esac
   done < "$manifest"
 )
-args=(--unshare-all --die-with-parent --new-session --cap-drop ALL
+args=(--unshare-all --uid 1000 --gid 1000 --hostname bazel-browser
+  --die-with-parent --new-session --cap-drop ALL
   --proc /proc --dev /dev --tmpfs /tmp --dir /tmp/home
   --args 3 --ro-bind "$root/lib" /lib --symlink lib /lib64
   --ro-bind "$root/bin" /bin --symlink /bin /usr/bin

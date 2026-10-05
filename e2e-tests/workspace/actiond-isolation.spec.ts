@@ -1,6 +1,7 @@
 import {expect, test} from '@playwright/test'
 import fs from 'node:fs'
 import net from 'node:net'
+import os from 'node:os'
 
 test('the whole VRT action is offline and can still serve its fixture', async ({page}) => {
   expect(process.platform).toBe('linux')
@@ -35,6 +36,9 @@ test('local execution uses bundled files and a sandboxed renderer', async ({page
   for (const absent of ['/usr/share/fonts', '/etc/ld.so.cache', '/etc/resolv.conf', '/dev/kvm', '/etc/passwd'])
     expect(fs.existsSync(absent), absent).toBe(false)
   expect(process.env.LOCAL_HOST_SENTINEL).toBeUndefined()
+  expect(process.getuid!()).toBe(1000)
+  expect(process.getgid!()).toBe(1000)
+  expect(os.hostname()).toBe('bazel-browser')
   await page.setContent('<style>body{font-family:"DejaVu Sans"}</style><p>Declared font</p>')
   const cdp = await page.context().newCDPSession(page)
   await cdp.send('DOM.enable')
@@ -60,5 +64,4 @@ test('local execution uses bundled files and a sandboxed renderer', async ({page
       if (file.startsWith('/')) expect(file).toMatch(/^\/(lib|runfiles|tmp)\//)
     }
   }
-
 })

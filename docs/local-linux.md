@@ -50,9 +50,10 @@ JUnit, screenshots, diffs, traces, and videos as usual.
 
 This controls browser userspace, not a whole OS. The host kernel, CPU, Bazel, and
 initial host Bash remain environmental dependencies. The process environment is
-cleared before entering the namespace. Processes use the built-in C locale and
-UTC; Playwright `use.locale` controls the browser locale separately. Only declared test variables and relevant
-Bazel run/shard metadata reach the test. This is a test execution contract, not
+cleared before entering the namespace. UID/GID are 1000 and hostname is
+`bazel-browser`, independent of the host user. Processes use the built-in C locale
+and UTC; Playwright `use.locale` controls the browser locale separately. Only
+declared test variables and relevant Bazel run/shard metadata reach the test. This is a test execution contract, not
 an audited boundary for hostile test code.
 
 ## Caching and lifecycle
