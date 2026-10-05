@@ -11,7 +11,11 @@ def local_browser_launch(ctx, root, descriptor, runfiles, job):
         [link.target_file for link in bash.root_symlinks.to_list()],
         transitive = [bash.files],
     ).to_list() if file.basename == "runfiles.bash"][0]
-    inputs = runfiles.merge(bash).merge(ctx.runfiles(files = [job, library, ctx.file._local_tools, ctx.file._runfiles_tools]))
+    hosts = ctx.actions.declare_file(ctx.label.name + ".hosts")
+    nsswitch = ctx.actions.declare_file(ctx.label.name + ".nsswitch.conf")
+    ctx.actions.write(hosts, "127.0.0.1 localhost bazel-browser\n::1 localhost bazel-browser\n")
+    ctx.actions.write(nsswitch, "hosts: files\n")
+    inputs = runfiles.merge(ctx.runfiles(files = [hosts, nsswitch])).merge(bash).merge(ctx.runfiles(files = [job, library, ctx.file._local_tools, ctx.file._runfiles_tools]))
     mounts = {}
     for file in inputs.files.to_list():
         source = to_rlocation_path(ctx, file)
@@ -21,6 +25,8 @@ def local_browser_launch(ctx, root, descriptor, runfiles, job):
         mounts["/runfiles/" + link.path] = ("alias", to_rlocation_path(ctx, link.target_file))
     for link in inputs.symlinks.to_list():
         mounts["/runfiles/" + ctx.workspace_name + "/" + link.path] = ("alias", to_rlocation_path(ctx, link.target_file))
+    mounts["/etc/hosts"] = ("file", to_rlocation_path(ctx, hosts))
+    mounts["/etc/nsswitch.conf"] = ("file", to_rlocation_path(ctx, nsswitch))
     manifest = ctx.actions.declare_file(ctx.label.name + ".mounts")
     ctx.actions.write(manifest, "".join([kind + "\0" + source + "\0" + destination + "\0" for destination, (kind, source) in mounts.items()]))
     executable = ctx.actions.declare_file(ctx.label.name)

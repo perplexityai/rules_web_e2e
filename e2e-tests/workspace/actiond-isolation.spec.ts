@@ -1,5 +1,6 @@
 import {expect, test} from '@playwright/test'
 import fs from 'node:fs'
+import {lookup} from 'node:dns/promises'
 import net from 'node:net'
 import os from 'node:os'
 
@@ -39,6 +40,8 @@ test('local execution uses bundled files and a sandboxed renderer', async ({page
   expect(process.getuid!()).toBe(1000)
   expect(process.getgid!()).toBe(1000)
   expect(os.hostname()).toBe('bazel-browser')
+  expect((await lookup('localhost', {family: 4})).address).toBe('127.0.0.1')
+  expect((await lookup(os.hostname(), {family: 4})).address).toBe('127.0.0.1')
   await page.setContent('<style>body{font-family:"DejaVu Sans"}</style><p>Declared font</p>')
   const cdp = await page.context().newCDPSession(page)
   await cdp.send('DOM.enable')
