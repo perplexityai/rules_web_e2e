@@ -1,27 +1,13 @@
 """Public helpers for declared Chromium and Playwright browser installations."""
 
 load("@bazel_lib//lib:paths.bzl", "to_rlocation_path")
+load(":assembly.bzl", "BROWSER_ASSEMBLY_TOOLCHAINS", "browser_directory")
 load(":defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo")
-
-def _assemble(ctx, manifest, inputs):
-    output = ctx.actions.declare_directory(ctx.label.name)
-    config = ctx.actions.declare_file(ctx.label.name + ".json")
-    ctx.actions.write(config, json.encode(manifest))
-    ctx.actions.run(
-        executable = ctx.executable._assemble,
-        env = {"BAZEL_BINDIR": ctx.bin_dir.path},
-        arguments = [config.path, output.path],
-        inputs = inputs + [config],
-        tools = [ctx.attr._assemble[DefaultInfo].files_to_run],
-        outputs = [output],
-        mnemonic = "BrowserFiles",
-    )
-    return output
 
 def _linux_impl(ctx):
     if not ctx.file.system.is_directory:
         fail("system must provide a declared runtime directory")
-    output = _assemble(ctx, {
+    output = browser_directory(ctx, {
         "mode": "linux",
         "arch": ctx.attr.arch,
         "chromium": [file.path for file in ctx.files.chromium],
@@ -47,6 +33,7 @@ def _linux_impl(ctx):
 
 _linux_chromium_runtime = rule(
     implementation = _linux_impl,
+    toolchains = BROWSER_ASSEMBLY_TOOLCHAINS,
     doc = "Assemble a Linux x64 or ARM64 VRT runtime from caller-pinned Chrome for Testing and Node.",
     attrs = {
         "chromium": attr.label(mandatory = True, allow_files = True, doc = "Headless-shell files or directory, e.g. rules_browsers :info."),
@@ -55,7 +42,8 @@ _linux_chromium_runtime = rule(
         "arch": attr.string(default = "x64", values = ["x64", "arm64"]),
         "system": attr.label(mandatory = True, allow_single_file = True, doc = "Versioned libraries, shell and font preset; excludes browser and Node."),
         "fonts": attr.label_list(allow_files = True, doc = "Additional declared font files/directories."),
-        "_assemble": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
+        "_copy_layout": attr.label(default = Label("//playwright:copy_layout.sh"), allow_single_file = True),
+        "_browser_files": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
     },
 )
 
@@ -81,7 +69,7 @@ def _installation_impl(ctx):
         platform = "mac-arm64" if ctx.target_platform_has_constraint(ctx.attr._arm64[platform_common.ConstraintValueInfo]) else "mac-x64"
     else:
         fail("Chrome for Testing host installation supports Linux x64 and macOS x64/arm64")
-    output = _assemble(ctx, {
+    output = browser_directory(ctx, {
         "mode": "installation",
         "core": core.path,
         "chromium": [file.path for file in ctx.files.chromium],
@@ -92,12 +80,14 @@ def _installation_impl(ctx):
 
 playwright_browser_installation = rule(
     implementation = _installation_impl,
+    toolchains = BROWSER_ASSEMBLY_TOOLCHAINS,
     doc = "Lay out declared host Chromium/FFmpeg using the selected Playwright package's browser revisions.",
     attrs = {
         "chromium": attr.label(mandatory = True, allow_files = True),
         "ffmpeg": attr.label(mandatory = True, allow_files = True),
         "playwright": attr.label(default = Label("//runtime:playwright"), providers = [PlaywrightInfo]),
-        "_assemble": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
+        "_copy_layout": attr.label(default = Label("//playwright:copy_layout.sh"), allow_single_file = True),
+        "_browser_files": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
         "_linux": attr.label(default = "@platforms//os:linux"),
         "_mac": attr.label(default = "@platforms//os:macos"),
         "_x64": attr.label(default = "@platforms//cpu:x86_64"),

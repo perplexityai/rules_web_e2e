@@ -3,7 +3,16 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test, type TestContext} from 'node:test'
-import {assemble} from './browser_files.js'
+import {execFileSync} from 'node:child_process'
+import {layout} from './browser_files.js'
+const coreutils = path.resolve(process.argv[2]), copyScript = path.resolve(process.argv[3])
+function assemble(manifest: unknown, output: string) {
+  const plan = layout(manifest)
+  const config = output + '.copy-layout', executables = output + '.executables'
+  fs.writeFileSync(config, plan.files.flatMap(({source, destination}) => [source, destination]).map(value => value + '\0').join(''))
+  fs.writeFileSync(executables, plan.executables.map(file => file + '\0').join(''))
+  execFileSync('bash', [copyScript, coreutils, config, executables, output])
+}
 function temp(t: TestContext) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-files-'))
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))

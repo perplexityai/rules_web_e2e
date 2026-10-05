@@ -1,16 +1,24 @@
-"""Compile libmagic's database with declared tools and a private working directory."""
+"""Compile libmagic's database with declared tools."""
 
 def _magic_impl(ctx):
-    args = ctx.actions.args()
-    args.add(ctx.executable.compiler)
-    args.add(ctx.outputs.out)
-    args.add_all(ctx.files.srcs)
-    ctx.actions.run(
-        executable = ctx.executable._generator,
-        env = {"BAZEL_BINDIR": ctx.bin_dir.path},
-        arguments = [args],
+    if not ctx.outputs.out.basename.endswith(".mgc"):
+        fail("magic database output must end with .mgc")
+    coreutils = ctx.toolchains["@bazel_lib//lib:coreutils_toolchain_type"].coreutils_info.bin
+    # Compile in the output directory: libmagic writes the input basename + .mgc.
+    definitions = ctx.actions.declare_file(ctx.outputs.out.basename[:-4], sibling = ctx.outputs.out)
+    ctx.actions.run_shell(
+        arguments = [coreutils.path, definitions.path] + [file.path for file in ctx.files.srcs],
         inputs = ctx.files.srcs,
+        tools = [coreutils],
+        outputs = [definitions],
+        command = 'coreutils="$1"; output="$2"; shift 2; "$coreutils" cat -- "$@" > "$output"',
+        mnemonic = "ConcatMagicDefinitions",
+    )
+    ctx.actions.run_shell(
         tools = [ctx.attr.compiler[DefaultInfo].files_to_run],
+        arguments = [ctx.executable.compiler.path, definitions.dirname, definitions.basename],
+        command = 'compiler="$PWD/$1"; cd "$2"; exec "$compiler" -C -m "$3"',
+        inputs = [definitions],
         outputs = [ctx.outputs.out],
         mnemonic = "CompileMagicDatabase",
     )
@@ -18,11 +26,11 @@ def _magic_impl(ctx):
 
 magic_database = rule(
     implementation = _magic_impl,
+    toolchains = ["@bazel_lib//lib:coreutils_toolchain_type"],
     attrs = {
         "srcs": attr.label_list(allow_files = True),
         "out": attr.output(mandatory = True),
         "compiler": attr.label(executable = True, cfg = "exec", mandatory = True),
-        "_generator": attr.label(default = Label("//internal/test_tools:compile_magic"), executable = True, cfg = "exec"),
     },
 )
 

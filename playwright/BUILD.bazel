@@ -1,9 +1,12 @@
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
 load("//tools:typescript.bzl", "tool_sources")
+load(":test_tools.bzl", "coreutils")
 
-exports_files(["defs.bzl", "archive.bzl"])
+coreutils(name = "coreutils", testonly = True)
 
-tool_sources(deps = ["//tools:typecheck", "//runtime:typecheck", "//:node_modules/tar", "//:node_modules/seek-bzip", "//:node_modules/fs-extra", "//:node_modules/@types/fs-extra"])
+exports_files(["defs.bzl", "archive.bzl", "copy_layout.sh"])
+
+tool_sources(deps = ["//tools:typecheck", "//runtime:typecheck", "//:node_modules/tar", "//:node_modules/seek-bzip"])
 
 [
     js_binary(
@@ -22,7 +25,9 @@ tool_sources(deps = ["//tools:typecheck", "//runtime:typecheck", "//:node_module
         name = name + "_test",
         size = "small",
         entry_point = name + "_test.js",
-        data = [":typecheck", "package.json"],
+        data = [":typecheck", "package.json"] + ([":coreutils", "copy_layout.sh"] if name == "browser_files" else []),
+        args = ["$(rootpath :coreutils)", "$(rootpath copy_layout.sh)"] if name == "browser_files" else [],
+        no_copy_to_bin = [":coreutils"] if name == "browser_files" else [],
     )
     for name in ["unpack_runtime", "browser_files", "validate_packages"]
 ]

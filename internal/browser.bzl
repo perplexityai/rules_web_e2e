@@ -3,6 +3,7 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("@bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory_bin_action")
 load("@bazel_lib//lib:paths.bzl", "to_repository_relative_path", "to_rlocation_path")
+load("//playwright:assembly.bzl", "BROWSER_ASSEMBLY_TOOLCHAINS", "browser_directory")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo")
 load(":matching.bzl", "matching_config")
 load(":remote.bzl", "remote_browser_test")
@@ -75,23 +76,12 @@ def _inputs_impl(ctx):
     browser = ctx.attr.browser[BrowserRuntimeInfo] if ctx.attr.browser else None
     browser_cache = None
     if browser and browser.descriptor.get("ffmpeg"):
-        browser_cache = ctx.actions.declare_directory(ctx.label.name + ".browser-cache")
-        cache_config = ctx.actions.declare_file(ctx.label.name + ".browser-cache.json")
-        ctx.actions.write(cache_config, json.encode({
+        browser_cache = browser_directory(ctx, {
             "mode": "ffmpeg-cache",
             "core": runtime.core_file.path,
             "runtime": browser.root_file.path,
             "ffmpeg": browser.descriptor["ffmpeg"],
-        }))
-        ctx.actions.run(
-            executable = ctx.executable._browser_files,
-            env = {"BAZEL_BINDIR": ctx.bin_dir.path},
-            arguments = [cache_config.path, browser_cache.path],
-            inputs = [cache_config, runtime.core_file, browser.root_file],
-            tools = [ctx.attr._browser_files[DefaultInfo].files_to_run],
-            outputs = [browser_cache],
-            mnemonic = "PlaywrightBrowserCache",
-        )
+        }, [runtime.core_file, browser.root_file], name = ctx.label.name + ".browser-cache")
     result = ctx.actions.declare_file(ctx.label.name + ".json")
     ctx.actions.write(result, json.encode({
         "browserCache": to_rlocation_path(ctx, browser_cache) if browser_cache else None,
@@ -118,7 +108,7 @@ def _inputs_impl(ctx):
 
 _inputs = rule(
     implementation = _inputs_impl,
-    toolchains = ["@bazel_lib//lib:copy_to_directory_toolchain_type"],
+    toolchains = BROWSER_ASSEMBLY_TOOLCHAINS + ["@bazel_lib//lib:copy_to_directory_toolchain_type"],
     attrs = {
         "tests": attr.label(),
         "config": attr.label(allow_files = True),
@@ -129,6 +119,7 @@ _inputs = rule(
         "browser": attr.label(providers = [BrowserRuntimeInfo]),
         "sources": attr.label(),
         "mode": attr.string(),
+        "_copy_layout": attr.label(default = Label("//playwright:copy_layout.sh"), allow_single_file = True),
         "_browser_files": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
         "_capture_template": attr.label(default = Label("//runtime:capture_template"), allow_single_file = True),
         "_harness_templates": attr.label(default = Label("//runtime:harness_templates")),

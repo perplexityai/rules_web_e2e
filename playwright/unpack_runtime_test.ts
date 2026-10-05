@@ -51,20 +51,16 @@ test('rejects traversal, dangling links, cycles, devices and overlay whiteouts',
     fs.rmSync(path.join(root, 'output'), {recursive: true, force: true})
   }
 })
-test('assembles selected cross-archive links and declared files without unrelated cycles', t => {
+test('selects cross-archive links without reading declared files or unrelated cycles', t => {
   const root = temp(t)
   const a = archive(root, [['etc/fonts/alias', '/usr/share/fonts/policy', 'link'], ['unrelated/loop', '/unrelated', 'link']])
   const b = archive(root, [['usr/share/fonts/policy', 'policy', 'file'], ['usr/bin/bash', 'shell', 'executable']])
-  const browser = path.join(root, 'browser')
-  fs.mkdirSync(browser); fs.writeFileSync(path.join(browser, 'chrome'), 'browser', {mode: 0o755})
-  const declared = path.join(root, 'declared-chrome')
-  fs.renameSync(path.join(browser, 'chrome'), declared)
-  fs.symlinkSync(declared, path.join(browser, 'chrome'))
+  const browser = path.join(root, 'not-an-extraction-input')
   const output = path.join(root, 'output')
   assemble({archives: [a, b], paths: {'etc/fonts': 'config', 'usr/bin/bash': 'bin/bash'}, files: {[browser]: 'chromium'}}, output)
   assert.equal(fs.readFileSync(path.join(output, 'config/alias'), 'utf8'), 'policy')
-  assert.equal(fs.statSync(path.join(output, 'chromium/chrome')).mode & 0o777, 0o755)
-  assert(!fs.lstatSync(path.join(output, 'chromium/chrome')).isSymbolicLink())
+  assert(!fs.existsSync(path.join(output, 'chromium')))
+  assert.equal(fs.statSync(path.join(output, 'bin/bash')).mode & 0o777, 0o755)
   assert(!fs.existsSync(path.join(output, 'unrelated')))
 })
 test('selection rejects escapes, overlapping destinations, absent entries and cycles', t => {
