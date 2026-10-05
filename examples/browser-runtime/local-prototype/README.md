@@ -3,7 +3,7 @@
 Question: can our declared Chromium runtime run locally without actiond or KVM,
 using only bundled libraries and fonts?
 
-Yes, on the tested Linux x64 machine. This is an opt-in Bazel test, not a
+Yes, on the tested Linux x64 and ARM64 machines. This is an opt-in Bazel test, not a
 supported browser execution backend. Production rules unchanged.
 
 Uses [Bubblewrap](https://github.com/containers/bubblewrap), built by its
@@ -58,15 +58,19 @@ mkdir -p /tmp/chromium-probe
 
 ## Findings and limits
 
-- Both tests pass on Linux x64 with Bazel 8.6.0 and 9.2.0.
+- Both tests pass on Linux x64 and native ARM64 with Bazel 8.6.0 and 9.2.0.
+- ARM64 devbox has no KVM device. Both tests also pass twice with Bazel 9.
+- ARM64 validation reused the existing assembly checkout. All 606 runtime files
+  match the current PR bundle in content and permissions.
 - Chromium 153.0.8010.12 and Node 24.14.0 run from the existing Bazel bundle.
 - Real interaction and screenshot pass with Chromium sandbox enabled.
 - Node/browser mappings use bundled code and libraries plus private scratch.
 - Hiding `libnss3.so` prevents startup. No host fallback.
 - Repeated fresh runs produce identical screenshot bytes on the tested machine.
-- Host kernel still used. ARM64 and different host distributions not yet tested.
+- Host kernel still used. Both tested hosts run Debian 13; other distributions
+  remain untested.
 
-Next: validate on another Linux distribution and ARM64; trace broader workloads,
+Next: validate on another Linux distribution; trace broader workloads,
 including fonts, media, subprocesses, and DNS behavior. Then integrate through
 an existing Bazel execution mechanism with declared inputs, outputs, cleanup,
 and execution-platform cache identity. Do not turn this probe into another
