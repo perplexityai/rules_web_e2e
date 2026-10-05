@@ -52,7 +52,15 @@ def _runtime_impl(ctx):
         fail("Playwright version must be a stable major.minor.patch version >= 1.63.0")
     if (int(parts[0]), int(parts[1]), int(parts[2])) < (1, 63, 0):
         fail("Playwright >= 1.63.0 is required")
-    files = ctx.files.test + ctx.files.core
+    validation = ctx.actions.declare_file(ctx.label.name + ".validated.json")
+    ctx.actions.run(
+        executable = ctx.executable._validate_packages,
+        arguments = [ctx.file.test.path, ctx.file.core.path, ctx.attr.version, validation.path],
+        inputs = [ctx.file.test, ctx.file.core],
+        outputs = [validation],
+        mnemonic = "PlaywrightPackages",
+    )
+    files = ctx.files.test + ctx.files.core + [validation]
     runfiles = ctx.runfiles(files = files)
     for target in [ctx.attr.test, ctx.attr.core]:
         runfiles = runfiles.merge(target[DefaultInfo].default_runfiles)
@@ -67,5 +75,6 @@ playwright_runtime = rule(
         "test": attr.label(mandatory = True, allow_single_file = True),
         "core": attr.label(mandatory = True, allow_single_file = True),
         "version": attr.string(default = "1.63.0"),
+        "_validate_packages": attr.label(default = Label("//playwright:validate_packages"), executable = True, cfg = "exec"),
     },
 )

@@ -86,6 +86,7 @@ def _runtime_inputs_test_impl(ctx):
     asserts.true(env, "typed.browser.spec.js" in names)
     asserts.true(env, "fixture-asset.txt" in names)
     asserts.false(env, "semantic-check.txt" in names)
+    asserts.true(env, any([name.endswith(".validated.json") for name in names]), "Tests must depend on package validation")
     harness = [file for file in files if file.basename.endswith(".suite")]
     asserts.equals(env, 1, len(harness))
     asserts.true(env, harness[0].is_directory)

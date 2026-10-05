@@ -37,3 +37,19 @@ py_test(
     ],
     main = "browser_files_test.py",
 )
+
+py_binary(
+    name = "validate_packages",
+    srcs = ["validate_packages.py"],
+    main = "validate_packages.py",
+)
+
+py_test(
+    name = "validate_packages_test",
+    size = "small",
+    srcs = [
+        "validate_packages.py",
+        "validate_packages_test.py",
+    ],
+    main = "validate_packages_test.py",
+)

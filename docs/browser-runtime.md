@@ -43,8 +43,9 @@ If tests record video, pass `ffmpeg = "//:pinned_ffmpeg"`. Cached Bazel action b
 versioned helper directory from declared Playwright core metadata and browser
 runtime. Test consumes this immutable directory through
 `PLAYWRIGHT_BROWSERS_PATH`; it does not stage or download helper at startup.
-As with other declared runtime inputs, selected Playwright packages must
-match declared version.
+Cached build action checks declared Playwright package versions. Mismatch
+fails build before browser starts. Consumer-inferred packages still checked
+at test startup.
 Add `fonts = [":brand_fonts"]` for declared font files/directories, or set `system`
 to custom declared directory containing `lib/`, `bin/bash`, `etc/fonts/`, and
 `fonts/` with same layout. System preset must not contain Node or Chromium.
