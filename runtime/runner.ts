@@ -94,11 +94,13 @@ async function run(temp: string) {
     createRequire(pathToFileURL(fs.realpathSync(input(module))))
       .resolve('@playwright/test/package.json')
   )
-  const testPackage = fs.realpathSync(input(descriptor.playwright.test))
+  // Bazel may materialize runfile directories while symlinking their files.
+  // Resolve a package file so directory aliases retain one module identity.
+  const testPackage = path.dirname(fs.realpathSync(path.join(input(descriptor.playwright.test), 'package.json')))
   const playwrightPackage = createRequire(path.join(testPackage, 'package.json'))
     .resolve('playwright/package.json')
   const resolvedCore = path.dirname(createRequire(playwrightPackage).resolve('playwright-core/package.json'))
-  const core = fs.realpathSync(input(descriptor.playwright.core))
+  const core = path.dirname(fs.realpathSync(path.join(input(descriptor.playwright.core), 'package.json')))
   if (fs.realpathSync(resolvedCore) !== fs.realpathSync(core))
     throw new Error('playwright_runtime.core must be the playwright-core package used by its test package')
   // Playwright requires one test-harness instance. The caller owns its dependency
