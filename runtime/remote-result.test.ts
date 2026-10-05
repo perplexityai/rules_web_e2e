@@ -127,20 +127,27 @@ for (const exitCode of [0, 7]) {
   })
 }
 
-test('native browser failure exits the test process and preserves standard artifacts', t => {
+for (const exitCode of [0, 7]) test(`native browser test preserves Bazel PID, scratch and exit ${exitCode}`, {
+  skip: process.platform !== 'linux',
+}, t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-test-'))
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))
-  const runner = path.join(root, 'fail.mjs')
-  fs.writeFileSync(runner, `import fs from 'node:fs';
-    fs.writeFileSync(process.env.XML_OUTPUT_FILE, '<failure/>');
-    process.exitCode = 7;`)
-  const job = {runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output: root, mode: 'test'}
   const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
-  const result = spawnSync(node, ['--input-type=module', '-e',
-    `import {runRemoteJob} from ${JSON.stringify(new URL('./remote-job.js', import.meta.url).href)};
-     runRemoteJob(${JSON.stringify(job)}, ${JSON.stringify(node)}, {NODE_OPTIONS: ''});`,
-  ], {env: {...process.env, NODE_OPTIONS: '', XML_OUTPUT_FILE: path.join(root, 'test.xml')}, encoding: 'utf8'})
-  assert.equal(result.status, 7, result.stderr)
+  fs.symlinkSync(node, path.join(root, 'node'))
+  fs.writeFileSync(path.join(root, 'consumer.mjs'), `import fs from 'node:fs';
+    fs.writeFileSync(process.env.XML_OUTPUT_FILE, '<test/>');
+    console.log(JSON.stringify({pid: process.pid, tmp: process.env.TEST_TMPDIR, args: process.argv.slice(2)}));
+    process.exitCode = ${exitCode};`)
+  fs.writeFileSync(path.join(root, 'job.json'), JSON.stringify({
+    runner: 'consumer.mjs', env: {}, args: [], output: '', mode: 'test',
+    runtime: {path: '.', node: 'node', executable: 'node', libraryDirs: [], fontconfig: 'node', arch: process.arch},
+  }))
+  const result = spawnSync(node, [new URL('./remote-runner.js', import.meta.url).pathname, path.join(root, 'job.json'), '--grep=one'], {
+    encoding: 'utf8', env: {...process.env, NODE_OPTIONS: '', VRT_HOST_EXECUTION: '1', TEST_SRCDIR: root,
+      TEST_TMPDIR: root, TEST_UNDECLARED_OUTPUTS_DIR: root, XML_OUTPUT_FILE: path.join(root, 'test.xml')},
+  })
+  assert.equal(result.status, exitCode, result.stderr)
+  assert.deepEqual(JSON.parse(result.stdout), {pid: result.pid, tmp: root, args: ['--grep=one']})
+  assert.equal(fs.readFileSync(path.join(root, 'test.xml'), 'utf8'), '<test/>')
   assert.equal(fs.existsSync(path.join(root, 'result.json')), false)
-  assert.equal(fs.readFileSync(path.join(root, 'test.xml'), 'utf8'), '<failure/>')
 })
