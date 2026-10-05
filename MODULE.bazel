@@ -54,3 +54,5 @@ workers = use_extension("//worker:repositories.bzl", "workers")
 use_repo(workers, "actiond_linux_amd64", "web_e2e_worker_identity")
 
 bazel_dep(name = "bubblewrap", version = "0.13.0.bcr.1")
+# libcap's sed generator needs the upstream header-layout fix with Bazel 8.
+bazel_dep(name = "sed", version = "4.9.bcr.5")
