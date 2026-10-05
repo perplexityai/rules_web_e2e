@@ -44,6 +44,8 @@ Paths must be relative, with no dot segments. Directories are not scanned.
 supplies executable/loader paths and assembles default
 `@rules_web_e2e//playwright/presets:noble_20260901` library/font preset. Its package
 URLs and checksums checked in; consumers do not resolve APT dependencies.
+Bazel extracts these pinned package payloads while fetching the preset.
+The TS archive unpacker is not used for default system presets.
 If tests record video, pass `ffmpeg = "//:pinned_ffmpeg"`. Cached Bazel action builds
 versioned helper directory from declared Playwright core metadata and browser
 runtime. Test consumes this immutable directory through
@@ -119,6 +121,10 @@ macOS. Caller with additional native toolchain constraints can set
 platform must target Linux, match `target_arch`, and match runtime's ABI. `data` and
 `$(rootpath ...)` expressions in `env` evaluated in this configuration,
 including expressions nested inside JSON strings used by fixture servers.
+
+For caller-supplied or generated archives, use `browser_runtime_archive`.
+Unlike pinned preset downloads, generated archives need build-time extraction.
+This path retains the custom archive/link validation.
 
 To assemble runtime from distribution packages, use `archives` for package data
 tars and `paths` to select their runtime files. `files` adds declared files or

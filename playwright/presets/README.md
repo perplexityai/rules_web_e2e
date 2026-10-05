@@ -1,8 +1,13 @@
 # Optional Linux runtime preset
 
 `noble_20260901` file selection, not Ubuntu installation. Its lock pins
-Ubuntu Noble archives from 2026-09-01; Bazel's `http_archive` downloads and verifies
-them. Callers can replace preset through `linux_chromium_runtime(system=...)`.
+Ubuntu Noble archives from 2026-09-01. Bazel downloads and verifies the `.deb`
+files, then extracts their inner `data.tar.*` payloads into one repository.
+Selected links resolve inside that repository. A declared coreutils action
+copies selected files into the runtime directory. No TS unpack action runs
+for these presets.
+
+Callers can replace preset through `linux_chromium_runtime(system=...)`.
 Chromium and Node remain caller-owned inputs.
 
 Manifest's `paths` selects ELF dependency closure for example's
