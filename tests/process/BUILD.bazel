@@ -40,3 +40,29 @@ browser_process_test(
         "OWNED_PROCESS_TOOL": "$(rootpath //tests/process/tool:echo.ts)",
     },
 )
+
+ts_project(
+    name = "timeout_compiled",
+    srcs = ["timeout.spec.ts"],
+    data = ["package.json"],
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = {"compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": True,
+        "declaration": True,
+        "skipLibCheck": True,
+        "types": ["node"],
+    }},
+    deps = ["//:node_modules/@playwright/test", "//:node_modules/@types/node"],
+)
+
+browser_process_test(
+    name = "timeout_contract_test",
+    tests = ":timeout_compiled",
+    data = [":timeout_compiled"],
+    execution_timeout_seconds = 1,
+    timeout = "short",
+)

@@ -263,3 +263,7 @@ Set `shard_count` on the test target. Bazel shard indices map to Playwright shar
 Use `bazel test --test_filter=<regex>` to select test names. Do not combine it with
 `--test_arg=--grep`; do not combine Bazel sharding with `--test_arg=--shard`.
 Snapshot updates require the full baseline set. JUnit goes to Bazel’s `test.xml`.
+
+Bazel test deadlines use `timeout` or `--test_timeout`. The runtime adds no second
+whole-suite timer under `bazel test`. Playwright still owns per-test timeouts.
+`execution_timeout_seconds` bounds capture actions and standalone invocations.
