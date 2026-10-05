@@ -18,10 +18,7 @@ def _presets_impl(ctx):
                 name = name,
                 urls = package["urls"],
                 sha256 = package["sha256"],
-                build_file_content = "\n".join([
-                    'load("@rules_web_e2e//playwright:package.bzl", "package_tar")',
-                    'package_tar(name = "data", src = glob(["data.tar*"])[0], visibility = ["//visibility:public"])',
-                ]),
+                build_file_content = 'filegroup(name = "data", srcs = glob(["data.tar*"], allow_empty = False), visibility = ["//visibility:public"])',
             )
             labels[package["name"]] = "@" + name + "//:data"
         _hub(
