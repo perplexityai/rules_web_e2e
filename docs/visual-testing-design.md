@@ -127,11 +127,11 @@ consumer renderer must await committed render, preserve its root for updates,
 and surface render errors. Imports and generated assets must be declared Bazel
 inputs. See React example's gallery.
 
-Runner creates its capture spec only inside staged temporary inputs. It runs
-discovery pass through consumer Playwright config, validates catalog,
-then runs one test per enabled visual with native context isolation. Per-case
+Bazel builds the capture spec into the declared suite harness. A declared
+`capture_manifest` skips discovery. Without one, a discovery pass reads the
+gallery catalog. Playwright runs one test per enabled visual with native context isolation. Per-case
 viewport, density, and theme use Playwright test options; language and capture
-hooks run inside page. Global setup/teardown therefore runs for both phases
+hooks run inside page. Without a manifest, global setup/teardown runs for both phases
 and must tolerate repeated invocation. Empty catalog fails, including updates.
 
 Comparison and `.update` use same generated cases and existing baseline

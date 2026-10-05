@@ -262,6 +262,7 @@ component_visual_test(
     playwright = ":playwright",
     target_arch = _TARGET_ARCH,
     name = "actiond_gallery_test",
+    capture_manifest = "gallery-captures.json",
     browser = ":actiond_browser",
     execution = _EXECUTION,
     shell = ":component_shell",

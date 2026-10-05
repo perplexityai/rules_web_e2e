@@ -55,6 +55,7 @@ async function run(temp: string) {
   }
   const descriptorPath = input(required('VRT_DESCRIPTOR'))
   const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8')) as {
+    captureManifest?: string | null
     harness: string
     browserCache: string | null
     tests: string[]
@@ -169,7 +170,7 @@ async function run(temp: string) {
     VRT_SNAPSHOT_ROOT: snapshotRelative ? path.join(inputs, required('VRT_DESCRIPTOR').split('/')[0], snapshotRelative) : '',
     VRT_BASELINES: baselines,
     VRT_OUTPUTS: outputs,
-    VRT_VISUAL_CATALOG: path.join(temp, 'visual-catalog.json'),
+    VRT_VISUAL_CATALOG: descriptor.captureManifest ? input(descriptor.captureManifest) : path.join(temp, 'visual-catalog.json'),
     VRT_CACHE: path.join(temp, 'server-cache'),
     RUNFILES_DIR: inputs,
     RUNFILES: inputs,
@@ -288,7 +289,7 @@ async function run(temp: string) {
           reject(error)
         })
       })
-    const discoveryCode = gallery ? await run(true) : 0
+    const discoveryCode = gallery && !descriptor.captureManifest ? await run(true) : 0
     const code = discoveryCode === 0 ? await run(false) : discoveryCode
     if (code !== 0) {
       // Preserve partial captures. Comparison failures already have Playwright's

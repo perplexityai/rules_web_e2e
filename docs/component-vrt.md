@@ -115,3 +115,18 @@ usual behavior. For explicit full-page screenshots use native `visual_test` spec
 For hover states, set `vrt.hoverSelector` to CSS selector for visible
 target. Runner moves real browser pointer after mounting visual and
 before calling `beforeCapture`, so hook can assert `:hover` styles.
+
+## Build the capture catalog
+
+Pass `capture_manifest = ":gallery-captures.json"` to use a declared JSON catalog
+instead of launching a discovery browser. The file may be a build output.
+It contains the array returned by `visualCaptures(modules)` from the same visual
+metadata used by the gallery. Generate both from one source when possible.
+
+```json
+[{"id":"Counter/default","name":"Counter / Default","screenshotName":"counter.png"}]
+```
+
+The catalog participates in Bazel's input hash. Each worker checks it against the
+loaded gallery before taking screenshots; missing stories and stale options fail.
+Omit it only for galleries that need browser execution to discover their catalog.
