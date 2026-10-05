@@ -84,6 +84,7 @@ def _inputs_impl(ctx):
         }, [runtime.core_file, browser.root_file], name = ctx.label.name + ".browser-cache")
     result = ctx.actions.declare_file(ctx.label.name + ".json")
     ctx.actions.write(result, json.encode({
+        "captureManifest": to_rlocation_path(ctx, ctx.file.capture_manifest) if ctx.file.capture_manifest else None,
         "browserCache": to_rlocation_path(ctx, browser_cache) if browser_cache else None,
         "harness": to_rlocation_path(ctx, harness),
         "tests": [to_rlocation_path(ctx, f) for f in tests],
@@ -98,7 +99,7 @@ def _inputs_impl(ctx):
         },
         "browser": ctx.attr.browser[BrowserRuntimeInfo].descriptor if ctx.attr.browser else None,
     }))
-    inputs = ctx.runfiles(files = [result, harness] + ([browser_cache] if browser_cache else []))
+    inputs = ctx.runfiles(files = [result, harness] + ([ctx.file.capture_manifest] if ctx.file.capture_manifest else []) + ([browser_cache] if browser_cache else []))
     for target in [ctx.attr.tests, ctx.attr.config, ctx.attr.matching, ctx.attr.server, ctx.attr.shell, ctx.attr.playwright, ctx.attr.browser, ctx.attr.sources]:
         if target:
             inputs = inputs.merge(target[DefaultInfo].default_runfiles)
@@ -110,6 +111,7 @@ _inputs = rule(
     toolchains = BROWSER_ASSEMBLY_TOOLCHAINS + ["@bazel_lib//lib:copy_to_directory_toolchain_type"],
     attrs = {
         "tests": attr.label(),
+        "capture_manifest": attr.label(allow_single_file = [".json"]),
         "config": attr.label(allow_files = True),
         "matching": attr.label(allow_files = True),
         "server": attr.label(allow_files = True),
@@ -128,6 +130,7 @@ _inputs = rule(
 def browser_test(
         name,
         tests = None,
+        capture_manifest = None,
         server = None,
         shell = None,
         base_url = None,
@@ -186,6 +189,8 @@ def browser_test(
         target_platform = Label("//internal:linux_" + ("amd64" if target_arch == "x64" else "arm64"))
     if any([key.startswith("VRT_") for key in env.keys() + env_inherit + network_origins_env]):
         fail("VRT_* environment names are reserved for the browser runtime")
+    if capture_manifest and (not visual or tests):
+        fail("capture_manifest is only supported by component_visual_test")
     if visual and component:
         fail("Visual and component modes are separate targets")
     if process_owned and (visual or component or browser or host_vrt or server or shell or base_url or base_url_env):
@@ -228,6 +233,7 @@ def browser_test(
     _inputs(
         name = name + "_inputs",
         tests = tests,
+        capture_manifest = capture_manifest,
         server = server,
         shell = shell,
         playwright = playwright,

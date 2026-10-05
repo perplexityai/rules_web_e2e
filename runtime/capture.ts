@@ -15,6 +15,7 @@ if (process.env.VRT_DISCOVER === '1') {
 } else {
   const captures: unknown = JSON.parse(fs.readFileSync(catalog, 'utf8'))
   validateCaptures(captures)
+  let catalogChecked = false
   for (const visual of captures) {
     test.describe(visual.id, () => {
       test.use({
@@ -27,6 +28,10 @@ if (process.env.VRT_DISCOVER === '1') {
       test(visual.name, async ({page, baseURL}) => {
         await page.goto(baseURL!)
         await page.waitForFunction(() => !!window.rulesVisuals)
+        if (!catalogChecked) {
+          expect(await page.evaluate(() => window.rulesVisuals.captures), 'Gallery must match its declared capture manifest').toEqual(captures)
+          catalogChecked = true
+        }
         await page.evaluate(async visual => {
           if (visual.documentLanguage)
             document.documentElement.lang = visual.documentLanguage

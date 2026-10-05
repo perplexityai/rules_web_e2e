@@ -1,0 +1,4 @@
+[
+  {"id":"Counter/hover","name":"Counter / Hover","screenshotName":"hover.png","hoverSelector":"#hover-probe"},
+  {"id":"Counter/incremented","name":"Counter / Incremented","screenshotName":"counter.png"}
+]
