@@ -131,20 +131,16 @@ for (const exitCode of [0, 7]) {
   })
 }
 
-for (const exitCode of [0, 7]) test(`native browser test preserves Bazel PID, scratch and exit ${exitCode}`, {
-  skip: process.platform !== 'linux',
-}, t => {
+for (const exitCode of [0, 7]) test(`native browser test preserves Bazel PID, scratch and exit ${exitCode}`, t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-test-'))
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))
   const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
-  fs.symlinkSync(node, path.join(root, 'node'))
   fs.writeFileSync(path.join(root, 'consumer.mjs'), `import fs from 'node:fs';
     fs.writeFileSync(process.env.XML_OUTPUT_FILE, '<test/>');
     console.log(JSON.stringify({pid: process.pid, tmp: process.env.TEST_TMPDIR, args: process.argv.slice(2)}));
     process.exitCode = ${exitCode};`)
   fs.writeFileSync(path.join(root, 'job.json'), JSON.stringify({
     runner: 'consumer.mjs', env: {}, args: [], output: '', mode: 'test',
-    runtime: {path: '.', node: 'node', executable: 'node', libraryDirs: [], fontconfig: 'node', arch: process.arch},
   }))
   const result = spawnSync(node, [new URL('./remote-runner.js', import.meta.url).pathname, path.join(root, 'job.json'), '--grep=one'], {
     encoding: 'utf8', env: {...process.env, NODE_OPTIONS: '', VRT_HOST_EXECUTION: '1', TEST_SRCDIR: root,
