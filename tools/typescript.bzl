@@ -3,9 +3,18 @@
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 
 def tool_sources(deps = []):
+    sources = native.glob(["*.ts"], exclude = ["*_test.ts"], allow_empty = True)
+    tests = native.glob(["*_test.ts"], allow_empty = True)
+    for name, srcs in [("typecheck", sources), ("test_typecheck", tests)]:
+        if not srcs:
+            continue
+        _sources(name, srcs, deps + ([":typecheck"] if name == "test_typecheck" and sources else []))
+
+def _sources(name, srcs, deps):
     ts_project(
-        name = "typecheck",
-        srcs = native.glob(["*.ts"]),
+        name = name,
+        testonly = name == "test_typecheck",
+        srcs = srcs,
         declaration = True,
         data = ["package.json"],
         transpiler = "tsc",

@@ -23,7 +23,7 @@ js_test(
     size = "small",
     entry_point = "tools_test.js",
     args = ["$(rlocationpaths :tools)"],
-    data = [":tools", ":typecheck", "package.json"],
+    data = [":tools", ":test_typecheck", "package.json"],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:x86_64",
@@ -38,7 +38,7 @@ js_test(
         size = "small",
         entry_point = "elf_test.js",
         args = [str(machine), "$(rlocationpaths " + tools + ")"],
-        data = [tools, ":typecheck", "package.json"],
+        data = [tools, ":test_typecheck", "package.json"],
 
     )
     for arch, machine, tools in [("x64", 62, ":tools"), ("arm64", 183, ":tools_arm64")]
