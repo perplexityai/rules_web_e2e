@@ -281,4 +281,4 @@ def browser_test(
     )
 
     if snapshot_dir:
-        snapshot_update(name, snapshot_dir, common, args, tags)
+        snapshot_update(name, snapshot_dir, common, args, tags, snapshots)

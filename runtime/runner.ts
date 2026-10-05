@@ -304,9 +304,6 @@ async function run(temp: string) {
       const captured = path.join(outputs, 'snapshots')
       if (!Object.keys(baselineHashes(captured, false, true)).length)
         throw new Error('Capture produced no snapshots; nothing was applied')
-      const merged = path.join(snapshotCapture, 'snapshots')
-      if (fs.existsSync(snapshotInputs!)) materializeSnapshots(snapshotInputs!, merged)
-      materializeSnapshots(captured, merged, true)
     }
     if (captureOutput) {
       validateBaselines(baselines, true)

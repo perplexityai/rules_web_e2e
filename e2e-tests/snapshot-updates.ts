@@ -18,7 +18,7 @@ consumerTest((_work, consumer, command) => {
     assert.match(missing, /snapshot doesn't exist|snapshot.*missing/i)
     run([...command, 'build', '//:host_snapshot_export_test_snapshot_capture',
       `--action_env=PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH}`], {cwd: consumer})
-    assert(files(path.join(consumer, 'bazel-bin/host_snapshot_export_test_snapshot_capture.results/snapshots')).length > 0)
+    assert(files(path.join(consumer, 'bazel-bin/host_snapshot_export_test_snapshot_capture.results/artifacts/snapshots')).length > 0)
     assert(!fs.existsSync(path.join(consumer, 'snapshots')), 'Capture action modified source')
     run([...command, 'run', `--action_env=PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH}`,  '//:host_snapshot_export_test.update'], {cwd: consumer})
     run([...command, 'test', '//:host_snapshot_export_test', '--nocache_test_results'], {cwd: consumer})
