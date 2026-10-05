@@ -1,6 +1,12 @@
-load("@rules_python//python:defs.bzl", "py_binary")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
+load("//tools:typescript.bzl", "tool_sources")
 
-py_binary(
+exports_files(["typescript.bzl", "package.json"])
+
+tool_sources()
+
+js_binary(
     name = "update_runtime_preset",
-    srcs = ["update_runtime_preset.py"],
+    entry_point = "update_runtime_preset.js",
+    data = [":typecheck", "package.json"],
 )

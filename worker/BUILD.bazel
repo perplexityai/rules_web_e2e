@@ -1,38 +1,42 @@
-load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
+load("//tools:typescript.bzl", "tool_sources")
+
+load("@aspect_rules_js//js:defs.bzl", "js_library")
 
 exports_files(["linux_amd64.json"])
 
-py_library(
+tool_sources(deps = ["//tools:typecheck", "//:node_modules/@bazel/runfiles"])
+
+js_library(
     name = "supervisor",
-    srcs = ["supervisor.py"],
-    imports = [".."],
+    srcs = ["supervisor.js", "supervisor.d.ts", "package.json"],
     visibility = ["//visibility:public"],
-    deps = ["@rules_python//python/runfiles"],
 )
 
-py_binary(
+js_binary(
     name = "runner",
-    srcs = ["main.py"],
+    copy_data_to_bin = False,
+    entry_point = "main.js",
     args = [
         "--worker-runfile=$(rlocationpath @actiond_linux_amd64//file)",
         "--manifest-runfile=$(rlocationpath :linux_amd64.json)",
     ],
-    data = [
-        "linux_amd64.json",
-        "@actiond_linux_amd64//file",
-    ],
-    main = "main.py",
+    data = [":typecheck", "package.json", "linux_amd64.json", "@actiond_linux_amd64//file"],
     visibility = ["//visibility:public"],
-    deps = [":supervisor"],
 )
 
-py_test(
+js_test(
     name = "supervisor_test",
     size = "small",
-    srcs = ["supervisor_test.py"],
-    target_compatible_with = [
-        "@platforms//os:linux",
-        "@platforms//cpu:x86_64",
-    ],
+    entry_point = "supervisor_test.js",
+    data = [":typecheck", "package.json"],
+    target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+)
+
+
+js_library(
+    name = "supervisor_config_test_files",
+    srcs = ["supervisor_config_test.js"],
     deps = [":supervisor"],
+    visibility = ["//visibility:public"],
 )

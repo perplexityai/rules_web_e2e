@@ -1,18 +1,20 @@
-load("@rules_python//python:defs.bzl", "py_test")
+load("@aspect_rules_js//js:defs.bzl", "js_test")
 
 alias(
     name = "browser",
     actual = "@web_browser//:browser",
 )
 
-py_test(
+js_test(
     name = "runtime_test",
-    srcs = ["runtime_test.py"],
+    copy_data_to_bin = False,
+    entry_point = "@rules_web_e2e//playwright:preset_runtime_test.js",
     args = [
         "$(rootpath :browser)",
         "$(rootpath @web_browser//:manifest.json)",
     ],
     data = [
+        "@rules_web_e2e//playwright:preset_runtime_test_files",
         ":browser",
         "@web_browser//:manifest.json",
     ],

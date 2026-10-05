@@ -1,4 +1,7 @@
-load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
+load("//tools:typescript.bzl", "tool_sources")
+
+tool_sources(deps = ["//tools:typecheck", "//:node_modules/@bazel/runfiles", "//:node_modules/fflate"])
 load(":defs.bzl", "runfiles_tools", "test_tools")
 
 [
@@ -14,34 +17,34 @@ load(":defs.bzl", "runfiles_tools", "test_tools")
     for arch in ["x64", "arm64"]
 ]
 
-py_binary(
+js_binary(
     name = "compile_magic",
-    srcs = ["compile_magic.py"],
+    entry_point = "compile_magic.js",
+    data = [":typecheck", "package.json"],
     visibility = ["//visibility:public"],
 )
 
-py_test(
+js_test(
     name = "tools_test",
     size = "small",
-    srcs = ["tools_test.py"],
+    entry_point = "tools_test.js",
     args = ["$(rlocationpaths :tools)"],
-    data = [":tools"],
+    data = [":tools", ":typecheck", "package.json"],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:x86_64",
     ],
-    deps = ["@rules_python//python/runfiles"],
+
 )
 
 [
-    py_test(
+    js_test(
         name = "elf_" + arch + "_test",
         size = "small",
-        srcs = ["elf_test.py"],
-        main = "elf_test.py",
+        entry_point = "elf_test.js",
         args = [str(machine), "$(rlocationpaths " + tools + ")"],
-        data = [tools],
-        deps = ["@rules_python//python/runfiles"],
+        data = [tools, ":typecheck", "package.json"],
+
     )
     for arch, machine, tools in [("x64", 62, ":tools"), ("arm64", 183, ":tools_arm64")]
 ]

@@ -1,4 +1,4 @@
-load("@rules_python//python:defs.bzl", "py_test")
+load("@aspect_rules_js//js:defs.bzl", "js_test")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 sh_test(
@@ -16,9 +16,9 @@ sh_test(
     ],
 )
 
-py_test(
+js_test(
     name = "supervisor_config_test",
     size = "small",
-    srcs = ["supervisor_config_test.py"],
-    deps = ["@rules_web_e2e//worker:supervisor"],
+    entry_point = "@rules_web_e2e//worker:supervisor_config_test.js",
+    data = ["@rules_web_e2e//worker:supervisor_config_test_files"],
 )

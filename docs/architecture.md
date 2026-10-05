@@ -43,7 +43,11 @@ consumer-inferred packages, resolves runfiles, and manages child processes and a
 
 ## TypeScript and Bazel inputs
 
-All maintained runtime code and executable configuration TypeScript. Bazel
+Build tools, worker supervisor, tests, and runtime use TypeScript. Bazel
+compiles tools with rules_ts and runs them with rules_js. Archive parsing uses
+`tar`; runfile lookup uses `@bazel/runfiles`. No project-owned Python tools.
+
+Executable configuration also TypeScript. Bazel
 compiles runtime to JavaScript and exposes generated declarations through
 `@rules-web-e2e/vrt`. Consumer build targets must typecheck and emit specs before execution;
 shell builds must depend on typechecks as well.
