@@ -51,6 +51,7 @@ def _inputs_impl(ctx):
     if visual and not ctx.attr.browser:
         fail("VRT requires a declared browser_runtime via browser")
     shell = ctx.attr.shell[ShellInfo] if ctx.attr.shell else None
+
     # A directory artifact preserves real spec files during remote runfile
     # mapping. Playwright does not discover individually symlinked specs.
     harness = ctx.actions.declare_directory(ctx.label.name + ".suite")
@@ -281,4 +282,4 @@ def browser_test(
     )
 
     if snapshot_dir:
-        snapshot_update(name, snapshot_dir, common, args, tags)
+        snapshot_update(name, snapshot_dir, common, args, tags, snapshots)

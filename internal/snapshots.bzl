@@ -1,6 +1,7 @@
 """Declared host capture outputs and Bazel-managed source updates."""
 
 load("@aspect_rules_js//js:defs.bzl", "js_binary")
+load("@bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@bazel_lib//lib:directory_path.bzl", "directory_path")
 load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
@@ -33,19 +34,33 @@ _capture = rule(
     },
 )
 
-def snapshot_update(name, snapshot_dir, common, args, tags):
+def snapshot_update(name, snapshot_dir, common, args, tags, snapshots = []):
     js_binary(name = name + "_snapshot_runner", patch_node_fs = False, tags = ["manual"], **common)
     capture = name + "_snapshot_capture"
     _capture(name = capture, runner = ":" + name + "_snapshot_runner", args = args, tags = ["manual"])
-    source_update(name, capture, "snapshots", snapshot_dir, tags = tags)
+    captured = name + "_captured_snapshots"
+    directory_path(name = captured, directory = ":" + capture, path = "artifacts/snapshots", tags = ["manual"])
+    merged = name + "_merged_snapshots"
+    prefix = native.package_name() + "/" if native.package_name() else ""
+    copy_to_directory(
+        name = merged,
+        srcs = snapshots + [":" + captured],
+        root_paths = [prefix + snapshot_dir, prefix + capture + ".results/artifacts/snapshots"],
+        allow_overwrites = True,
+        hardlink = "off",
+        tags = ["manual"],
+    )
+    source_update(name, capture, "snapshots", snapshot_dir, tags = tags, tree = ":" + merged)
 
-def source_update(name, capture, directory, destination, visual = False, tags = []):
+def source_update(name, capture, directory, destination, visual = False, tags = [], tree = None):
     """Use one guarded bazel-lib writer for both VRT and native snapshots."""
-    directory_path(name = name + "_snapshot_tree", directory = ":" + capture, path = directory, tags = ["manual"])
+    if tree == None:
+        directory_path(name = name + "_snapshot_tree", directory = ":" + capture, path = directory, tags = ["manual"])
+        tree = ":" + name + "_snapshot_tree"
     writer = name + "_snapshot_write"
     write_source_files(
         name = writer,
-        files = {destination: ":" + name + "_snapshot_tree"},
+        files = {destination: tree},
         diff_test = False,
         check_that_out_file_exists = False,
         tags = ["manual"],

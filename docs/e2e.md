@@ -267,3 +267,7 @@ Snapshot updates require the full baseline set. JUnit goes to Bazel’s `test.xm
 Bazel test deadlines use `timeout` or `--test_timeout`. The runtime adds no second
 whole-suite timer under `bazel test`. Playwright still owns per-test timeouts.
 `execution_timeout_seconds` bounds capture actions and standalone invocations.
+
+Native snapshot capture writes only new snapshots. A declared `copy_to_directory`
+action overlays them on the `snapshots` inputs, then `.update` uses the guarded
+source writer. Filtered updates keep uncaptured snapshots without runtime copying.

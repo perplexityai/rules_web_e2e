@@ -2,10 +2,10 @@
 
 load("@bazel_lib//lib:paths.bzl", "to_rlocation_path")
 load("@web_e2e_worker_identity//:defs.bzl", "WORKER_SHA256")
-load(":snapshots.bzl", "source_update")
 load("//internal/local:launch.bzl", "local_browser_launch")
 load("//internal/test_tools:defs.bzl", "TestToolsInfo")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo")
+load(":snapshots.bzl", "source_update")
 
 def _linux_impl(_settings, attr):
     return {"//command_line_option:platforms": [str(attr.target_platform)]}
@@ -37,8 +37,13 @@ linux_platform = rule(
 
 # Prefer worker glibc to bundled libc so its loader and libraries stay paired.
 _WORKER_LIBRARIES = ":".join([
-    "/lib/x86_64-linux-gnu", "/lib/aarch64-linux-gnu", "/lib64", "/lib",
-    "/usr/lib/x86_64-linux-gnu", "/usr/lib/aarch64-linux-gnu", "/usr/lib",
+    "/lib/x86_64-linux-gnu",
+    "/lib/aarch64-linux-gnu",
+    "/lib64",
+    "/lib",
+    "/usr/lib/x86_64-linux-gnu",
+    "/usr/lib/aarch64-linux-gnu",
+    "/usr/lib",
 ])
 
 def _library_path(root, descriptor):
