@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import fsExtra from 'fs-extra'
 import os from 'node:os'
 import path from 'node:path'
 import * as tar from 'tar'
@@ -72,7 +73,7 @@ export function assemble({archives, paths = {}, files = {}, exclude = []}: Archi
       const destination = path.join(output, target)
       if (fs.existsSync(destination)) throw new Error(`Additional runtime file would overwrite archive content: ${destination}`)
       if (fs.statSync(source).isDirectory()) {
-        fs.cpSync(source, destination, {recursive: true, dereference: true})
+        fsExtra.copySync(source, destination, {dereference: true})
         const normalize = (file: string) => {
           const stat = fs.statSync(file)
           fs.chmodSync(file, stat.isDirectory() || stat.mode & 0o111 ? 0o755 : 0o644)

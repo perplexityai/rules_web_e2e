@@ -14,6 +14,7 @@ js_library(
 )
 
 js_binary(
+    patch_node_fs = False,
     name = "runner",
     copy_data_to_bin = False,
     entry_point = "main.js",
@@ -26,6 +27,7 @@ js_binary(
 )
 
 js_test(
+    patch_node_fs = False,
     name = "supervisor_test",
     size = "small",
     entry_point = "supervisor_test.js",

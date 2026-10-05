@@ -18,6 +18,7 @@ load(":defs.bzl", "runfiles_tools", "test_tools")
 ]
 
 js_binary(
+    patch_node_fs = False,
     name = "compile_magic",
     entry_point = "compile_magic.js",
     data = [":typecheck", "package.json"],
@@ -25,6 +26,7 @@ js_binary(
 )
 
 js_test(
+    patch_node_fs = False,
     name = "tools_test",
     size = "small",
     entry_point = "tools_test.js",
@@ -39,6 +41,7 @@ js_test(
 
 [
     js_test(
+        patch_node_fs = False,
         name = "elf_" + arch + "_test",
         size = "small",
         entry_point = "elf_test.js",

@@ -6,6 +6,7 @@ alias(
 )
 
 js_test(
+    patch_node_fs = False,
     name = "runtime_test",
     copy_data_to_bin = False,
     entry_point = "@rules_web_e2e//playwright:preset_runtime_test.js",

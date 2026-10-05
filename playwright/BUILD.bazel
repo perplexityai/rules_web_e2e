@@ -3,10 +3,11 @@ load("//tools:typescript.bzl", "tool_sources")
 
 exports_files(["defs.bzl", "archive.bzl"])
 
-tool_sources(deps = ["//tools:typecheck", "//runtime:typecheck", "//:node_modules/tar", "//:node_modules/seek-bzip"])
+tool_sources(deps = ["//tools:typecheck", "//runtime:typecheck", "//:node_modules/tar", "//:node_modules/seek-bzip", "//:node_modules/fs-extra", "//:node_modules/@types/fs-extra"])
 
 [
     js_binary(
+        patch_node_fs = False,
         name = name,
         entry_point = name + ".js",
         data = [":typecheck", "package.json"],
@@ -17,6 +18,7 @@ tool_sources(deps = ["//tools:typecheck", "//runtime:typecheck", "//:node_module
 
 [
     js_test(
+        patch_node_fs = False,
         name = name + "_test",
         size = "small",
         entry_point = name + "_test.js",

@@ -60,6 +60,9 @@ test('Linux assembly accepts both architectures and rejects mixed binaries and i
     const base = path.join(root, arch), system = path.join(base, 'system'), node = path.join(base, 'node')
     const binary = Buffer.alloc(64); binary.set([127, 69, 76, 70, 2, 1]); binary.writeUInt16LE(machine, 18)
     for (const name of ['lib/' + loader, 'bin/bash', 'etc/fonts/fonts.conf', 'fonts/default.ttf']) write(path.join(system, name), binary)
+    const loaderInput = path.join(base, 'declared-loader')
+    fs.renameSync(path.join(system, 'lib', loader), loaderInput)
+    fs.symlinkSync(loaderInput, path.join(system, 'lib', loader))
     write(node, binary)
     const browser = bundle(path.join(base, 'browser')); write(path.join(browser, 'chrome-headless-shell'), binary)
     const ffmpeg = path.join(base, 'ffmpeg-linux'); write(ffmpeg, binary)
@@ -67,6 +70,7 @@ test('Linux assembly accepts both architectures and rejects mixed binaries and i
     const manifest = {mode: 'linux', arch, system, node, chromium: [browser], ffmpeg: [ffmpeg], fonts: [font]}
     const output = path.join(base, 'runtime'); assemble(manifest, output)
     assert.deepEqual(fs.readFileSync(path.join(output, 'bin/node')), binary)
+    assert(!fs.lstatSync(path.join(output, 'lib', loader)).isSymbolicLink())
     assert.deepEqual(fs.readFileSync(path.join(output, 'bin/ffmpeg-linux')), binary)
     assert.equal(fs.readFileSync(path.join(output, 'fonts/custom/0/brand.ttf'), 'utf8'), 'font')
     assert(fs.existsSync(path.join(output, 'fonts/default.ttf')))

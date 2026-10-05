@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import fsExtra from 'fs-extra'
 import path from 'node:path'
 import {copyFile, files, inside, main, readJson, relative} from '../tools/files.js'
 
@@ -28,7 +29,7 @@ export function assemble(manifest: any, output: string) {
     copyFile(executable, target)
     fs.chmodSync(target, 0o755)
   } else if (manifest.mode === 'linux') {
-    fs.cpSync(manifest.system, output, {recursive: true, dereference: true})
+    fsExtra.copySync(manifest.system, output, {dereference: true})
     function writable(dir: string) {
       fs.chmodSync(dir, 0o755)
       for (const entry of fs.readdirSync(dir, {withFileTypes: true}))
@@ -48,7 +49,7 @@ export function assemble(manifest: any, output: string) {
     }
     for (const [index, font] of (manifest.fonts || []).entries()) {
       const target = path.join(output, 'fonts/custom', String(index))
-      if (fs.statSync(font).isDirectory()) fs.cpSync(font, target, {recursive: true, dereference: true})
+      if (fs.statSync(font).isDirectory()) fsExtra.copySync(font, target, {dereference: true})
       else copyFile(font, path.join(target, path.basename(font)))
     }
     const arch = manifest.arch || 'x64'
