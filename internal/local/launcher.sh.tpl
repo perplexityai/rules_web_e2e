@@ -43,12 +43,12 @@ if [[ -n "${XML_OUTPUT_FILE:-}" ]]; then
   reports=$(cd "${XML_OUTPUT_FILE%/*}" && pwd -P)
   report_args+=(--bind "$reports" /reports --setenv XML_OUTPUT_FILE "/reports/${XML_OUTPUT_FILE##*/}")
 fi
-for key in TEST_TOTAL_SHARDS TEST_SHARD_INDEX TEST_RANDOM_SEED TEST_RUN_NUMBER; do
+for key in TEST_TOTAL_SHARDS TEST_SHARD_INDEX TEST_RANDOM_SEED TEST_RUN_NUMBER TESTBRIDGE_TEST_ONLY TEST_TIMEOUT; do
   if [[ -n "${!key:-}" ]]; then report_args+=(--setenv "$key" "${!key}"); fi
 done
 if [[ -n "${TEST_SHARD_STATUS_FILE:-}" ]]; then
-  "$lookup" touch "$TEST_SHARD_STATUS_FILE"
-  report_args+=(--bind "$TEST_SHARD_STATUS_FILE" /shard-status --setenv TEST_SHARD_STATUS_FILE /shard-status)
+  shards=$(cd "${TEST_SHARD_STATUS_FILE%/*}" && pwd -P)
+  report_args+=(--bind "$shards" /shards --setenv TEST_SHARD_STATUS_FILE "/shards/${TEST_SHARD_STATUS_FILE##*/}")
 fi
 # Bubblewrap reads NUL-delimited arguments from an fd, avoiding argv limits.
 # Each mount comes from a declared File or a standard Bazel runfiles symlink.

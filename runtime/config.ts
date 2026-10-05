@@ -35,7 +35,7 @@ export function processConfig({root}: BrowserConfigOptions): PlaywrightTestConfi
     outputDir: path.join(required('VRT_OUTPUTS'), 'artifacts'),
     reporter: [
       ['list'],
-      ['junit', {outputFile: path.join(required('VRT_OUTPUTS'), 'junit.xml')}],
+      ['junit', {outputFile: process.env.XML_OUTPUT_FILE || path.join(required('VRT_OUTPUTS'), 'junit.xml')}],
     ],
   }
 }

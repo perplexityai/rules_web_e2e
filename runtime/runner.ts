@@ -80,7 +80,7 @@ async function run(temp: string) {
   let discoveryRoot = testFiles.length ? path.dirname(testFiles[0]) : inputs
   while (testFiles.some(file => path.relative(discoveryRoot, file).split(path.sep)[0] === '..'))
     discoveryRoot = path.dirname(discoveryRoot)
-  const selectors = testArguments(visual, args, descriptor.tests)
+  const selectors = testArguments(visual, args, descriptor.tests, process.env)
   if (exportSnapshots)
     fs.writeFileSync(path.join(outputs, 'snapshot-sources.json'), JSON.stringify(
       Object.fromEntries(testFiles.map((file, index) => [path.relative(discoveryRoot, file), descriptor.tests[index]]))
@@ -199,6 +199,7 @@ async function run(temp: string) {
     BAZEL_BINDIR: '.',
     TEST_TMPDIR: temp,
     TEST_UNDECLARED_OUTPUTS_DIR: outputs,
+    XML_OUTPUT_FILE: process.env.XML_OUTPUT_FILE,
     PATH: `${path.dirname(node)}:/usr/bin:/bin`,
   }
   if (declaredBrowser) {
@@ -273,7 +274,7 @@ async function run(temp: string) {
             'test',
             '--config',
             config,
-            ...selectors,
+            ...(discover ? [] : selectors),
           ],
           {
             cwd: testRoot,

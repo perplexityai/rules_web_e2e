@@ -132,7 +132,7 @@ test('native browser failure exits the test process and preserves standard artif
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))
   const runner = path.join(root, 'fail.mjs')
   fs.writeFileSync(runner, `import fs from 'node:fs';
-    fs.writeFileSync(process.env.TEST_UNDECLARED_OUTPUTS_DIR + '/junit.xml', '<failure/>');
+    fs.writeFileSync(process.env.XML_OUTPUT_FILE, '<failure/>');
     process.exitCode = 7;`)
   const job = {runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output: root, mode: 'test'}
   const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
@@ -141,7 +141,6 @@ test('native browser failure exits the test process and preserves standard artif
      runRemoteJob(${JSON.stringify(job)}, ${JSON.stringify(node)}, {NODE_OPTIONS: ''});`,
   ], {env: {...process.env, NODE_OPTIONS: '', XML_OUTPUT_FILE: path.join(root, 'test.xml')}, encoding: 'utf8'})
   assert.equal(result.status, 7, result.stderr)
-  assert.equal(fs.readFileSync(path.join(root, 'junit.xml'), 'utf8'), '<failure/>')
   assert.equal(fs.existsSync(path.join(root, 'result.json')), false)
   assert.equal(fs.readFileSync(path.join(root, 'test.xml'), 'utf8'), '<failure/>')
 })

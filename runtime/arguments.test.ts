@@ -45,3 +45,22 @@ test('CI file selection maps source names to declared compiled specs only', () =
   )
   assert.throws(() => testArguments(true, ['--pass-with-no-tests']))
 })
+
+test('Bazel selects the Playwright shard and filter without conflicting CLI policies', () => {
+  assert.deepEqual(testArguments(false, [], [], {
+    TEST_TOTAL_SHARDS: '3', TEST_SHARD_INDEX: '1', TESTBRIDGE_TEST_ONLY: 'checkout.*',
+  }), ['--grep', 'checkout.*', '--shard=2/3'])
+  assert.deepEqual(testArguments(true, [], [], {
+    TEST_TOTAL_SHARDS: '2', TEST_SHARD_INDEX: '0',
+  }), ['--shard=1/2'])
+  for (const env of [
+    {TEST_TOTAL_SHARDS: '0', TEST_SHARD_INDEX: '0'},
+    {TEST_TOTAL_SHARDS: '2', TEST_SHARD_INDEX: '2'},
+    {TEST_TOTAL_SHARDS: '2'},
+  ]) assert.throws(() => testArguments(false, [], [], env), /Invalid Bazel/)
+  assert.throws(() => testArguments(false, ['--shard=1/2'], [], {
+    TEST_TOTAL_SHARDS: '2', TEST_SHARD_INDEX: '0',
+  }), /Bazel owns/)
+  assert.throws(() => testArguments(false, ['--grep=a'], [], {TESTBRIDGE_TEST_ONLY: 'b'}), /either/)
+  assert.throws(() => testArguments(true, ['--update'], [], {TESTBRIDGE_TEST_ONLY: 'a'}), /updates cannot/)
+})

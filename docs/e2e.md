@@ -256,3 +256,10 @@ Process-owned suites run with runfiles workspace as their working directory,
 so `$(rootpath ...)` values in declared environment variables resolve without
 depending on config package's location. Runtime `data` stays in runfiles;
 native executables not copied into test package.
+
+## Bazel selection
+
+Set `shard_count` on the test target. Bazel shard indices map to Playwright shards.
+Use `bazel test --test_filter=<regex>` to select test names. Do not combine it with
+`--test_arg=--grep`; do not combine Bazel sharding with `--test_arg=--shard`.
+Snapshot updates require the full baseline set. JUnit goes to Bazel’s `test.xml`.
