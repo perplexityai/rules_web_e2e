@@ -158,7 +158,8 @@ def browser_test(
         visual = False,
         component = False,
         process_owned = False,
-        cacheable = False):
+        cacheable = False,
+        exec_properties = {}):
     """Internal common implementation; public wrappers select the test mode."""
     if execution not in ["actiond", "local"]:
         fail("execution must be actiond or local")
@@ -171,9 +172,13 @@ def browser_test(
             fail("snapshot_dir must be a relative directory without dot segments")
     elif snapshots:
         fail("snapshots requires snapshot_dir")
-    if cacheable and (browser or visual or process_owned or base_url or base_url_env or env_inherit):
+    if exec_properties and execution != "local":
+        fail("exec_properties is supported for execution = local")
+    if cacheable and execution == "local" and not exec_properties.get("web-e2e-local-platform", "").strip():
+        fail("cacheable local execution requires exec_properties[web-e2e-local-platform] identifying the runner image, kernel, CPU class, and namespace policy")
+    if cacheable and execution != "local" and (browser or visual or process_owned or base_url or base_url_env or env_inherit):
         fail("cacheable requires local host tests with explicit declared inputs and no inherited environment")
-    if cacheable and "PLAYWRIGHT_BROWSERS_PATH" not in env:
+    if cacheable and execution != "local" and "PLAYWRIGHT_BROWSERS_PATH" not in env:
         fail("cacheable requires an explicit PLAYWRIGHT_BROWSERS_PATH")
     if target_arch not in ["x64", "arm64"]:
         fail("target_arch must be x64 or arm64")
@@ -256,7 +261,7 @@ def browser_test(
         if not process_owned and key not in env and key not in env_inherit
     ]
     if browser:
-        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256, host_vrt, execution)
+        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256, host_vrt, execution, cacheable, exec_properties)
         return
     js_test(
         name = name,

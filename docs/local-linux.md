@@ -58,13 +58,40 @@ an audited boundary for hostile test code.
 
 ## Caching and lifecycle
 
-Local tests have `external`/`no-cache` tags and run on every invocation. Captures
-disable disk/remote spawn caching. Both reject remote execution. A fresh output
-tree runs its own capture even when it shares a disk cache. Bazel may reuse an
-unchanged capture within the same output tree; run `bazel clean` after changing
-the host kernel or namespace policy. Do not move output trees between hosts.
-Build inputs and the static runner remain normally cacheable. Shared browser
-result caching needs an execution-platform identity covering kernel and policy.
+Local execution defaults to uncached browser results. For deterministic suites on
+a controlled CI worker pool, enable caching:
+
+```starlark
+visual_test(
+    name = "visuals",
+    browser = "@web_browser//:browser",
+    execution = "local",
+    cacheable = True,
+    exec_properties = {"web-e2e-local-platform": "ci-image-v7-kernel6.8-zen4-userns-v1"},
+    tests = ":compiled_visual_specs",
+    config = ":config",
+    baseline_dir = "__screenshots__",
+    baselines = glob(["__screenshots__/*.png"]),
+)
+```
+
+Use the same environment identity only for equivalent runner images, kernels,
+CPU classes, and namespace policies. CI owns that assertion; this value does not
+select or provision a machine. A label like `ubuntu-latest` is too broad. Our CI
+hashes its image version, kernel, CPU characteristics, and namespace policy.
+
+Bazel caches passing tests and capture artifacts in its normal disk/remote cache.
+`no-remote-exec` keeps browser execution local while allowing remote cache hits.
+The properties are also declared job inputs, so changing the identity invalidates
+both local and shared results. Browser, font, fixture, environment, and baseline
+changes remain ordinary declared-input changes. A cache hit skips execution and
+restores reports; the namespace preflight runs only on a miss.
+
+Use `--nocache_test_results` for fresh test runs. Default uncached tests retain
+`external`/`no-cache` behavior; default captures reject shared caches but may be
+reused within one output tree. Do not move output trees across hosts. Build inputs
+and the static runner stay cacheable in either mode. Use standard Bazel cache
+configuration; there is no separate browser cache.
 
 Private PID namespaces and Bubblewrap's parent-death handling bound descendants
 when Bazel cancels or times out. The existing runner watchdog also bounds stalled
@@ -82,7 +109,9 @@ node e2e-tests/run.ts local /tmp/local-browser-validation
 It covers E2E, components, native fixture servers, npm package dependencies,
 network and filesystem isolation, bundled font selection, renderer seccomp,
 video, missing FFmpeg, repeated runs, retries, VRT comparisons, diff/JUnit outputs,
-timeouts, stalled runners, cancellation, and baseline preservation. Baseline files
+timeouts, stalled runners, cancellation, and baseline preservation. Cache probes
+check fresh-output-tree hits, environment/input invalidation, changed baselines,
+and explicit reruns. Baseline files
 created by the driver stay in the disposable consumer.
 
 The `local Linux browsers` CI workflow runs on Ubuntu x64 and ARM64 with Bazel

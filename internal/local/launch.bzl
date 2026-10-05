@@ -45,5 +45,8 @@ def local_browser_launch(ctx, root, descriptor, runfiles, job):
     )
     providers = [DefaultInfo(executable = executable, runfiles = inputs.merge(ctx.runfiles(files = [manifest]))), OutputGroupInfo(inputs = inputs.files)]
     if ctx.attr.mode == "test":
-        providers += [testing.ExecutionInfo({"no-remote": "1", "no-sandbox": "1", "no-cache": "1"})]
+        requirements = {"no-remote-exec": "1", "no-sandbox": "1"}
+        if not ctx.attr.cacheable:
+            requirements.update({"no-remote-cache": "1", "no-cache": "1"})
+        providers += [testing.ExecutionInfo(requirements)]
     return providers

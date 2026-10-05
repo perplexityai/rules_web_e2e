@@ -81,3 +81,9 @@ node e2e-tests/run.ts local /tmp/local-browser-validation
 The driver selects native x64/ARM64, uses declared runtime targets directly, and
 keeps generated baselines in the supplied disposable directory. See
 [local Linux execution](../docs/local-linux.md).
+
+Local cache probes use a disposable disk cache by default. Set
+`LOCAL_BROWSER_CACHE_CONFIGURED=1` to use your normal Bazel cache configuration.
+CI does this so `setup-bazel` persists the tested cache between jobs.
+`LOCAL_BROWSER_PLATFORM` supplies the CI-owned environment identity; without it,
+the driver uses an invocation-specific regression key.
