@@ -52,8 +52,8 @@ config.projects = [{name: 'desktop', use: {viewport: {width: 800, height: 600}}}
     fs.writeFileSync(build, 'load("@rules_web_e2e//e2e:defs.bzl", "browser_process_test")\n' + text(build) + `
 genrule(name = "snapshot_component_spec", srcs = ["snapshot-export.spec.js"], outs = ["snapshot-export.browser.spec.js"], cmd = "cp $(SRCS) $(OUTS)")
 js_library(name = "snapshot_component_specs", srcs = [":snapshot_component_spec"], deps = [":typecheck_project"])
-component_browser_test(name = "snapshot_component_test", tests = ":snapshot_component_specs", config = ":native_config", snapshot_dir = "component-snapshots", snapshots = glob(["component-snapshots/**"], allow_empty = True))
-browser_process_test(name = "snapshot_process_test", tests = ":snapshot_export_specs", config = ":native_config", snapshot_dir = "process-snapshots", snapshots = glob(["process-snapshots/**"], allow_empty = True), env = {"PLAYWRIGHT_BROWSERS_PATH": ${JSON.stringify(process.env.PLAYWRIGHT_BROWSERS_PATH)}})
+component_browser_test(name = "snapshot_component_test", playwright = ":playwright", tests = ":snapshot_component_specs", config = ":native_config", snapshot_dir = "component-snapshots", snapshots = glob(["component-snapshots/**"], allow_empty = True))
+browser_process_test(name = "snapshot_process_test", playwright = ":playwright", tests = ":snapshot_export_specs", config = ":native_config", snapshot_dir = "process-snapshots", snapshots = glob(["process-snapshots/**"], allow_empty = True), env = {"PLAYWRIGHT_BROWSERS_PATH": ${JSON.stringify(process.env.PLAYWRIGHT_BROWSERS_PATH)}})
 `)
     for (const target of ['snapshot_component_test', 'snapshot_process_test']) {
       run([...command, 'run', `--action_env=PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH}`,  `//:${target}.update`], {cwd: consumer})
