@@ -173,7 +173,7 @@ try {
       '--flaky_test_attempts=2', '--nocache_test_results', '--test_output=errors'], {fail: true})
     assert(text('bazel-testlogs/actiond_browser_failure_test/test.log').includes('Intentional ordinary browser failure'))
     assert.equal(ids('actiond_browser_failure_test').size, 2, 'Retries must launch two browsers')
-    assert(outputFiles('bazel-testlogs/actiond_browser_failure_test/test.outputs').some(p => p.name.endsWith('junit.xml')))
+    nonempty('bazel-testlogs/actiond_browser_failure_test/test.xml')
     let previous = new Set<string>()
     for (let round = 0; round < 2; round++) {
       test('//:actiond_rerun_test', '--runs_per_test=2', '--nocache_test_results')
@@ -218,7 +218,7 @@ try {
   assert.equal(ids('actiond_failure_test').size, 2, 'Visual retries must launch two browsers')
   assert(!fs.existsSync('__actiond_failed__/partial.png'), 'Missing reference must not be created by comparison')
   const outputs = outputFiles('bazel-testlogs/actiond_failure_test/test.outputs')
-  assert(outputs.some(file => file.name.endsWith('junit.xml')))
+  nonempty('bazel-testlogs/actiond_failure_test/test.xml')
   assert(outputs.some(file => file.name.endsWith('.png')), 'Failed native comparison must download screenshots')
   let previous = new Set<string>()
   for (let round = 0; round < 2; round++) {
