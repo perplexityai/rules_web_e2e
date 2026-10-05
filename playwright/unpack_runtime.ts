@@ -1,5 +1,4 @@
 import fs from 'node:fs'
-import fsExtra from 'fs-extra'
 import os from 'node:os'
 import path from 'node:path'
 import * as tar from 'tar'
@@ -69,18 +68,11 @@ export function assemble({archives, paths = {}, files = {}, exclude = []}: Archi
       for (const [source, target] of Object.entries(paths).sort())
         materialize(root, path.join(root, relative(source)), path.join(output, target))
     } else materialize(root, root, output)
-    for (const [source, target] of Object.entries(files).sort()) {
+    // Bazel copies declared files after this action. Validate their destinations
+    // against the normalized archive without reading those inputs here.
+    for (const target of Object.values(files)) {
       const destination = path.join(output, target)
       if (fs.existsSync(destination)) throw new Error(`Additional runtime file would overwrite archive content: ${destination}`)
-      if (fs.statSync(source).isDirectory()) {
-        fsExtra.copySync(source, destination, {dereference: true})
-        const normalize = (file: string) => {
-          const stat = fs.statSync(file)
-          fs.chmodSync(file, stat.isDirectory() || stat.mode & 0o111 ? 0o755 : 0o644)
-          if (stat.isDirectory()) for (const name of fs.readdirSync(file)) normalize(path.join(file, name))
-        }
-        normalize(destination)
-      } else copyFile(source, destination)
     }
   } finally { fs.rmSync(temporary, {recursive: true, force: true}) }
 }

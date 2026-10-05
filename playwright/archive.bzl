@@ -24,6 +24,8 @@ def _archive_impl(ctx):
             normalized.append(archive)
     archives = normalized
     root = ctx.actions.declare_directory(ctx.label.name)
+    extracted = ctx.actions.declare_directory(ctx.label.name + ".archive") if ctx.attr.files else root
+    declared = []
     manifest = ctx.actions.declare_file(ctx.label.name + ".manifest.json")
     files = {}
     for target, destination in ctx.attr.files.items():
@@ -31,6 +33,7 @@ def _archive_impl(ctx):
         if len(outputs) != 1:
             fail("files entries must provide exactly one file or directory: " + str(target.label))
         files[outputs[0].path] = destination
+        declared.append(outputs[0])
     ctx.actions.write(manifest, json.encode({
         "archives": [file.path for file in archives],
         "paths": ctx.attr.paths,
@@ -40,17 +43,41 @@ def _archive_impl(ctx):
     ctx.actions.run(
         executable = ctx.executable._unpack,
         env = {"BAZEL_BINDIR": ctx.bin_dir.path},
-        arguments = ["--manifest", manifest.path, root.path],
-        inputs = archives + [manifest] + ctx.files.files,
+        arguments = ["--manifest", manifest.path, extracted.path],
+        inputs = archives + [manifest],
         tools = [ctx.attr._unpack[DefaultInfo].files_to_run],
-        outputs = [root],
+        outputs = [extracted],
         mnemonic = "BrowserRuntimeUnpack",
     )
+    if declared:
+        coreutils = ctx.toolchains["@bazel_lib//lib:coreutils_toolchain_type"].coreutils_info.bin
+        args = ctx.actions.args()
+        args.add_all([coreutils.path, extracted.path, root.path])
+        for file in declared:
+            args.add_all([file.path, files[file.path]])
+        ctx.actions.run_shell(
+            arguments = [args],
+            inputs = [extracted] + declared,
+            tools = [coreutils],
+            outputs = [root],
+            command = "\n".join([
+                'set -euo pipefail',
+                'coreutils="$1"; archive="$2"; output="$3"; shift 3',
+                '"$coreutils" cp -R -L --preserve=mode -T -- "$archive" "$output"',
+                'while (( $# )); do',
+                '    target="$output/$2"',
+                '    "$coreutils" mkdir -p -- "${target%/*}"',
+                '    "$coreutils" cp -R -L --preserve=mode -T -- "$1" "$target"',
+                '    shift 2',
+                'done',
+            ]),
+            mnemonic = "BrowserRuntimeFiles",
+        )
     return [DefaultInfo(files = depset([root]), runfiles = ctx.runfiles(files = [root]))]
 
 browser_runtime_archive = rule(
     implementation = _archive_impl,
-    toolchains = ["@bazel_lib//lib:zstd_toolchain_type"],
+    toolchains = ["@bazel_lib//lib:zstd_toolchain_type", "@bazel_lib//lib:coreutils_toolchain_type"],
     doc = "Assemble filesystem tar archives and declared files into a closed directory for browser_runtime(root=...).",
     attrs = {
         "archive": attr.label(allow_single_file = True, doc = "A single filesystem tar; may be combined with archives."),
