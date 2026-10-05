@@ -53,10 +53,13 @@ async function cancelCapture(original: Buffer) {
     binary = search.split(path.delimiter).map(dir => path.join(dir, 'bazel')).find(p => fs.existsSync(p))!
     assert(binary)
   }
+  // Cold toolchain compilation is not part of the cancellation deadline.
+  // Use the same binary and flags as the process we will interrupt.
+  const cancelFlags = [...flags, '--progress_report_interval=1', '--curses=no', '--color=no']
+  run([binary, ...command.slice(1), 'build', '//:actiond_cancel_test_capture_launcher', ...cancelFlags])
   const log = `${work}/results/cancellation.log`
   const fd = fs.openSync(log, 'w')
-  const child = spawn(binary, [...command.slice(1), 'run', '//:actiond_cancel_test.update', ...flags,
-    '--progress_report_interval=1', '--curses=no', '--color=no'], {stdio: ['ignore', fd, fd], detached: true})
+  const child = spawn(binary, [...command.slice(1), 'run', '//:actiond_cancel_test.update', ...cancelFlags], {stdio: ['ignore', fd, fd], detached: true})
   fs.closeSync(fd)
   const finished = new Promise<{code: number | null, signal: NodeJS.Signals | null}>((resolve, reject) => {
     child.once('error', reject)
