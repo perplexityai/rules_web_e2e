@@ -68,7 +68,7 @@ try {
   const catalog = path.join(temp, 'catalog.json')
   const baseURL = `http://127.0.0.1:${address.port}`
   const connectOptions = {wsEndpoint: endpoint, exposeNetwork: '<loopback>'}
-  const run = async (discover: boolean, scale: string) => {
+  const run = async (discover: boolean, scale: string, expected = 0) => {
     fs.writeFileSync(path.join(temp, 'config.js'), `export default ${JSON.stringify({
       testDir: temp, testMatch: 'capture.js', workers: 1, timeout: 10000,
       snapshotPathTemplate: path.join(temp, scale, '{arg}{ext}'),
@@ -80,7 +80,7 @@ try {
       stdio:'inherit', env:{...testEnvironment(process.env, [], temp), VRT_DISCOVER: discover ? '1' : '0', VRT_VISUAL_CATALOG:catalog},
     })
     const [code] = await once(child, 'exit')
-    assert.equal(code, 0, 'generated capture suite failed')
+    assert.equal(code, expected, 'generated capture suite returned the wrong status')
   }
   await run(true, 'css')
   const browser = await chromium.connect(endpoint)
@@ -113,6 +113,9 @@ try {
         assert.equal(redPixels, 200 * 150 * factor * factor, `${id}/${scale} content`)
       }
     }
+    const captures = JSON.parse(fs.readFileSync(catalog, 'utf8'))
+    fs.writeFileSync(catalog, JSON.stringify(captures.slice(1)))
+    await run(false, 'css', 1)
   } finally {
     await browser.close()
   }
