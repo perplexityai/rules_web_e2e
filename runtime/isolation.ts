@@ -37,8 +37,9 @@ export function testEnvironment(
     ...env,
     CI: '1',
     TZ: 'UTC',
-    LANG: 'C.UTF-8',
-    LC_ALL: 'C.UTF-8',
+    // The local bundle intentionally excludes host locale archives.
+    LANG: source.VRT_EXECUTION === 'local' ? 'C' : 'C.UTF-8',
+    LC_ALL: source.VRT_EXECUTION === 'local' ? 'C' : 'C.UTF-8',
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
   }
 }

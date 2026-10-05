@@ -354,3 +354,30 @@ test('isolated ordinary suites preserve projects but reject host browser selecti
     rmSync(temp, {recursive: true, force: true})
   }
 })
+
+test('local execution enables Chromium sandbox while preserving caller launch tuning', async () => {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const {tmpdir} = await import('node:os')
+  const temp = fs.mkdtempSync(path.join(tmpdir(), 'local-config-'))
+  const previous = {...process.env}
+  try {
+    fs.writeFileSync(path.join(temp, 'package.json'), '{"type":"module"}')
+    fs.writeFileSync(path.join(temp, 'custom.js'), 'export default {use: {launchOptions: {chromiumSandbox: false, args: ["--disable-gpu"]}}}')
+    Object.assign(process.env, {
+      VRT_MODE: 'e2e', VRT_ISOLATED: '1', VRT_EXECUTION: 'local',
+      VRT_APP_URL: 'http://127.0.0.1:1234', VRT_OUTPUTS: temp, VRT_TEST_ROOT: temp,
+      VRT_TEST_FILES: JSON.stringify([path.join(temp, 'app.spec.js')]),
+      VRT_CHROMIUM_EXECUTABLE: '/declared/chromium', VRT_CONFIG_OVERRIDE: path.join(temp, 'custom.js'),
+    })
+    delete process.env.VRT_MATCHING
+    const {default: config} = await import(new URL('./suite-config.js?local-policy', import.meta.url).href)
+    assert.equal(config.use.launchOptions.chromiumSandbox, true)
+    assert.equal(config.use.launchOptions.executablePath, '/declared/chromium')
+    assert.deepEqual(config.use.launchOptions.args, ['--disable-gpu'])
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key]
+    Object.assign(process.env, previous)
+    fs.rmSync(temp, {recursive: true, force: true})
+  }
+})

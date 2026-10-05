@@ -303,3 +303,28 @@ web_e2e_test(
     config = ":native_config",
     tests = ":native_specs",
 )
+
+web_e2e_test(
+    name = "local_e2e_test",
+    execution = "local",
+    browser = "@web_browser//:browser",
+    tests = ":e2e_specs",
+    shell = ":app_shell",
+)
+
+component_browser_test(
+    name = "local_component_test",
+    execution = "local",
+    browser = "@web_browser//:browser",
+    playwright = ":playwright",
+    shell = ":component_shell",
+    tests = ":component_specs",
+)
+
+web_e2e_test(
+    name = "local_native_config_test",
+    execution = "local",
+    browser = "@web_browser//:browser",
+    config = ":native_config",
+    tests = ":native_specs",
+)

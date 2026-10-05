@@ -30,6 +30,8 @@ and application-specific output can still contain sensitive data.
 | `name` | Required | Target name |
 | `tests` | Required except gallery VRT | Compiled ESM specs and dependencies; source JavaScript rejected |
 | `browser` | Unset | Linux runtime; required for VRT, selects isolated execution for interaction tests |
+| `exec_properties` | `{}` | Local execution properties; `cacheable = True` requires nonempty `web-e2e-local-platform` identifying the runner image, kernel, CPU class, and namespace policy |
+| `execution` | `"actiond"` | `"local"` runs declared browsers in Linux namespaces; see [local execution](local-linux.md) |
 | `playwright` | Pinned 1.63.0 | `playwright_runtime` target |
 | `server` | Unset | Compiled default `ServerAdapter` export |
 | `shell` | Unset | `browser_shell` target |
@@ -39,13 +41,13 @@ and application-specific output can still contain sensitive data.
 | `env` / `env_inherit` | `{}` / `[]` | Explicit values / inherited names; inheritance host-only |
 | `network_origins` / `network_origins_env` | `[]` / `[]` | Extra allowed origins / env names containing them; host-only |
 | `args` | `[]` | Default selection flags; see below |
-| `target_arch` | `"x64"` | `"x64"` or `"arm64"`; ARM64 currently supports VRT only |
+| `target_arch` | `"x64"` | `"x64"` or `"arm64"`; actiond ARM64 supports VRT only; local ARM64 supports all declared-browser suites |
 | `target_platform` | Linux platform for `target_arch` | Override for native ABI constraints; must match runtime |
 | `execution_timeout_seconds` | `180` | Per Playwright invocation; discovery and capture have separate deadlines |
 | `timeout` | `"long"` | Independent Bazel test timeout |
 | `snapshot_dir` | None | Host E2E/component/process snapshot directory, relative to package. Enables `.update`; owns snapshot layout. |
 | `snapshots` | `[]` | Declared baseline files for `snapshot_dir`, usually `glob(["snapshots/**"], allow_empty = True)`. |
-| `cacheable` | `False` | Opt in to local result caching for deterministic host E2E/component tests; requires explicit browser path and caller-declared inputs. No URL attributes, env inheritance, visual, process-owned, or isolated browser modes. See [caching contract](e2e.md#opt-in-local-result-caching). |
+| `cacheable` | `False` | For `execution = "local"`, opt into disk/remote result caching with an explicit environment identity; see [local caching](local-linux.md#caching-and-lifecycle). For host E2E/component tests, requires explicit browser path and caller-declared inputs. Host opt-in forbids URL attributes, env inheritance, visual, process-owned, or isolated browser modes. See [caching contract](e2e.md#opt-in-local-result-caching). |
 | `tags` | `[]` | Additional tags; browser targets manual |
 
 Choose one of `server`, `shell`, `base_url`, or `base_url_env`. Alternatively,
@@ -97,7 +99,8 @@ Load `browser_shell` from `@rules_web_e2e//component:defs.bzl`:
 browser_shell(name = "gallery", assets = ":built_gallery", entry_point = "gallery.html")
 ```
 
-`assets` one built directory. `entry_point` defaults to `index.html` and must
+`assets` one built directory. Only that directory reaches the browser;
+compiler inputs stay out of runtime runfiles. `entry_point` defaults to `index.html` and must
 be relative HTML inside it; it served at `/`. Component tests and gallery VRT
 require that page to install gallery registry. Asset URLs resolve within
 served directory. Server rejects traversal and links outside that directory.

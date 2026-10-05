@@ -34,3 +34,27 @@ npm_fixtures = rule(
         for name in ["app", "middle", "leaf", "alias"]
     },
 )
+
+# Build a deliberately incomplete runtime for the no-host-fallback regression.
+def _missing_library_impl(ctx):
+    output = ctx.actions.declare_directory(ctx.label.name)
+    coreutils = ctx.toolchains["@bazel_lib//lib:coreutils_toolchain_type"].coreutils_info.bin
+    ctx.actions.run_shell(
+        inputs = [ctx.file.runtime],
+        tools = [coreutils],
+        outputs = [output],
+        arguments = [coreutils.path, ctx.file.runtime.path, output.path],
+        command = '\n'.join([
+            'set -euo pipefail',
+            '"$1" cp -R -L --preserve=mode -T -- "$2" "$3"',
+            '"$1" chmod u+w "$3/lib"',
+            '"$1" rm "$3/lib/libnss3.so"',
+        ]),
+    )
+    return [DefaultInfo(files = depset([output]))]
+
+missing_library_runtime = rule(
+    implementation = _missing_library_impl,
+    attrs = {"runtime": attr.label(mandatory = True, allow_single_file = True)},
+    toolchains = ["@bazel_lib//lib:coreutils_toolchain_type"],
+)

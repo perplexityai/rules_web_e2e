@@ -112,8 +112,8 @@ function isolatedUse(use: PlaywrightTestConfig['use']) {
     launchOptions: {
       ...use?.launchOptions,
       executablePath: process.env.VRT_CHROMIUM_EXECUTABLE!,
-      chromiumSandbox: false,
-      args: [...(use?.launchOptions?.args ?? []), '--no-zygote'],
+      chromiumSandbox: process.env.VRT_EXECUTION === 'local',
+      args: [...(use?.launchOptions?.args ?? []), ...(process.env.VRT_EXECUTION === 'local' ? [] : ['--no-zygote'])],
     },
   }
 }

@@ -18,5 +18,5 @@ For Linux ARM64 inputs, build `//:browser_arm64`. Both browser and Node download
 on host; running VRT requires matching worker. See
 [local Apple Silicon VRT](../../docs/macos-arm64-vrt.md).
 
-[Local Linux prototype](local-prototype/README.md) runs this bundle in a minimal
-Bubblewrap namespace without actiond or KVM. Experimental; not a public mode.
+Use `execution = "local"` on normal browser test targets for Linux execution
+without a VM. See [local Linux execution](../../docs/local-linux.md).

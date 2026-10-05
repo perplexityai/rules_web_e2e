@@ -49,3 +49,12 @@ test('browser temp root stays below Chromium socket path limits', () => {
   assert.equal(browserTempRoot('/deep/bazel/workspace/' + 'nested/'.repeat(8), 'linux'), '/tmp')
   assert.equal(browserTempRoot('/deep/bazel/workspace/' + 'nested/'.repeat(8), 'win32'), '/deep/bazel/workspace/' + 'nested/'.repeat(8))
 })
+
+test('local processes use a built-in locale instead of host locale archives', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'local-locale-'))
+  t.after(() => fs.rmSync(root, {recursive: true, force: true}))
+  const env = testEnvironment({VRT_EXECUTION: 'local', LANG: 'fr_FR.UTF-8', LC_ALL: 'fr_FR.UTF-8'}, ['LANG', 'LC_ALL'], root)
+  assert.equal(env.LANG, 'C')
+  assert.equal(env.LC_ALL, 'C')
+  assert.equal(env.TZ, 'UTC')
+})

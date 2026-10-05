@@ -3,6 +3,7 @@
 load("@bazel_lib//lib:paths.bzl", "to_rlocation_path")
 load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@web_e2e_worker_identity//:defs.bzl", "WORKER_SHA256")
+load("//internal/local:launch.bzl", "local_browser_launch")
 load("//internal/test_tools:defs.bzl", "TestToolsInfo")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo")
 
@@ -104,8 +105,12 @@ def _remote_impl(ctx):
         "output": "",
         "mode": ctx.attr.mode,
         "runtime": dict(browser.descriptor, path = to_rlocation_path(ctx, root)),
+        # Make the local environment identity an input to every cache layer.
+        "execution_properties": ctx.attr.exec_properties if ctx.attr.execution == "local" else {},
     }))
     descriptor = browser.descriptor
+    if ctx.attr.execution == "local":
+        return local_browser_launch(ctx, root, descriptor, runfiles, job)
     if native_test:
         return _native_test(ctx, root, descriptor, runfiles, job)
     executable = ctx.actions.declare_file(ctx.label.name)
@@ -138,6 +143,13 @@ def _remote_impl(ctx):
 def _artifact_impl(ctx):
     output = ctx.actions.declare_directory(ctx.label.name + ".results")
     launcher = ctx.attr.launcher[DefaultInfo]
+    requirements = {"no-local": "1"}
+    if ctx.attr.host_vrt or ctx.attr.execution == "local":
+        requirements = {"no-remote": "1", "no-cache": "1"}
+    if ctx.attr.execution == "local":
+        requirements = {"no-remote-exec": "1", "no-sandbox": "1"}
+        if not ctx.attr.cacheable:
+            requirements.update({"no-remote-cache": "1", "no-cache": "1"})
     ctx.actions.run(
         executable = launcher.files_to_run,
         # Preserve declared execpaths used by expanded env/args, not only rlocations.
@@ -151,7 +163,7 @@ def _artifact_impl(ctx):
             "TZ": "UTC",
             "VRT_HOST_EXECUTION": "1" if ctx.attr.host_vrt else "0",
         },
-        execution_requirements = {"no-remote": "1", "no-cache": "1"} if ctx.attr.host_vrt else {"no-local": "1"},
+        execution_requirements = requirements,
         mnemonic = "VrtCapture",
     )
     return [
@@ -164,6 +176,8 @@ _artifact = rule(
     attrs = {
         "launcher": attr.label(executable = True, cfg = "target", mandatory = True),
         "host_vrt": attr.bool(),
+        "execution": attr.string(default = "actiond"),
+        "cacheable": attr.bool(),
     },
 )
 
@@ -177,19 +191,22 @@ _attrs = {
     "env": attr.string_dict(),
     "mode": attr.string(mandatory = True, values = ["capture", "test"]),
     "host_vrt": attr.bool(default = False),
+    "execution": attr.string(default = "actiond"),
+    "cacheable": attr.bool(),
+    "_local_launcher": attr.label(default = Label("//internal/local:launcher.sh.tpl"), allow_single_file = True),
+    "_local_tools": attr.label(default = Label("//internal/local:tools"), allow_single_file = True),
+    "_bash_runfiles": attr.label(default = "@rules_shell//shell/runfiles"),
+    "_runfiles_tools": attr.label(default = Label("//internal/test_tools:runfiles_tools"), allow_single_file = True),
     "_runtime": attr.label(default = Label("//runtime:files")),
     "_runner": attr.label(default = Label("//runtime:runner_entry"), allow_single_file = True),
     "_bootstrap": attr.label(default = Label("//runtime:remote_runner_entry"), allow_single_file = True),
     "_allowlist_function_transition": attr.label(default = "@bazel_tools//tools/allowlists/function_transition_allowlist"),
 }
 _capture_attrs = dict(_attrs)
-_capture_attrs.update({
-    "_bash_runfiles": attr.label(default = "@rules_shell//shell/runfiles"),
-    "_capture_launcher": attr.label(default = Label("//internal:capture-launcher.sh.tpl"), allow_single_file = True),
-    "_runfiles_tools": attr.label(default = Label("//internal/test_tools:runfiles_tools"), allow_single_file = True),
-})
+_capture_attrs["_capture_launcher"] = attr.label(default = Label("//internal:capture-launcher.sh.tpl"), allow_single_file = True)
 _remote = rule(implementation = _remote_impl, attrs = _capture_attrs, executable = True)
 _arm64_capture_attrs = dict(_capture_attrs)
+_arm64_capture_attrs["_local_tools"] = attr.label(default = Label("//internal/local:tools_arm64"), allow_single_file = True)
 _arm64_capture_attrs["_runfiles_tools"] = attr.label(default = Label("//internal/test_tools:runfiles_tools_arm64"), allow_single_file = True)
 _remote_arm64 = rule(implementation = _remote_impl, attrs = _arm64_capture_attrs, executable = True)
 
@@ -203,6 +220,8 @@ _native_browser_test = rule(
 )
 
 _arm64_test_attrs = dict(_test_attrs)
+_arm64_test_attrs["_local_tools"] = attr.label(default = Label("//internal/local:tools_arm64"), allow_single_file = True)
+_arm64_test_attrs["_runfiles_tools"] = attr.label(default = Label("//internal/test_tools:runfiles_tools_arm64"), allow_single_file = True)
 _arm64_test_attrs["_test_tools"] = attr.label(default = Label("//internal/test_tools:tools_arm64"), providers = [TestToolsInfo])
 _native_arm64_browser_test = rule(
     implementation = _remote_impl,
@@ -211,17 +230,18 @@ _native_arm64_browser_test = rule(
     exec_groups = {"test": exec_group(exec_compatible_with = [str(Label("@platforms//os:linux")), str(Label("@platforms//cpu:arm64"))])},
 )
 
-def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256 = None, host_vrt = False):
+def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256 = None, host_vrt = False, execution = "actiond", cacheable = False, exec_properties = {}):
     """Run native browser tests and produce downloadable VRT captures."""
     if worker_sha256 != None and (len(worker_sha256) != 64 or any([c not in "0123456789abcdef" for c in worker_sha256.elems()])):
         fail("worker_sha256 must be a lowercase SHA256 digest")
     if worker_sha256 == None:
         worker_sha256 = WORKER_SHA256 if target_arch == "x64" else ""
-    execution_properties = {} if host_vrt else {"libc": "glibc2.39", "requires-bash": ""}
-    if worker_sha256 and not host_vrt:
+    execution_properties = {} if host_vrt or execution == "local" else {"libc": "glibc2.39", "requires-bash": ""}
+    if worker_sha256 and not host_vrt and execution != "local":
         execution_properties["actiond-worker-sha256"] = worker_sha256
+    execution_properties.update(exec_properties)
     constraints = [Label("@platforms//os:linux"), Label("@platforms//cpu:" + ("x86_64" if target_arch == "x64" else "arm64"))]
-    if not visual and target_arch == "arm64":
+    if not visual and target_arch == "arm64" and execution != "local":
         fail("ARM64 isolated execution currently supports VRT only; omit browser for host interaction tests")
     native_test = _native_arm64_browser_test if target_arch == "arm64" else _native_browser_test
     native_test(
@@ -235,9 +255,11 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         target_platform = target_platform,
         target_arch = target_arch,
         host_vrt = host_vrt,
+        execution = execution,
+        cacheable = cacheable,
         exec_properties = execution_properties,
         exec_compatible_with = constraints,
-        tags = ["manual", "visual_test" if visual else "browser_test"] + tags,
+        tags = ["manual", "visual_test" if visual else "browser_test"] + (["external", "no-cache"] if execution == "local" and not cacheable else []) + tags,
         timeout = timeout,
     )
     if not visual:
@@ -255,12 +277,17 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         target_platform = target_platform,
         target_arch = target_arch,
         host_vrt = host_vrt,
+        execution = execution,
+        cacheable = cacheable,
+        exec_properties = execution_properties,
         tags = ["manual"],
     )
     _artifact(
         name = action,
         launcher = ":" + action + "_launcher",
         host_vrt = host_vrt,
+        execution = execution,
+        cacheable = cacheable,
         exec_compatible_with = constraints,
         exec_properties = execution_properties,
         tags = ["manual"],

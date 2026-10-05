@@ -11,10 +11,12 @@ const arch = process.env.ACTIOND_ARCH || 'x64'
 assert(['x64', 'arm64'].includes(arch))
 const endpoint = process.argv[3] || process.env.RULES_WEB_E2E_ENDPOINT
 assert(endpoint, 'Missing actiond endpoint')
+const local = endpoint === 'local'
 process.chdir(path.join(work, 'public'))
 fs.mkdirSync(`${work}/results`, {recursive: true})
 const command = [bazel, `--output_base=${work}/public-bazel-output`]
-const flags = process.env.RULES_WEB_E2E_BAZELRC ? ['--config=web-e2e'] : [
+const localCacheFlags = process.env.LOCAL_BROWSER_CACHE_CONFIGURED === '1' ? [] : [`--disk_cache=${work}/local-disk-cache`]
+const flags = local ? ['--jobs=4', '--local_resources=cpu=4', ...localCacheFlags] : process.env.RULES_WEB_E2E_BAZELRC ? ['--config=web-e2e'] : [
   '--jobs=2',
   `--remote_default_exec_properties=actiond-worker-sha256=${createHash('sha256').update(fs.readFileSync(`${work}/actiond-worker`)).digest('hex')}`,
   `--remote_executor=${endpoint}`, `--remote_cache=${endpoint}`,
@@ -39,6 +41,65 @@ const ids = (name: string, repeated = false) => new Set(files(`bazel-testlogs/${
   .filter(p => p.endsWith('.log') && /\/run_[12]_of_2\//.test(p) === repeated)
   .flatMap(p => [...text(p).matchAll(/BROWSER_EXECUTION ([a-f0-9-]{36})/g)].map(match => match[1])))
 
+function localCacheChecks() {
+  const target = 'local_cached_test'
+  const report = 'bazel-bin/' + target + '_capture.results/artifacts/junit.xml'
+  const baseline = '__actiond_cached__/saved.png'
+  const originalBuild = text('BUILD.bazel')
+  const second = [bazel, `--output_base=${work}/cached-bazel-output`]
+  const executionId = (file: string) => {
+    const id = text(file).match(/BROWSER_EXECUTION ([a-f0-9-]{36})/)?.[1]
+    assert(id, 'Missing execution id in ' + file)
+    return id
+  }
+  const captureWith = (cmd: string[]) => {
+    run([...cmd, 'run', '//:' + target + '.update', ...flags])
+    return executionId(report)
+  }
+  const testWith = (cmd: string[], extra: string[] = []) => {
+    run([...cmd, 'test', '//:' + target, ...flags, '--test_output=errors', ...extra])
+    nonempty('bazel-testlogs/' + target + '/test.xml')
+    return executionId('bazel-testlogs/' + target + '/test.log')
+  }
+  try {
+    const missingIdentity = originalBuild.replace(/_LOCAL_CACHE_PLATFORM = .*/, '_LOCAL_CACHE_PLATFORM = ""')
+    fs.writeFileSync('BUILD.bazel', missingIdentity)
+    const rejected = run([...command, 'build', '//:' + target], {fail: true, stdio: 'pipe'})
+    assert.match(rejected, /cacheable local execution requires exec_properties/)
+    fs.writeFileSync('BUILD.bazel', originalBuild)
+    captureWith(command)
+    // The first update adds a declared baseline; warm its final input graph.
+    const firstCapture = captureWith(command)
+    const firstTest = testWith(command)
+    assert.equal(testWith(command), firstTest, 'Unchanged local test did not hit cache')
+    assert.equal(captureWith(second), firstCapture, 'Fresh output tree did not restore capture')
+    assert.equal(testWith(second), firstTest, 'Fresh output tree did not restore test result')
+
+    const differentPlatform = originalBuild.replace(/(_LOCAL_CACHE_PLATFORM = )"(.*)"/, '$1"$2-changed"')
+    fs.writeFileSync('BUILD.bazel', differentPlatform)
+    const changedCapture = captureWith(second)
+    const changedTest = testWith(second)
+    assert.notEqual(changedCapture, firstCapture, 'Platform change reused a capture')
+    assert.notEqual(changedTest, firstTest, 'Platform change reused a test')
+    assert.equal(captureWith(command), changedCapture)
+    assert.equal(testWith(command), changedTest)
+    assert.notEqual(testWith(command, ['--nocache_test_results']), changedTest)
+
+    fs.writeFileSync('BUILD.bazel', differentPlatform.replace('_LOCAL_CACHE_INPUT = "original"', '_LOCAL_CACHE_INPUT = "changed"'))
+    assert.notEqual(captureWith(second), changedCapture, 'Declared input change reused a capture')
+    assert.notEqual(testWith(second), changedTest, 'Declared input change reused a test')
+    const good = fs.readFileSync(baseline)
+    try {
+      fs.copyFileSync('__actiond_gallery__/counter.png', baseline)
+      run([...second, 'test', '//:' + target, ...flags, '--test_output=errors'], {fail: true})
+      assert(outputFiles('bazel-testlogs/' + target + '/test.outputs').some(file => file.name.endsWith('-diff.png')), 'Changed baseline must run comparison and produce a diff')
+    } finally { fs.writeFileSync(baseline, good) }
+    fs.writeFileSync('BUILD.bazel', originalBuild)
+    assert.equal(testWith(second), firstTest, 'Returning to the original platform/input did not restore its cached result')
+    fs.writeFileSync(`${work}/results/cache-checks.json`, JSON.stringify({platform: process.env.LOCAL_BROWSER_PLATFORM, firstCapture, firstTest, changedCapture, changedTest}, null, 2))
+  } finally { fs.writeFileSync('BUILD.bazel', originalBuild) }
+}
+
 async function cancelCapture(original: Buffer) {
   const baseline = '__actiond_cancel__/keep.png'
   fs.mkdirSync(path.dirname(baseline), {recursive: true})
@@ -52,10 +113,13 @@ async function cancelCapture(original: Buffer) {
     binary = search.split(path.delimiter).map(dir => path.join(dir, 'bazel')).find(p => fs.existsSync(p))!
     assert(binary)
   }
+  // Cold toolchain compilation is not part of the cancellation deadline.
+  // Use the same binary and flags as the process we will interrupt.
+  const cancelFlags = [...flags, '--progress_report_interval=1', '--curses=no', '--color=no']
+  run([binary, ...command.slice(1), 'build', '//:actiond_cancel_test_capture_launcher', ...cancelFlags])
   const log = `${work}/results/cancellation.log`
   const fd = fs.openSync(log, 'w')
-  const child = spawn(binary, [...command.slice(1), 'run', '//:actiond_cancel_test.update', ...flags,
-    '--progress_report_interval=1', '--curses=no', '--color=no'], {stdio: ['ignore', fd, fd], detached: true})
+  const child = spawn(binary, [...command.slice(1), 'run', '//:actiond_cancel_test.update', ...cancelFlags], {stdio: ['ignore', fd, fd], detached: true})
   fs.closeSync(fd)
   const finished = new Promise<{code: number | null, signal: NodeJS.Signals | null}>((resolve, reject) => {
     child.once('error', reject)
@@ -86,12 +150,14 @@ async function cancelCapture(original: Buffer) {
 }
 
 try {
-  if (arch === 'x64') {
+  if (arch === 'x64' && !local) {
     const log = run([...command, 'build', '//:actiond_local_rejection_test_capture',
       '--remote_executor=', '--remote_cache=', '--disk_cache=', '--spawn_strategy=sandboxed,local'],
     {fail: true, stdio: ['ignore', 'pipe', 'pipe']})
     fs.writeFileSync(`${work}/results/local-rejection.log`, log)
     assert(log.includes("VRT requires actiond's pinned glibc/Bash runtime"), log)
+  }
+  if (arch === 'x64' || local) {
     test('//:actiond_e2e_test', '//:actiond_component_test', '//:actiond_browser_isolation_test')
     const missingFfmpeg = run([...command, 'test', '//:actiond_missing_ffmpeg_test', ...flags,
       ...uncached, '--test_output=errors'], {fail: true, stdio: 'pipe'})
@@ -117,14 +183,36 @@ try {
       previous = current
     }
   }
+  if (local) {
+    const missingLibrary = run([...command, 'test', '//:local_missing_library_test', ...flags, '--test_output=errors'], {fail: true, stdio: 'pipe'})
+    assert.match(missingLibrary, /libnss3\.so:.*cannot open shared object file/)
+    let previous = new Set<string>()
+    for (let round = 0; round < 2; round++) {
+      test('//:actiond_rerun_test', '--runs_per_test=2')
+      const current = ids('actiond_rerun_test', true)
+      assert.equal(current.size, 2)
+      assert([...current].every(id => !previous.has(id)), 'Local execution reused cached test results')
+      previous = current
+    }
+  }
   capture('actiond_package_test')
   nonempty('__actiond_package__/caller-package.png')
   test('//:actiond_package_test')
   capture('actiond_native_test')
+  if (local) {
+    const report = 'bazel-bin/actiond_native_test_capture.results/artifacts/junit.xml'
+    const first = text(report).match(/BROWSER_EXECUTION ([a-f0-9-]{36})/)?.[1]
+    assert(first, 'Capture must record a browser execution id')
+    // A fresh output tree must not restore a capture from the shared disk cache.
+    run([bazel, `--output_base=${work}/capture-bazel-output`, 'run', '//:actiond_native_test.update', ...flags])
+    const second = text(report).match(/BROWSER_EXECUTION ([a-f0-9-]{36})/)?.[1]
+    assert(second && first !== second, 'Local capture reused a shared disk-cache result')
+  }
   capture('actiond_gallery_test')
   nonempty('__actiond_native__/saved.png')
   nonempty('__actiond_gallery__/counter.png')
   test('//:actiond_native_test', '//:actiond_gallery_test', '//:actiond_isolation_test')
+  if (local) localCacheChecks()
   run([...command, 'test', '//:actiond_failure_test', ...flags,
     '--flaky_test_attempts=2', '--nocache_test_results', '--test_output=errors'], {fail: true})
   assert.equal(ids('actiond_failure_test').size, 2, 'Visual retries must launch two browsers')
@@ -186,6 +274,13 @@ try {
   }
   await cancelCapture(original)
   test('//:actiond_native_test', ...uncached)
+  if (local) {
+    for (const pid of fs.readdirSync('/proc').filter(name => /^\d+$/.test(name))) {
+      let command = ''
+      try { command = text('/proc/' + pid + '/cmdline') } catch { continue }
+      assert(!(command.includes(work + '/public-bazel-output') && command.includes('/bwrap\0')), 'Namespace supervisor survived completion: ' + pid)
+    }
+  }
 } finally {
   const destination = `${work}/results/public`
   fs.mkdirSync(destination, {recursive: true})
