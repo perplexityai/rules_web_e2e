@@ -153,6 +153,7 @@ def browser_test(
         network_origins_env = [],
         tags = [],
         timeout = "long",
+        shard_count = 0,
         execution_timeout_seconds = 180,
         args = [],
         visual = False,
@@ -261,7 +262,7 @@ def browser_test(
         if not process_owned and key not in env and key not in env_inherit
     ]
     if browser:
-        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256, host_vrt, execution, cacheable, exec_properties)
+        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256, host_vrt, execution, cacheable, exec_properties, shard_count)
         return
     js_test(
         name = name,
@@ -270,6 +271,7 @@ def browser_test(
         env_inherit = browser_env_inherit + env_inherit,
         tags = ([] if cacheable else ["external", "no-cache"]) + ["manual", "browser_process_test" if process_owned else "visual_test" if visual else "component_browser_test" if component else "e2e_test", "requires-network", "no-sandbox", "no-remote"] + tags,
         timeout = timeout,
+        shard_count = shard_count,
         **common
     )
 

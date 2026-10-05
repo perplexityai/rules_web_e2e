@@ -44,9 +44,6 @@ export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.P
   })
   if (result.error) console.error(result.error)
   if (job.mode === 'test') {
-    const junit = path.join(artifacts, 'junit.xml')
-    if (process.env.XML_OUTPUT_FILE && fs.existsSync(junit))
-      fs.copyFileSync(junit, process.env.XML_OUTPUT_FILE)
     fs.rmSync(temp, {recursive: true, force: true})
     process.exitCode = result.status ?? 1
     return

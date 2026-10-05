@@ -230,7 +230,7 @@ _native_arm64_browser_test = rule(
     exec_groups = {"test": exec_group(exec_compatible_with = [str(Label("@platforms//os:linux")), str(Label("@platforms//cpu:arm64"))])},
 )
 
-def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256 = None, host_vrt = False, execution = "actiond", cacheable = False, exec_properties = {}):
+def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256 = None, host_vrt = False, execution = "actiond", cacheable = False, exec_properties = {}, shard_count = 0):
     """Run native browser tests and produce downloadable VRT captures."""
     if worker_sha256 != None and (len(worker_sha256) != 64 or any([c not in "0123456789abcdef" for c in worker_sha256.elems()])):
         fail("worker_sha256 must be a lowercase SHA256 digest")
@@ -261,6 +261,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         exec_compatible_with = constraints,
         tags = ["manual", "visual_test" if visual else "browser_test"] + (["external", "no-cache"] if execution == "local" and not cacheable else []) + tags,
         timeout = timeout,
+        shard_count = shard_count,
     )
     if not visual:
         return

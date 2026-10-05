@@ -138,7 +138,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
     ])
     assert.deepEqual(config.reporter, [
       ['list'],
-      ['junit', {outputFile: join(temp, 'junit.xml')}],
+      ['junit', {outputFile: process.env.XML_OUTPUT_FILE || join(temp, 'junit.xml')}],
       [realpathSync(join(temp, 'reporter.js')), {project: 'example'}],
       ['json', {outputFile: 'extra.json'}],
     ])
@@ -171,7 +171,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
     assert.equal(packageConfig.expect?.toHaveScreenshot?.scale, 'css')
     assert.deepEqual(packageConfig.reporter, [
       ['list'],
-      ['junit', {outputFile: join(temp, 'junit.xml')}],
+      ['junit', {outputFile: process.env.XML_OUTPUT_FILE || join(temp, 'junit.xml')}],
       [realpathSync(join(reporterPackage, 'index.js'))],
     ])
     // Consumer launch/connection overrides must not replace a declared browser.
