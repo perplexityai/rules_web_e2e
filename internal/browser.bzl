@@ -95,7 +95,6 @@ def _inputs_impl(ctx):
             "test": runtime.test,
             "core": runtime.core,
             "version": runtime.version,
-            "fromConsumer": ctx.attr.playwright.label == Label("//runtime:playwright"),
         },
         "browser": ctx.attr.browser[BrowserRuntimeInfo].descriptor if ctx.attr.browser else None,
     }))

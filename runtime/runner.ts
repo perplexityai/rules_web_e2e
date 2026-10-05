@@ -5,7 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import {fileURLToPath, pathToFileURL} from 'node:url'
 import {createRequire} from 'node:module'
-import {validatePlaywrightVersions, validateChromiumVersion} from './versions.js'
+import {validateChromiumVersion} from './versions.js'
 import {spawn, execFileSync} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
@@ -67,7 +67,6 @@ async function run(temp: string) {
       test: string
       core: string
       version: string
-      fromConsumer: boolean
     }
   }
   const testFiles = descriptor.tests.map(name => fs.realpathSync(input(name)))
@@ -90,31 +89,16 @@ async function run(temp: string) {
     : path.dirname(descriptorPath)
   const config = fs.realpathSync(path.join(input(descriptor.harness), 'suite-config.js'))
   const generated = path.dirname(config)
-  const packageVersion = (directory: string) =>
-    JSON.parse(fs.readFileSync(path.join(directory, 'package.json'), 'utf8'))
-      .version as string
   const modules = [...descriptor.tests, ...(descriptor.config ? [descriptor.config] : [])]
   const modulePackage = (module: string) => path.dirname(
     createRequire(pathToFileURL(fs.realpathSync(input(module))))
       .resolve('@playwright/test/package.json')
   )
-  // The default uses the caller's dependency graph when a spec/config supplies
-  // one. An explicit playwright_runtime remains authoritative.
-  const testPackage = descriptor.playwright.fromConsumer && modules.length
-    ? modulePackage(modules[0]) : fs.realpathSync(input(descriptor.playwright.test))
+  const testPackage = fs.realpathSync(input(descriptor.playwright.test))
   const playwrightPackage = createRequire(path.join(testPackage, 'package.json'))
     .resolve('playwright/package.json')
   const resolvedCore = path.dirname(createRequire(playwrightPackage).resolve('playwright-core/package.json'))
-  const core = descriptor.playwright.fromConsumer
-    ? resolvedCore : fs.realpathSync(input(descriptor.playwright.core))
-  // Declared packages were validated by their build action. Consumer-inferred
-  // packages can differ, so check those at execution time.
-  if (descriptor.playwright.fromConsumer)
-    validatePlaywrightVersions(
-      descriptor.playwright.version,
-      packageVersion(testPackage),
-      packageVersion(core)
-    )
+  const core = fs.realpathSync(input(descriptor.playwright.core))
   if (fs.realpathSync(resolvedCore) !== fs.realpathSync(core))
     throw new Error('playwright_runtime.core must be the playwright-core package used by its test package')
   // Playwright requires one test-harness instance. The caller owns its dependency
@@ -124,7 +108,7 @@ async function run(temp: string) {
     if (fs.realpathSync(directory) !== fs.realpathSync(testPackage))
       throw new Error(
         `Playwright package mismatch for ${module}: tests and config must resolve ` +
-        'the same @playwright/test package declared by playwright_runtime; fix the caller dependencies'
+        'the same @playwright/test package declared by playwright_runtime; pass playwright = a caller-owned runtime target'
       )
   }
   const baselineInputs = visual

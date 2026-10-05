@@ -39,7 +39,7 @@ See [worker setup and isolation](actiond.md).
 
 Host E2E/component targets run their server and browser on host with
 provisioned Chromium. Build action checks declared Playwright package versions. Shared runner checks
-consumer-inferred packages, resolves runfiles, and manages child processes and artifacts.
+declared package identity, resolves runfiles, and manages child processes and artifacts.
 
 ## TypeScript and Bazel inputs
 

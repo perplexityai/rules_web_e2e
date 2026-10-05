@@ -22,6 +22,7 @@ ts_project(
 
 # The harness declares these caller-owned runtime repositories before building.
 [browser_process_test(
+    playwright = "//:playwright",
     name = kind + ("_timeout_test" if hang else "_test"),
     tests = ":compiled",
     data = [":compiled", "electron-main.cjs", "@owned_" + kind + "//:files", "@owned_" + kind + "//:executable"],

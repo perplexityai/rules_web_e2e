@@ -51,8 +51,7 @@ versioned helper directory from declared Playwright core metadata and browser
 runtime. Test consumes this immutable directory through
 `PLAYWRIGHT_BROWSERS_PATH`; it does not stage or download helper at startup.
 Cached build action checks declared Playwright package versions. Mismatch
-fails build before browser starts. Consumer-inferred packages still checked
-at test startup.
+fails build before browser starts. Execution checks package identity without inferring another dependency graph.
 Add `fonts = [":brand_fonts"]` for declared font files/directories, or set `system`
 to custom declared directory containing `lib/`, `bin/bash`, `etc/fonts/`, and
 `fonts/` with same layout. System preset must not contain Node or Chromium.
@@ -190,3 +189,12 @@ target to select matching Linux inputs and worker constraints. See
 For execution on a matching Linux host without a VM, set `execution = "local"`.
 See [local Linux execution](local-linux.md) for namespace requirements, caching,
 and validation. Default declared-browser execution remains actiond.
+
+## Declare the Playwright package graph
+
+`playwright` selects the test and core packages. Omit it only when using this
+module's packages. Consumer specs/configs that import their own `@playwright/test`
+must pass a caller-owned `playwright_runtime`. Runtime no longer infers a different
+package graph. Package versions are checked once by the `PlaywrightPackages`
+build action. Execution still checks module identity to prevent duplicate test
+harnesses and verifies the browser actually launched.

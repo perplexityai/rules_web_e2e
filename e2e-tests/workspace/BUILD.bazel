@@ -127,6 +127,7 @@ browser_shell(
 
 playwright_runtime(
     name = "playwright",
+    visibility = ["//process:__pkg__"],
     core = ":node_modules/playwright-core/dir",
     test = ":node_modules/@playwright/test/dir",
 )
@@ -147,6 +148,7 @@ component_browser_test(
 )
 
 web_e2e_test(
+    playwright = ":playwright",
     name = "host_native_config_test",
     config = ":native_config",
     tests = ":native_specs",
@@ -377,6 +379,7 @@ js_library(
     deps = [":typecheck_project"],
 )
 web_e2e_test(
+    playwright = ":playwright",
     target_arch = _INTERACTION_ARCH,
     name = "actiond_capacity_test",
     browser = ":actiond_browser",
@@ -391,6 +394,7 @@ js_library(
     deps = [":typecheck_project"],
 )
 visual_test(
+    playwright = ":playwright",
     target_arch = _TARGET_ARCH,
     name = "actiond_deadline_test",
     browser = ":actiond_browser",
@@ -417,6 +421,7 @@ js_library(
 )
 
 web_e2e_test(
+    playwright = ":playwright",
     name = "host_temp_path_test",
     config = ":temp_path_config",
     tests = ":temp_path_specs",
@@ -444,6 +449,7 @@ js_library(
     deps = [":typecheck_project"],
 )
 web_e2e_test(
+    playwright = ":playwright",
     target_arch = _INTERACTION_ARCH,
     name = "actiond_video_test",
     browser = ":actiond_video_browser",
@@ -453,6 +459,7 @@ web_e2e_test(
 )
 
 web_e2e_test(
+    playwright = ":playwright",
     target_arch = _INTERACTION_ARCH,
     name = "actiond_missing_ffmpeg_test",
     browser = ":actiond_browser",
@@ -475,6 +482,7 @@ js_library(
 )
 
 web_e2e_test(
+    playwright = ":playwright",
     name = "host_lingering_test",
     base_url = "http://127.0.0.1:12345",
     config = ":lingering_config",
@@ -498,6 +506,7 @@ browser_runtime(
     fontconfig = "etc/fonts",
 )
 web_e2e_test(
+    playwright = ":playwright",
     name = "local_missing_library_test",
     target_arch = _TARGET_ARCH,
     execution = "local",
