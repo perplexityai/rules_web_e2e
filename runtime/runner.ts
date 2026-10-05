@@ -169,6 +169,7 @@ async function run(temp: string) {
     VRT_PLAYWRIGHT_PACKAGE: path.join(testPackage, 'package.json'),
     VRT_ISOLATED: declaredBrowser ? '1' : '0',
     VRT_HOST_EXECUTION: process.env.VRT_HOST_EXECUTION === '1' ? '1' : '0',
+    VRT_EXECUTION: process.env.VRT_EXECUTION === 'local' ? 'local' : 'actiond',
     VRT_MODE: required('VRT_MODE'),
     VRT_TEST_ROOT: gallery ? generated : discoveryRoot,
     VRT_TEST_FILES: JSON.stringify(testFiles),

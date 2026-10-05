@@ -21,7 +21,7 @@ if (job.mode === 'test') {
 }
 // The pinned worker supplies Bash and glibc but no /bin/sh. Reject ordinary
 // host execution even when a caller overrides Bazel's spawn strategy.
-if (process.env.VRT_HOST_EXECUTION !== '1' && (fs.existsSync('/bin/sh') || !fs.existsSync('/bin/bash')))
+if (process.env.VRT_EXECUTION !== 'local' && process.env.VRT_HOST_EXECUTION !== '1' && (fs.existsSync('/bin/sh') || !fs.existsSync('/bin/bash')))
   throw new Error("VRT requires actiond's pinned glibc/Bash runtime; select remote execution")
 const runtime = browserRuntime(path.dirname(job.runtime.path), {
   ...job.runtime, root: path.basename(job.runtime.path),

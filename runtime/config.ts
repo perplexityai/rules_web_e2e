@@ -76,8 +76,8 @@ export function visualConfig({
       ...defaults.use,
       launchOptions: {
         executablePath: required('VRT_CHROMIUM_EXECUTABLE'),
-        chromiumSandbox: false,
-        args: ['--no-zygote'],
+        chromiumSandbox: process.env.VRT_EXECUTION === 'local',
+        args: process.env.VRT_EXECUTION === 'local' ? [] : ['--no-zygote'],
       },
     },
     testMatch: '**/.rules-visual.spec.ts',

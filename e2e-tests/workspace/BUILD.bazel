@@ -1,5 +1,6 @@
-load(":npm-fixtures.bzl", "npm_fixtures")
+load(":npm-fixtures.bzl", "missing_library_runtime", "npm_fixtures")
 load("@rules_web_e2e//playwright:archive.bzl", "browser_runtime_archive")
+load("@rules_web_e2e//playwright:directory.bzl", "runtime_directory")
 load("@rules_web_e2e//playwright:defs.bzl", "browser_runtime")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_link_package")
@@ -11,6 +12,7 @@ load("@rules_web_e2e//playwright:defs.bzl", "playwright_runtime")
 load("@rules_web_e2e//vrt:defs.bzl", "component_visual_test", "visual_test")
 
 _TARGET_ARCH = "x64"
+_EXECUTION = "actiond"
 
 npm_link_all_packages(name = "node_modules")
 
@@ -155,23 +157,29 @@ js_library(
     deps = [":typecheck_project"],
 )
 web_e2e_test(
+    target_arch = _TARGET_ARCH,
     playwright = ":playwright",
     name = "actiond_rerun_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":actiond_rerun_specs",
 )
 web_e2e_test(
+    target_arch = _TARGET_ARCH,
     playwright = ":playwright",
     name = "actiond_e2e_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":native_specs",
 )
 component_browser_test(
+    target_arch = _TARGET_ARCH,
     playwright = ":playwright",
     name = "actiond_component_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     shell = ":component_shell",
     tests = ":component_specs",
 )
@@ -181,9 +189,11 @@ js_library(
     deps = [":typecheck_project"],
 )
 web_e2e_test(
+    target_arch = _TARGET_ARCH,
     playwright = ":playwright",
     name = "actiond_browser_isolation_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":actiond_browser_isolation_specs",
     data = [":actiond_fixture_server", "package.json"],
@@ -198,9 +208,11 @@ js_library(
     deps = [":typecheck_project"],
 )
 web_e2e_test(
+    target_arch = _TARGET_ARCH,
     playwright = ":playwright",
     name = "actiond_browser_failure_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":actiond_browser_failure_specs",
 )
@@ -225,6 +237,7 @@ visual_test(
     target_arch = _TARGET_ARCH,
     name = "actiond_local_rejection_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":native_visual_specs",
     baseline_dir = "__actiond_local_rejection__",
@@ -234,6 +247,7 @@ visual_test(
     target_arch = _TARGET_ARCH,
     name = "actiond_native_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":native_visual_specs",
     data = [":actiond_fixture_server"],
@@ -246,6 +260,7 @@ component_visual_test(
     target_arch = _TARGET_ARCH,
     name = "actiond_gallery_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     shell = ":component_shell",
     matching = {"threshold": "0.1", "maxDiffPixels": "0"},
     baseline_dir = "__actiond_gallery__",
@@ -266,6 +281,7 @@ visual_test(
     target_arch = _TARGET_ARCH,
     name = "actiond_isolation_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":actiond_isolation_specs",
     baseline_dir = "__actiond_isolation__",
@@ -277,6 +293,7 @@ visual_test(
     target_arch = _TARGET_ARCH,
     name = "actiond_failure_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":actiond_failure_specs",
     baseline_dir = "__actiond_failed__",
@@ -287,6 +304,7 @@ visual_test(
     target_arch = _TARGET_ARCH,
     name = "actiond_timeout_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":actiond_failure_specs",
     baseline_dir = "__actiond_timeout__",
@@ -298,6 +316,7 @@ visual_test(
     target_arch = _TARGET_ARCH,
     name = "actiond_cancel_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":actiond_failure_specs",
     baseline_dir = "__actiond_cancel__",
@@ -333,6 +352,7 @@ visual_test(
     name = "actiond_package_test",
     target_arch = _TARGET_ARCH,
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     tests = ":package_specs",
     server = ":npm_server",
     playwright = ":playwright",
@@ -356,8 +376,10 @@ js_library(
     deps = [":typecheck_project"],
 )
 web_e2e_test(
+    target_arch = _TARGET_ARCH,
     name = "actiond_capacity_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":actiond_capacity_specs",
 )
@@ -371,6 +393,7 @@ visual_test(
     target_arch = _TARGET_ARCH,
     name = "actiond_deadline_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":actiond_deadline_specs",
     baseline_dir = "__actiond_deadline__",
@@ -399,13 +422,14 @@ web_e2e_test(
 )
 
 # Keep the ordinary runtime without FFmpeg to cover callers that do not record video.
-browser_runtime_archive(
+runtime_directory(
     name = "actiond_video_runtime_files",
-    archive = "runtime.tar",
-    files = {"@video_ffmpeg//:ffmpeg-linux": "bin/ffmpeg-linux"},
+    files = {":actiond_runtime_files": "", "@video_ffmpeg//:ffmpeg-linux": "bin/ffmpeg-linux"},
 )
 browser_runtime(
     name = "actiond_video_browser",
+    arch = _TARGET_ARCH,
+    loader = {"x64": "lib/ld-linux-x86-64.so.2", "arm64": "lib/ld-linux-aarch64.so.1"}[_TARGET_ARCH],
     root = ":actiond_video_runtime_files",
     executable = "chromium/chrome-headless-shell",
     node = "bin/node",
@@ -419,15 +443,19 @@ js_library(
     deps = [":typecheck_project"],
 )
 web_e2e_test(
+    target_arch = _TARGET_ARCH,
     name = "actiond_video_test",
     browser = ":actiond_video_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":actiond_video_specs",
 )
 
 web_e2e_test(
+    target_arch = _TARGET_ARCH,
     name = "actiond_missing_ffmpeg_test",
     browser = ":actiond_browser",
+    execution = _EXECUTION,
     config = ":native_config",
     tests = ":actiond_video_specs",
 )
@@ -451,4 +479,28 @@ web_e2e_test(
     config = ":lingering_config",
     tests = ":lingering_specs",
     execution_timeout_seconds = 30,
+)
+
+# A declared invalid library must fail startup, never load a host replacement.
+missing_library_runtime(
+    name = "local_missing_library_files",
+    runtime = ":actiond_runtime_files",
+)
+browser_runtime(
+    name = "local_missing_library_browser",
+    arch = _TARGET_ARCH,
+    loader = {"x64": "lib/ld-linux-x86-64.so.2", "arm64": "lib/ld-linux-aarch64.so.1"}[_TARGET_ARCH],
+    root = ":local_missing_library_files",
+    executable = "chromium/chrome-headless-shell",
+    node = "bin/node",
+    library_dirs = ["lib"],
+    fontconfig = "etc/fonts",
+)
+web_e2e_test(
+    name = "local_missing_library_test",
+    target_arch = _TARGET_ARCH,
+    execution = "local",
+    browser = ":local_missing_library_browser",
+    config = ":native_config",
+    tests = ":native_specs",
 )

@@ -1,4 +1,3 @@
-load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("@rules_web_e2e//playwright:browser.bzl", "linux_chromium_runtime")
 
 linux_chromium_runtime(
@@ -14,42 +13,3 @@ linux_chromium_runtime(
     node = "@node_arm64//:bin/node",
     system = "@rules_web_e2e//playwright/presets:noble_20260901_arm64",
 )
-
-config_setting(
-    name = "arm64",
-    constraint_values = ["@platforms//cpu:aarch64"],
-)
-
-alias(
-    name = "local_browser",
-    actual = select({":arm64": ":browser_arm64", "//conditions:default": ":browser"}),
-)
-
-[
-    sh_test(
-        name = name,
-        size = "small",
-        srcs = ["local-prototype/run.sh"],
-        args = [
-            "$(rootpath :local_browser)",
-            "$(rootpath @probe_playwright//:package.json)",
-        ],
-        data = [
-            ":local_browser",
-            "local-prototype/probe.mts",
-            "@bubblewrap//:bwrap",
-            "@probe_playwright//:files",
-            "@probe_playwright//:package.json",
-        ],
-        env = {
-            "BWRAP": "$(rootpath @bubblewrap//:bwrap)",
-            "PROBE_EXPECT_MISSING_LIBRARY": missing,
-        },
-        tags = ["local", "manual"],
-        target_compatible_with = ["@platforms//os:linux"],
-    )
-    for name, missing in [
-        ("local_chromium_test", "0"),
-        ("local_chromium_missing_library_test", "1"),
-    ]
-]

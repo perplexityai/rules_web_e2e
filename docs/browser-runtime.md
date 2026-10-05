@@ -186,3 +186,7 @@ Existing calls default to `arch = "x64"`. Use `target_arch = "arm64"` on VRT
 target to select matching Linux inputs and worker constraints. See
 [local Apple Silicon guide](macos-arm64-vrt.md) and
 [ARM64 example](../examples/browser-runtime/BUILD.bazel).
+
+For execution on a matching Linux host without a VM, set `execution = "local"`.
+See [local Linux execution](local-linux.md) for namespace requirements, caching,
+and validation. Default declared-browser execution remains actiond.

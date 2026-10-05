@@ -11,10 +11,11 @@ const arch = process.env.ACTIOND_ARCH || 'x64'
 assert(['x64', 'arm64'].includes(arch))
 const endpoint = process.argv[3] || process.env.RULES_WEB_E2E_ENDPOINT
 assert(endpoint, 'Missing actiond endpoint')
+const local = endpoint === 'local'
 process.chdir(path.join(work, 'public'))
 fs.mkdirSync(`${work}/results`, {recursive: true})
 const command = [bazel, `--output_base=${work}/public-bazel-output`]
-const flags = process.env.RULES_WEB_E2E_BAZELRC ? ['--config=web-e2e'] : [
+const flags = local ? ['--jobs=4', '--local_resources=cpu=4', `--disk_cache=${work}/local-disk-cache`] : process.env.RULES_WEB_E2E_BAZELRC ? ['--config=web-e2e'] : [
   '--jobs=2',
   `--remote_default_exec_properties=actiond-worker-sha256=${createHash('sha256').update(fs.readFileSync(`${work}/actiond-worker`)).digest('hex')}`,
   `--remote_executor=${endpoint}`, `--remote_cache=${endpoint}`,
@@ -86,12 +87,14 @@ async function cancelCapture(original: Buffer) {
 }
 
 try {
-  if (arch === 'x64') {
+  if (arch === 'x64' && !local) {
     const log = run([...command, 'build', '//:actiond_local_rejection_test_capture',
       '--remote_executor=', '--remote_cache=', '--disk_cache=', '--spawn_strategy=sandboxed,local'],
     {fail: true, stdio: ['ignore', 'pipe', 'pipe']})
     fs.writeFileSync(`${work}/results/local-rejection.log`, log)
     assert(log.includes("VRT requires actiond's pinned glibc/Bash runtime"), log)
+  }
+  if (arch === 'x64' || local) {
     test('//:actiond_e2e_test', '//:actiond_component_test', '//:actiond_browser_isolation_test')
     const missingFfmpeg = run([...command, 'test', '//:actiond_missing_ffmpeg_test', ...flags,
       ...uncached, '--test_output=errors'], {fail: true, stdio: 'pipe'})
@@ -117,10 +120,31 @@ try {
       previous = current
     }
   }
+  if (local) {
+    const missingLibrary = run([...command, 'test', '//:local_missing_library_test', ...flags, '--test_output=errors'], {fail: true, stdio: 'pipe'})
+    assert.match(missingLibrary, /libnss3\.so:.*cannot open shared object file/)
+    let previous = new Set<string>()
+    for (let round = 0; round < 2; round++) {
+      test('//:actiond_rerun_test', '--runs_per_test=2')
+      const current = ids('actiond_rerun_test', true)
+      assert.equal(current.size, 2)
+      assert([...current].every(id => !previous.has(id)), 'Local execution reused cached test results')
+      previous = current
+    }
+  }
   capture('actiond_package_test')
   nonempty('__actiond_package__/caller-package.png')
   test('//:actiond_package_test')
   capture('actiond_native_test')
+  if (local) {
+    const report = 'bazel-bin/actiond_native_test_capture.results/artifacts/junit.xml'
+    const first = text(report).match(/BROWSER_EXECUTION ([a-f0-9-]{36})/)?.[1]
+    assert(first, 'Capture must record a browser execution id')
+    // A fresh output tree must not restore a capture from the shared disk cache.
+    run([bazel, `--output_base=${work}/capture-bazel-output`, 'run', '//:actiond_native_test.update', ...flags])
+    const second = text(report).match(/BROWSER_EXECUTION ([a-f0-9-]{36})/)?.[1]
+    assert(second && first !== second, 'Local capture reused a shared disk-cache result')
+  }
   capture('actiond_gallery_test')
   nonempty('__actiond_native__/saved.png')
   nonempty('__actiond_gallery__/counter.png')
@@ -186,6 +210,13 @@ try {
   }
   await cancelCapture(original)
   test('//:actiond_native_test', ...uncached)
+  if (local) {
+    for (const pid of fs.readdirSync('/proc').filter(name => /^\d+$/.test(name))) {
+      let command = ''
+      try { command = text('/proc/' + pid + '/cmdline') } catch { continue }
+      assert(!(command.includes(work + '/public-bazel-output') && command.includes('/bwrap\0')), 'Namespace supervisor survived completion: ' + pid)
+    }
+  }
 } finally {
   const destination = `${work}/results/public`
   fs.mkdirSync(destination, {recursive: true})

@@ -139,6 +139,7 @@ def browser_test(
         target_arch = "x64",
         worker_sha256 = None,
         host_vrt = False,
+        execution = "actiond",
         config = None,
         matching = None,
         baselines = [],
@@ -159,6 +160,10 @@ def browser_test(
         process_owned = False,
         cacheable = False):
     """Internal common implementation; public wrappers select the test mode."""
+    if execution not in ["actiond", "local"]:
+        fail("execution must be actiond or local")
+    if execution == "local" and (not browser or host_vrt or process_owned):
+        fail("execution = local requires a declared browser and cannot use host_vrt or process_owned")
     if snapshot_dir != None:
         if visual or browser:
             fail("snapshot_dir supports host E2E, component, and process-owned tests; visual targets use baseline_dir")
@@ -251,7 +256,7 @@ def browser_test(
         if not process_owned and key not in env and key not in env_inherit
     ]
     if browser:
-        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256, host_vrt)
+        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256, host_vrt, execution)
         return
     js_test(
         name = name,

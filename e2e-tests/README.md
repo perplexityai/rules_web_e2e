@@ -71,3 +71,13 @@ On Linux amd64 and ARM64 VM suite checks that visual comparisons native tests:
 flaky retries and repeated runs launch distinct browsers, disabling test-result
 caching causes fresh executions, and failed comparisons download JUnit and diff
 images through Bazel test outputs. ARM64 retains comparison-action checks.
+
+Run the same isolation and lifecycle suite without a VM on Linux:
+
+```sh
+node e2e-tests/run.ts local /tmp/local-browser-validation
+```
+
+The driver selects native x64/ARM64, uses declared runtime targets directly, and
+keeps generated baselines in the supplied disposable directory. See
+[local Linux execution](../docs/local-linux.md).

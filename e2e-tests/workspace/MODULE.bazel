@@ -32,3 +32,5 @@ http_archive(
     sha256 = "ebc74fc5b94830176a3c2914ae96bd8bc7f6a91f4f33890230f84a172ee61ccc",
     build_file_content = 'exports_files(["ffmpeg-linux"])',
 )
+
+bazel_dep(name = "bazel_lib", version = "3.7.2")

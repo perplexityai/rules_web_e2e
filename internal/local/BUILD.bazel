@@ -1,0 +1,13 @@
+load(":defs.bzl", "local_tools")
+
+exports_files(["launcher.sh.tpl"])
+
+[
+    local_tools(
+        name = "tools" + suffix,
+        target_arch = arch,
+        tags = ["manual"],
+        visibility = ["//internal:__subpackages__"],
+    )
+    for arch, suffix in [("x64", ""), ("arm64", "_arm64")]
+]

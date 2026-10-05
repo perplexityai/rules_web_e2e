@@ -30,6 +30,7 @@ and application-specific output can still contain sensitive data.
 | `name` | Required | Target name |
 | `tests` | Required except gallery VRT | Compiled ESM specs and dependencies; source JavaScript rejected |
 | `browser` | Unset | Linux runtime; required for VRT, selects isolated execution for interaction tests |
+| `execution` | `"actiond"` | `"local"` runs declared browsers in Linux namespaces; see [local execution](local-linux.md) |
 | `playwright` | Pinned 1.63.0 | `playwright_runtime` target |
 | `server` | Unset | Compiled default `ServerAdapter` export |
 | `shell` | Unset | `browser_shell` target |
@@ -39,7 +40,7 @@ and application-specific output can still contain sensitive data.
 | `env` / `env_inherit` | `{}` / `[]` | Explicit values / inherited names; inheritance host-only |
 | `network_origins` / `network_origins_env` | `[]` / `[]` | Extra allowed origins / env names containing them; host-only |
 | `args` | `[]` | Default selection flags; see below |
-| `target_arch` | `"x64"` | `"x64"` or `"arm64"`; ARM64 currently supports VRT only |
+| `target_arch` | `"x64"` | `"x64"` or `"arm64"`; actiond ARM64 supports VRT only; local ARM64 supports all declared-browser suites |
 | `target_platform` | Linux platform for `target_arch` | Override for native ABI constraints; must match runtime |
 | `execution_timeout_seconds` | `180` | Per Playwright invocation; discovery and capture have separate deadlines |
 | `timeout` | `"long"` | Independent Bazel test timeout |
