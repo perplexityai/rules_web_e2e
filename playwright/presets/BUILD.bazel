@@ -1,27 +1,19 @@
-load("@rules_web_e2e_noble_20260901//:paths.bzl", "BROWSER_PATHS")
-load("@rules_web_e2e_noble_20260901_arm64//:paths.bzl", ARM64_BROWSER_PATHS = "BROWSER_PATHS")
-load("//playwright:archive.bzl", "browser_runtime_archive")
-
 exports_files([
     "linux_amd64_20260921.json",
     "noble_20260901.json",
     "noble_20260901_arm64.json",
 ])
 
-browser_runtime_archive(
+alias(
     name = "noble_20260901",
-    archives = ["@rules_web_e2e_noble_20260901//:packages"],
-    files = {":fonts.conf": "etc/fonts/fonts.conf"},
-    paths = BROWSER_PATHS,
+    actual = "@rules_web_e2e_noble_20260901//:runtime",
     tags = ["manual"],
     visibility = ["//visibility:public"],
 )
 
-browser_runtime_archive(
+alias(
     name = "noble_20260901_arm64",
-    archives = ["@rules_web_e2e_noble_20260901_arm64//:packages"],
-    files = {":fonts.conf": "etc/fonts/fonts.conf"},
-    paths = ARM64_BROWSER_PATHS,
+    actual = "@rules_web_e2e_noble_20260901_arm64//:runtime",
     tags = ["manual"],
     visibility = ["//visibility:public"],
 )

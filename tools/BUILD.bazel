@@ -1,13 +1,5 @@
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
 load("//tools:typescript.bzl", "tool_sources")
 
 exports_files(["typescript.bzl", "package.json"])
 
 tool_sources()
-
-js_binary(
-    patch_node_fs = False,
-    name = "update_runtime_preset",
-    entry_point = "update_runtime_preset.js",
-    data = [":typecheck", "package.json"],
-)

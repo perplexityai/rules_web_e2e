@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import {test, type TestContext} from 'node:test'
 import {execFileSync} from 'node:child_process'
-import {layout} from './browser_files.js'
+import {layout, validateLinux} from './browser_files.js'
 const coreutils = path.resolve(process.argv[2]), copyScript = path.resolve(process.argv[3])
 function assemble(manifest: unknown, output: string) {
   const plan = layout(manifest)
@@ -48,22 +48,21 @@ test('FFmpeg cache rejects ambiguous metadata and escaping paths', t => {
     assert.throws(() => assemble({mode: 'ffmpeg-cache', core, runtime: root, ffmpeg}, path.join(root, 'cache')), /relative/)
 })
 test('installation uses selected Playwright revisions on all supported platforms', t => {
-  const root = temp(t), core = path.join(root, 'core'), chromium = [bundle(path.join(root, 'browser'))]
+  const root = temp(t), core = path.join(root, 'core'), chromium = [{source: bundle(path.join(root, 'browser')), destination: ''}]
   write(path.join(core, 'browsers.json'), JSON.stringify({browsers: [{name: 'chromium-headless-shell', revision: '4321'}, {name: 'ffmpeg', revision: '7654'}]}))
   for (const platform of ['linux64', 'mac-x64', 'mac-arm64']) {
     const helper = platform === 'linux64' ? 'ffmpeg-linux' : 'ffmpeg-mac'
     write(path.join(root, helper), 'helper')
     const output = path.join(root, platform)
-    assemble({mode: 'installation', core, platform, chromium, ffmpeg: [path.join(root, helper)]}, output)
+    assemble({mode: 'installation', core, platform, chromium, chromiumExecutable: path.join(chromium[0].source, 'chrome-headless-shell'), ffmpeg: path.join(root, helper)}, output)
     const browser = path.join(output, 'chromium_headless_shell-4321/chrome-headless-shell-' + platform)
     assert.equal(fs.readFileSync(path.join(browser, 'chrome-headless-shell'), 'utf8'), 'browser')
     assert.equal(fs.readFileSync(path.join(browser, 'icudtl.dat'), 'utf8'), 'resources')
     assert.equal(fs.statSync(path.join(browser, 'chrome-headless-shell')).mode & 0o777, 0o755)
     assert.equal(fs.readFileSync(path.join(output, 'ffmpeg-7654', helper), 'utf8'), 'helper')
   }
-  assert.throws(() => assemble({mode: 'installation', core, platform: 'linux64', chromium: [...chromium, bundle(path.join(root, 'other'))]}, path.join(root, 'ambiguous')), /exactly one/)
 })
-test('Linux assembly accepts both architectures and rejects mixed binaries and invalid presets', t => {
+test('Linux validation accepts both architectures and rejects mixed binaries and invalid presets', t => {
   const root = temp(t)
   for (const [arch, loader, machine] of [['x64', 'ld-linux-x86-64.so.2', 62], ['arm64', 'ld-linux-aarch64.so.1', 183]] as const) {
     const base = path.join(root, arch), system = path.join(base, 'system'), node = path.join(base, 'node')
@@ -75,22 +74,14 @@ test('Linux assembly accepts both architectures and rejects mixed binaries and i
     write(node, binary)
     const browser = bundle(path.join(base, 'browser')); write(path.join(browser, 'chrome-headless-shell'), binary)
     const ffmpeg = path.join(base, 'ffmpeg-linux'); write(ffmpeg, binary)
-    const font = path.join(base, 'brand.ttf'); write(font, 'font')
-    const manifest = {mode: 'linux', arch, system, node, chromium: [browser], ffmpeg: [ffmpeg], fonts: [font]}
-    const output = path.join(base, 'runtime'); assemble(manifest, output)
-    assert.deepEqual(fs.readFileSync(path.join(output, 'bin/node')), binary)
-    assert(!fs.lstatSync(path.join(output, 'lib', loader)).isSymbolicLink())
-    assert.deepEqual(fs.readFileSync(path.join(output, 'bin/ffmpeg-linux')), binary)
-    assert.equal(fs.readFileSync(path.join(output, 'fonts/custom/0/brand.ttf'), 'utf8'), 'font')
-    assert(fs.existsSync(path.join(output, 'fonts/default.ttf')))
-    const withoutVideo = path.join(base, 'without-video')
-    assemble({...manifest, ffmpeg: []}, withoutVideo)
-    assert(!fs.existsSync(path.join(withoutVideo, 'bin/ffmpeg-linux')))
+    const manifest = {arch, system, node, chromium: path.join(browser, 'chrome-headless-shell'), ffmpeg}
+    validateLinux(manifest)
+    validateLinux({...manifest, ffmpeg: ''})
     const wrong = Buffer.from(binary); wrong.writeUInt16LE(machine === 62 ? 183 : 62, 18); write(node, wrong)
-    assert.throws(() => assemble(manifest, path.join(base, 'wrong')), /node must be a Linux/)
+    assert.throws(() => validateLinux(manifest), /node must be a Linux/)
     write(node, binary); fs.unlinkSync(path.join(system, 'lib', loader))
-    assert.throws(() => assemble(manifest, path.join(base, 'missing')), /system preset is missing/)
+    assert.throws(() => validateLinux(manifest), /system preset is missing/)
     write(path.join(system, 'bin/node'), 'unexpected')
-    assert.throws(() => assemble(manifest, path.join(base, 'invalid')), /must not contain/)
+    assert.throws(() => validateLinux(manifest), /must not contain/)
   }
 })

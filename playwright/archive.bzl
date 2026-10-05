@@ -1,5 +1,7 @@
 """Assemble declared package archives and files into a browser runtime directory."""
 
+load(":directory.bzl", "copy_runtime_files")
+
 def _archive_impl(ctx):
     archives = ([ctx.file.archive] if ctx.file.archive else []) + ctx.files.archives
     if not archives:
@@ -50,29 +52,7 @@ def _archive_impl(ctx):
         mnemonic = "BrowserRuntimeUnpack",
     )
     if declared:
-        coreutils = ctx.toolchains["@bazel_lib//lib:coreutils_toolchain_type"].coreutils_info.bin
-        args = ctx.actions.args()
-        args.add_all([coreutils.path, extracted.path, root.path])
-        for file in declared:
-            args.add_all([file.path, files[file.path]])
-        ctx.actions.run_shell(
-            arguments = [args],
-            inputs = [extracted] + declared,
-            tools = [coreutils],
-            outputs = [root],
-            command = "\n".join([
-                'set -euo pipefail',
-                'coreutils="$1"; archive="$2"; output="$3"; shift 3',
-                '"$coreutils" cp -R -L --preserve=mode -T -- "$archive" "$output"',
-                'while (( $# )); do',
-                '    target="$output/$2"',
-                '    "$coreutils" mkdir -p -- "${target%/*}"',
-                '    "$coreutils" cp -R -L --preserve=mode -T -- "$1" "$target"',
-                '    shift 2',
-                'done',
-            ]),
-            mnemonic = "BrowserRuntimeFiles",
-        )
+        copy_runtime_files(ctx, root, dict({extracted.path: ""}, **files), [extracted] + declared)
     return [DefaultInfo(files = depset([root]), runfiles = ctx.runfiles(files = [root]))]
 
 browser_runtime_archive = rule(

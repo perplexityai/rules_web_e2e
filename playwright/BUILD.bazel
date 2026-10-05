@@ -1,6 +1,9 @@
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
 load("//tools:typescript.bzl", "tool_sources")
+load(":layout_test.bzl", "layout_tests")
 load(":test_tools.bzl", "coreutils")
+
+layout_tests(name = "layout_tests")
 
 coreutils(name = "coreutils", testonly = True)
 

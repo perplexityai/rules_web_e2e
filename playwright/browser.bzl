@@ -3,19 +3,31 @@
 load("@bazel_lib//lib:paths.bzl", "to_rlocation_path")
 load(":assembly.bzl", "BROWSER_ASSEMBLY_TOOLCHAINS", "browser_directory")
 load(":defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo")
+load(":layout.bzl", "browser_input", "linux_layout")
+
+def _chromium(ctx):
+    if ctx.attr.chromium_path.split("/")[-1] != "chrome-headless-shell":
+        fail("chromium_path must name chrome-headless-shell")
+    return browser_input(ctx.files.chromium, ctx.attr.chromium_path)
 
 def _linux_impl(ctx):
     if not ctx.file.system.is_directory:
         fail("system must provide a declared runtime directory")
-    output = browser_directory(ctx, {
-        "mode": "linux",
-        "arch": ctx.attr.arch,
-        "chromium": [file.path for file in ctx.files.chromium],
-        "node": ctx.file.node.path,
-        "ffmpeg": [file.path for file in ctx.files.ffmpeg],
-        "system": ctx.file.system.path,
-        "fonts": [file.path for file in ctx.files.fonts],
-    }, ctx.files.chromium + ctx.files.ffmpeg + [ctx.file.node, ctx.file.system] + ctx.files.fonts)
+    chromium = _chromium(ctx)
+    ffmpeg = browser_input(ctx.files.ffmpeg, ctx.attr.ffmpeg_path or "ffmpeg-linux").executable if ctx.files.ffmpeg else ""
+    output = browser_directory(
+        ctx,
+        manifest = {
+            "mode": "linux",
+            "arch": ctx.attr.arch,
+            "chromium": chromium.executable,
+            "node": ctx.file.node.path,
+            "ffmpeg": ffmpeg,
+            "system": ctx.file.system.path,
+        },
+        inputs = ctx.files.chromium + ctx.files.ffmpeg + [ctx.file.node, ctx.file.system] + ctx.files.fonts,
+        layout = linux_layout(ctx.file.system, ctx.file.node, chromium, ffmpeg, ctx.files.fonts),
+    )
     return [
         DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output])),
         BrowserRuntimeInfo(root_file = output, descriptor = {
@@ -42,6 +54,8 @@ _linux_chromium_runtime = rule(
         "arch": attr.string(default = "x64", values = ["x64", "arm64"]),
         "system": attr.label(mandatory = True, allow_single_file = True, doc = "Versioned libraries, shell and font preset; excludes browser and Node."),
         "fonts": attr.label_list(allow_files = True, doc = "Additional declared font files/directories."),
+        "chromium_path": attr.string(default = "chrome-headless-shell", doc = "Executable path within a declared Chromium directory, or suffix within declared files. Its parent is the bundle root."),
+        "ffmpeg_path": attr.string(doc = "Executable path within declared FFmpeg input; defaults to ffmpeg-linux or ffmpeg-mac."),
         "_copy_layout": attr.label(default = Label("//playwright:copy_layout.sh"), allow_single_file = True),
         "_browser_files": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
     },
@@ -69,11 +83,14 @@ def _installation_impl(ctx):
         platform = "mac-arm64" if ctx.target_platform_has_constraint(ctx.attr._arm64[platform_common.ConstraintValueInfo]) else "mac-x64"
     else:
         fail("Chrome for Testing host installation supports Linux x64 and macOS x64/arm64")
+    chromium = _chromium(ctx)
+    ffmpeg = browser_input(ctx.files.ffmpeg, ctx.attr.ffmpeg_path or ("ffmpeg-linux" if platform == "linux64" else "ffmpeg-mac")).executable
     output = browser_directory(ctx, {
         "mode": "installation",
         "core": core.path,
-        "chromium": [file.path for file in ctx.files.chromium],
-        "ffmpeg": [file.path for file in ctx.files.ffmpeg],
+        "chromium": chromium.files,
+        "chromiumExecutable": chromium.executable,
+        "ffmpeg": ffmpeg,
         "platform": platform,
     }, ctx.files.chromium + ctx.files.ffmpeg + [core])
     return [DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output]))]
@@ -86,6 +103,8 @@ playwright_browser_installation = rule(
         "chromium": attr.label(mandatory = True, allow_files = True),
         "ffmpeg": attr.label(mandatory = True, allow_files = True),
         "playwright": attr.label(default = Label("//runtime:playwright"), providers = [PlaywrightInfo]),
+        "chromium_path": attr.string(default = "chrome-headless-shell", doc = "Executable path within a declared Chromium directory, or suffix within declared files. Its parent is the bundle root."),
+        "ffmpeg_path": attr.string(doc = "Executable path within declared FFmpeg input; defaults to ffmpeg-linux or ffmpeg-mac."),
         "_copy_layout": attr.label(default = Label("//playwright:copy_layout.sh"), allow_single_file = True),
         "_browser_files": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
         "_linux": attr.label(default = "@platforms//os:linux"),
