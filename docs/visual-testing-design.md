@@ -30,8 +30,7 @@ rasterization and device scale. Current screenshot validation Linux amd64.
 
 ```mermaid
 flowchart LR
-  Sources[Declared source PNGs] --> Copy[Temporary baseline copy]
-  Copy --> Compare[Compare test]
+  Sources[Declared PNG runfiles] --> Compare[Compare test]
   Compare --> Result[Pass or failure artifacts]
   Fresh[Fresh capture directory] --> Capture[Explicit update target]
   Capture --> Success{All tests pass?}

@@ -74,7 +74,7 @@ Custom compiled `server` or action-local URL can replace `shell`; see
   Bazel test timeouts do not bound build actions.
 - Built inputs and harnesses immutable declared files; home/cache directories
   and browser outputs use private scratch space. See [isolation](actiond.md).
-- Compare mode copies declared baselines to temporary directory. Missing or
+- Compare mode reads declared baselines directly from runfiles. Missing or
   changed screenshots fail without modifying source baselines. Playwright writes
   JUnit and image attachments under `TEST_UNDECLARED_OUTPUTS_DIR`.
 - Update mode captures into fresh directory, then synchronizes PNGs into

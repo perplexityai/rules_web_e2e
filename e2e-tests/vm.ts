@@ -128,6 +128,7 @@ try {
   run([...command, 'test', '//:actiond_failure_test', ...flags,
     '--flaky_test_attempts=2', '--nocache_test_results', '--test_output=errors'], {fail: true})
   assert.equal(ids('actiond_failure_test').size, 2, 'Visual retries must launch two browsers')
+  assert(!fs.existsSync('__actiond_failed__/partial.png'), 'Missing reference must not be created by comparison')
   const outputs = outputFiles('bazel-testlogs/actiond_failure_test/test.outputs')
   assert(outputs.some(file => file.name.endsWith('junit.xml')))
   assert(outputs.some(file => file.name.endsWith('.png')), 'Failed native comparison must download screenshots')
@@ -176,7 +177,9 @@ try {
   try {
     run([...command, 'test', '//:actiond_native_test', ...flags, '--test_output=errors'], {fail: true})
     const outputs = outputFiles('bazel-testlogs/actiond_native_test/test.outputs')
-    assert(outputs.some(file => file.name.endsWith('-diff.png')), 'Native comparison must download diff images')
+    for (const suffix of ['-expected.png', '-actual.png', '-diff.png'])
+      assert(outputs.some(file => file.name.endsWith(suffix)), `Native comparison must download ${suffix} images`)
+    assert.deepEqual(fs.readFileSync('__actiond_native__/saved.png'), fs.readFileSync('__actiond_gallery__/counter.png'), 'Failed comparison must preserve reference bytes')
     nonempty('bazel-testlogs/actiond_native_test/test.xml')
   } finally {
     fs.writeFileSync('__actiond_native__/saved.png', original)
