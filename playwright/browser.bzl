@@ -1,6 +1,7 @@
 """Public helpers for declared Chromium and Playwright browser installations."""
 
-load(":defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo", "runfile")
+load("@bazel_lib//lib:paths.bzl", "to_rlocation_path")
+load(":defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo")
 
 def _assemble(ctx, manifest, inputs):
     output = ctx.actions.declare_directory(ctx.label.name)
@@ -31,7 +32,7 @@ def _linux_impl(ctx):
     return [
         DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output])),
         BrowserRuntimeInfo(root_file = output, descriptor = {
-            "root": runfile(output),
+            "root": to_rlocation_path(ctx, output),
             "executable": "chromium/chrome-headless-shell",
             "node": "bin/node",
             "ffmpeg": "bin/ffmpeg-linux" if ctx.files.ffmpeg else "",
@@ -70,7 +71,7 @@ def linux_chromium_runtime(name, arch = "x64", system = None, **kwargs):
 
 def _installation_impl(ctx):
     playwright = ctx.attr.playwright[PlaywrightInfo]
-    core = [file for file in ctx.attr.playwright[DefaultInfo].files.to_list() if runfile(file) == playwright.core][0]
+    core = playwright.core_file
     if ctx.target_platform_has_constraint(ctx.attr._linux[platform_common.ConstraintValueInfo]):
         platform = "linux64"
         if not ctx.target_platform_has_constraint(ctx.attr._x64[platform_common.ConstraintValueInfo]):

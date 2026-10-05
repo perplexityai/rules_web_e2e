@@ -1,5 +1,4 @@
 load(":remote.bzl", "linux_platform")
-load("@rules_python//python:defs.bzl", "py_binary")
 
 exports_files([
     "capture-launcher.sh.tpl",
@@ -33,9 +32,3 @@ linux_platform(
 )
 
 exports_files(["matching-config.ts"], visibility = ["//visibility:private"])
-
-py_binary(
-    name = "prepare_suite",
-    srcs = ["prepare_suite.py"],
-    main = "prepare_suite.py",
-)

@@ -1,7 +1,9 @@
 """Execute compiled browser inputs with a reusable Playwright runtime."""
 
 load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
-load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo", "runfile")
+load("@bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory_bin_action")
+load("@bazel_lib//lib:paths.bzl", "to_repository_relative_path", "to_rlocation_path")
+load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo")
 load(":matching.bzl", "matching_config")
 load(":remote.bzl", "remote_browser_test")
 load(":snapshots.bzl", "snapshot_update")
@@ -16,7 +18,7 @@ def _shell_impl(ctx):
         fail("entry_point must be a relative HTML path without dot segments")
     return [
         DefaultInfo(files = depset([ctx.file.assets]), runfiles = ctx.runfiles(files = [ctx.file.assets]).merge(ctx.attr.assets[DefaultInfo].default_runfiles)),
-        ShellInfo(directory = runfile(ctx.file.assets), entry_point = entry),
+        ShellInfo(directory = to_rlocation_path(ctx, ctx.file.assets), entry_point = entry),
     ]
 
 browser_shell = rule(
@@ -27,13 +29,13 @@ browser_shell = rule(
     },
 )
 
-def _compiled(target, label):
+def _compiled(ctx, target, label):
     if not target:
         return None
     files = [f for f in target[DefaultInfo].files.to_list() if f.extension in ["js", "mjs"]]
     if len(files) != 1 or files[0].is_source:
         fail(label + " must supply one compiled JavaScript module")
-    return runfile(files[0])
+    return to_rlocation_path(ctx, files[0])
 
 def _inputs_impl(ctx):
     tests = [f for f in ctx.files.tests if f.basename.endswith(".spec.js")]
@@ -54,18 +56,21 @@ def _inputs_impl(ctx):
     package = ctx.actions.declare_file(ctx.label.name + ".suite-package.json")
     ctx.actions.write(package, '{"type":"module"}')
     templates = ctx.files._harness_templates
-    destinations = {file.path: file.basename for file in templates}
-    destinations[package.path] = "package.json"
+    destinations = {to_repository_relative_path(file): file.basename for file in templates}
+    destinations[to_repository_relative_path(package)] = "package.json"
     if ctx.attr.mode == "visual":
         templates = templates + [ctx.file._capture_template]
-        destinations[ctx.file._capture_template.path] = ".rules-visual.spec.js"
-    ctx.actions.run(
-        executable = ctx.executable._prepare_suite,
-        arguments = [harness.path, json.encode(destinations)],
-        inputs = templates + [package],
-        tools = [ctx.attr._prepare_suite[DefaultInfo].files_to_run],
-        outputs = [harness],
-        mnemonic = "BrowserSuite",
+        destinations[to_repository_relative_path(ctx.file._capture_template)] = ".rules-visual.spec.js"
+    copy_to_directory_bin_action(
+        ctx,
+        name = ctx.label.name,
+        dst = harness,
+        copy_to_directory_bin = ctx.toolchains["@bazel_lib//lib:copy_to_directory_toolchain_type"].copy_to_directory_info.bin,
+        files = templates + [package],
+        root_paths = [],
+        include_external_repositories = ["**"],
+        replace_prefixes = destinations,
+        hardlink = "off",
     )
     browser = ctx.attr.browser[BrowserRuntimeInfo] if ctx.attr.browser else None
     browser_cache = None
@@ -88,12 +93,12 @@ def _inputs_impl(ctx):
         )
     result = ctx.actions.declare_file(ctx.label.name + ".json")
     ctx.actions.write(result, json.encode({
-        "browserCache": runfile(browser_cache) if browser_cache else None,
-        "harness": runfile(harness),
-        "tests": [runfile(f) for f in tests],
-        "config": _compiled(ctx.attr.config, "config"),
-        "matching": _compiled(ctx.attr.matching, "matching"),
-        "server": _compiled(ctx.attr.server, "server"),
+        "browserCache": to_rlocation_path(ctx, browser_cache) if browser_cache else None,
+        "harness": to_rlocation_path(ctx, harness),
+        "tests": [to_rlocation_path(ctx, f) for f in tests],
+        "config": _compiled(ctx, ctx.attr.config, "config"),
+        "matching": _compiled(ctx, ctx.attr.matching, "matching"),
+        "server": _compiled(ctx, ctx.attr.server, "server"),
         "shell": {"directory": shell.directory, "entryPoint": shell.entry_point} if shell else None,
         "playwright": {
             "test": runtime.test,
@@ -112,6 +117,7 @@ def _inputs_impl(ctx):
 
 _inputs = rule(
     implementation = _inputs_impl,
+    toolchains = ["@bazel_lib//lib:copy_to_directory_toolchain_type"],
     attrs = {
         "tests": attr.label(),
         "config": attr.label(allow_files = True),
@@ -123,7 +129,6 @@ _inputs = rule(
         "sources": attr.label(),
         "mode": attr.string(),
         "_browser_files": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
-        "_prepare_suite": attr.label(default = Label("//internal:prepare_suite"), executable = True, cfg = "exec"),
         "_capture_template": attr.label(default = Label("//runtime:capture_template"), allow_single_file = True),
         "_harness_templates": attr.label(default = Label("//runtime:harness_templates")),
     },
