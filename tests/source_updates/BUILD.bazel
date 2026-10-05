@@ -1,7 +1,7 @@
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
-load("//e2e:defs.bzl", "browser_process_test")
 load("@bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//e2e:defs.bzl", "browser_process_test")
 load("//internal:snapshots.bzl", "source_update")
 
 copy_to_directory(
@@ -10,16 +10,21 @@ copy_to_directory(
     root_paths = ["tests/source_updates/capture"],
 )
 
-source_update("visual", "capture", "baselines", "baselines", visual = True)
+source_update(
+    "visual",
+    "capture",
+    "baselines",
+    "baselines",
+    visual = True,
+)
 
 sh_test(
     name = "update_test",
+    size = "small",
     srcs = ["update_test.sh"],
     args = ["$(rootpath :visual.update)"],
     data = [":visual.update"],
-    size = "small",
 )
-
 
 ts_project(
     name = "compiled",
@@ -36,21 +41,28 @@ ts_project(
         "skipLibCheck": True,
         "types": ["node"],
     }},
-    deps = ["//:node_modules/@playwright/test", "//:node_modules/@types/node"],
+    deps = [
+        "//:node_modules/@playwright/test",
+        "//:node_modules/@types/node",
+    ],
 )
 
 browser_process_test(
     name = "native_test",
-    tests = ":compiled",
     data = [":compiled"],
     snapshot_dir = "native",
     snapshots = glob(["native/**"]),
+    tests = ":compiled",
 )
 
 sh_test(
     name = "native_update_test",
-    srcs = ["native_update_test.sh"],
-    args = ["$(rootpath :native_test.update)", "$(rootpath native/default/native.spec.js-snapshots/keep.txt)", "$(rootpath native/default/native.spec.js-snapshots/change.txt)"],
-    data = [":native_test.update"] + glob(["native/**"]),
     size = "small",
+    srcs = ["native_update_test.sh"],
+    args = [
+        "$(rootpath :native_test.update)",
+        "$(rootpath native/default/native.spec.js-snapshots/keep.txt)",
+        "$(rootpath native/default/native.spec.js-snapshots/change.txt)",
+    ],
+    data = [":native_test.update"] + glob(["native/**"]),
 )
