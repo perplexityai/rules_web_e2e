@@ -8,24 +8,6 @@ export function browserTempRoot(requested: string, platform = process.platform):
     : requested
 }
 
-/** Map logical names to declared artifacts without copying or repairing packages. */
-export function linkRunfiles(files: Record<string, string>, destination: string): void {
-  destination = path.resolve(destination)
-  fs.mkdirSync(destination, {recursive: true})
-  for (const [name, source] of Object.entries(files)) {
-    const target = path.resolve(destination, name)
-    if (!target.startsWith(destination + path.sep))
-      throw new Error(`Invalid runfile: ${name}`)
-    // Never create entries through a link into a caller-owned directory.
-    for (let parent = path.dirname(target); parent !== destination; parent = path.dirname(parent)) {
-      if (fs.existsSync(parent) && fs.lstatSync(parent).isSymbolicLink())
-        throw new Error(`Overlapping runfile declarations: ${name}`)
-    }
-    fs.mkdirSync(path.dirname(target), {recursive: true})
-    fs.symlinkSync(path.resolve(source), target)
-  }
-}
-
 /** Remove private scratch space without following links into declared inputs. */
 export function removeScratch(directory: string): void {
   const mode = fs.statSync(directory).mode

@@ -20,7 +20,12 @@ def _capture_impl(ctx):
     env = analysistest.begin(ctx)
     actions = [action for action in analysistest.target_actions(env) if action.mnemonic == "VrtCapture"]
     asserts.equals(env, 1, len(actions))
-    asserts.true(env, actions[0].argv[0].endswith("/node"))
+    action = actions[0]
+    asserts.true(env, action.argv[0].endswith("_capture_launcher"))
+    # Bazel 8 exposes a runfiles middleman; Bazel 9 exposes a runfiles tree.
+    asserts.true(env, any([file.basename.endswith(".runfiles") or file.basename.endswith("-runfiles") for file in action.inputs.to_list()]), "Bazel must supply launcher runfiles")
+    asserts.true(env, any([file.basename.endswith(".job.json") for file in action.inputs.to_list()]), "Execpath inputs must remain available outside the runfiles tree")
+    asserts.equals(env, action.outputs.to_list()[0].path, action.argv[1])
     return analysistest.end(env)
 
 capture_test = analysistest.make(

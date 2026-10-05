@@ -111,7 +111,7 @@ test('remote job preserves a failing subprocess result for the local test', t =>
     process.exitCode = 7;`)
   const output = path.join(root, 'output')
   const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
-  runRemoteJob({runfiles: {}, runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output, mode: 'compare'}, node, {NODE_OPTIONS: ''})
+  runRemoteJob({runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output, mode: 'compare'}, node, {NODE_OPTIONS: ''})
   const artifacts = path.join(root, 'test-artifacts')
   assert.equal(consumeRemoteResult(output, {artifacts, mode: 'compare'}), 7)
   assert.equal(fs.readFileSync(path.join(artifacts, 'junit.xml'), 'utf8'), '<failure/>')
@@ -125,7 +125,7 @@ for (const exitCode of [0, 7]) {
     fs.writeFileSync(runner, `process.exitCode = ${exitCode};`)
     const output = path.join(root, 'output')
     const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
-    runRemoteJob({runfiles: {}, runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output, mode: 'compare'}, node, {NODE_OPTIONS: ''})
+    runRemoteJob({runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output, mode: 'compare'}, node, {NODE_OPTIONS: ''})
     fs.rmdirSync(path.join(output, 'artifacts'))
     const artifacts = path.join(root, 'test-artifacts')
     assert.equal(consumeRemoteResult(output, {artifacts, mode: 'compare'}), exitCode)
@@ -140,7 +140,7 @@ test('native browser failure exits the test process and preserves standard artif
   fs.writeFileSync(runner, `import fs from 'node:fs';
     fs.writeFileSync(process.env.TEST_UNDECLARED_OUTPUTS_DIR + '/junit.xml', '<failure/>');
     process.exitCode = 7;`)
-  const job = {runfiles: {}, runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output: root, mode: 'test'}
+  const job = {runner, env: {VRT_TIMEOUT_MS: TEST_VRT_TIMEOUT_MS}, args: [], output: root, mode: 'test'}
   const node = fs.realpathSync(process.env.JS_BINARY__NODE_BINARY || process.execPath)
   const result = spawnSync(node, ['--input-type=module', '-e',
     `import {runRemoteJob} from ${JSON.stringify(new URL('./remote-job.js', import.meta.url).href)};

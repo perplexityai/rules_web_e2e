@@ -77,7 +77,7 @@ See [API reference](api.md) for attributes and configuration helpers.
 
 Server adapters own readiness and teardown; config-only target delegates
 its native `webServer` lifecycle to Playwright. Both paths share same
-runfiles staging and fixture isolation. VRT isolates entire suite in Linux.
+Bazel runfiles and fixture isolation. VRT isolates entire suite in Linux.
 Deployed host E2E requires consumer-provided endpoints and auth setup;
 it must not silently fall back to local service or ambient credentials.
 
