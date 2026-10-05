@@ -29,6 +29,7 @@ js_library(
 )
 
 web_e2e_test(
+    playwright = ":playwright",
     name = "native_config_test",
     browser = "@web_browser//:browser",
     config = ":native_config",
@@ -36,6 +37,7 @@ web_e2e_test(
 )
 
 visual_test(
+    playwright = ":playwright",
     name = "native_visual_test",
     baseline_dir = "__native_screenshots__",
     baselines = glob(
@@ -52,6 +54,7 @@ visual_test(
 )
 
 visual_test(
+    playwright = ":playwright",
     name = "host_visual_test",
     baseline_dir = "__host_screenshots__",
     baselines = glob(["__host_screenshots__/*.png"], allow_empty = True),
@@ -169,6 +172,7 @@ js_library(
 )
 
 component_visual_test(
+    playwright = ":playwright",
     name = "visual_test",
     baselines = glob(
         ["__screenshots__/*.png"],
@@ -183,6 +187,7 @@ component_visual_test(
 )
 
 component_visual_test(
+    playwright = ":playwright",
     name = "host_component_visual_test",
     baseline_dir = "__host_component_screenshots__",
     baselines = glob(["__host_component_screenshots__/*.png"], allow_empty = True),
@@ -192,6 +197,7 @@ component_visual_test(
 )
 
 component_visual_test(
+    playwright = ":playwright",
     name = "component_visual_test",
     baseline_dir = "__component_screenshots__",
     baselines = glob(
@@ -212,6 +218,7 @@ component_browser_test(
 )
 
 web_e2e_test(
+    playwright = ":playwright",
     name = "e2e_test",
     browser = "@web_browser//:browser",
     shell = ":app_shell",
@@ -219,6 +226,7 @@ web_e2e_test(
 )
 
 web_e2e_test(
+    playwright = ":playwright",
     name = "remote_test",
     base_url_env = "EXAMPLE_REMOTE_URL",
     env_inherit = ["EXAMPLE_BLOCKED_URL"],
@@ -277,6 +285,7 @@ js_library(
 
 # VRT runs in a Linux action with loopback-only networking.
 visual_test(
+    playwright = ":playwright",
     name = "network_isolation_test",
     baseline_dir = "__isolation_screenshots__",
     browser = "@web_browser//:browser",
@@ -286,6 +295,7 @@ visual_test(
 
 # Host variants for live-service checks and machines without a Linux VM worker.
 web_e2e_test(
+    playwright = ":playwright",
     name = "host_e2e_test",
     shell = ":app_shell",
     tests = ":e2e_specs",
@@ -299,12 +309,14 @@ component_browser_test(
 )
 
 web_e2e_test(
+    playwright = ":playwright",
     name = "host_native_config_test",
     config = ":native_config",
     tests = ":native_specs",
 )
 
 web_e2e_test(
+    playwright = ":playwright",
     name = "local_e2e_test",
     execution = "local",
     browser = "@web_browser//:browser",
@@ -322,6 +334,7 @@ component_browser_test(
 )
 
 web_e2e_test(
+    playwright = ":playwright",
     name = "local_native_config_test",
     execution = "local",
     browser = "@web_browser//:browser",

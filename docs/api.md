@@ -121,7 +121,7 @@ playwright_runtime(
 Set `playwright = ":playwright"` on tests. Stable versions >=1.63.0 accepted;
 1.63.0 tested preset version. Client packages, spec imports, and Chromium
 must match. Bazel checks declared package versions at build time. Runner checks
-consumer-inferred packages and Chromium before tests.
+declared package identity and Chromium before tests.
 
 ## VRT matching
 
