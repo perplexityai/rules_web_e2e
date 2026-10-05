@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import {pathToFileURL} from 'node:url'
 import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
 import {runRemoteJob, type RemoteJob} from './remote-job.js'
 
@@ -26,4 +27,14 @@ if (process.env.VRT_EXECUTION !== 'local' && process.env.VRT_HOST_EXECUTION !== 
 const runtime = browserRuntime(path.dirname(job.runtime.path), {
   ...job.runtime, root: path.basename(job.runtime.path),
 }, process.env.VRT_HOST_EXECUTION === '1')
-runRemoteJob(job, runtime.node, {...runtime.env, RUNFILES_DIR: runfiles})
+if (job.mode === 'test') {
+  // Already running under the declared Node. Keep Bazel's PID, scratch and signals.
+  Object.assign(process.env, job.env, runtime.env, {
+    RUNFILES_DIR: runfiles,
+    JS_BINARY__NODE_BINARY: runtime.node,
+  })
+  process.argv = [runtime.node, job.runner, ...job.args]
+  await import(pathToFileURL(job.runner).href)
+} else {
+  runRemoteJob(job, runtime.node, {...runtime.env, RUNFILES_DIR: runfiles})
+}
