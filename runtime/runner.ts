@@ -9,7 +9,7 @@ import {validateChromiumVersion} from './versions.js'
 import {spawn, execFileSync} from 'node:child_process'
 import {remoteAppUrl} from './network.js'
 import {testArguments} from './arguments.js'
-import {baselineHashes, materializeSnapshots, validateBaselines} from './baselines.js'
+import {baselineHashes, validateBaselines} from './baselines.js'
 import {browserTempRoot, removeScratch, testEnvironment} from './isolation.js'
 import {hostBrowserEnvironment} from './host-browser.js'
 import {browserRuntime, type BrowserRuntime} from './browser-runtime.js'
@@ -123,12 +123,12 @@ async function run(temp: string) {
     : undefined
   if (captureOutput)
     fs.writeFileSync(
-      path.join(path.dirname(captureOutput), 'baseline-before.json'),
+      path.join(outputs, 'baseline-before.json'),
       JSON.stringify({workspace: required('VRT_DESCRIPTOR').split('/')[0], hashes: baselineInputs ? baselineHashes(baselineInputs, true) : {}})
     )
   // Comparisons read immutable runfiles; only capture needs writable snapshots.
-  const baselines = visual && !update ? baselineInputs! : path.join(temp, 'baselines')
-  if (update) fs.mkdirSync(baselines)
+  const baselines = captureOutput || baselineInputs!
+  if (update) fs.mkdirSync(baselines, {recursive: true})
   const fixtureEnv = testEnvironment(
     process.env,
     [...JSON.parse(required('VRT_ENV_NAMES')) as string[], 'TEST_RUN_NUMBER', 'TEST_RANDOM_SEED'],
@@ -287,10 +287,7 @@ async function run(temp: string) {
     const discoveryCode = gallery && !descriptor.captureManifest ? await run(true) : 0
     const code = discoveryCode === 0 ? await run(false) : discoveryCode
     if (code !== 0) {
-      // Preserve partial captures. Comparison failures already have Playwright's
-      // per-assertion expected/actual/diff attachments in the test outputs.
-      if (visual && update)
-        materializeSnapshots(baselines, path.join(outputs, 'reference'))
+      // Captures already live in the declared outputs, including partial failures.
       process.exitCode = code
       console.error(`VRT artifacts: ${outputs}`)
       return
@@ -302,7 +299,6 @@ async function run(temp: string) {
     }
     if (captureOutput) {
       validateBaselines(baselines, true)
-      materializeSnapshots(baselines, captureOutput)
       console.log(`Captured baselines: ${captureOutput}`)
     }
     succeeded = true

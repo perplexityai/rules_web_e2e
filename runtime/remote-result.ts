@@ -31,10 +31,10 @@ export function consumeRemoteResult(
       options.update.workspace, options.update.baselineRelative
     )
     const before = JSON.parse(
-      fs.readFileSync(path.join(directory, 'baseline-before.json'), 'utf8')
+      fs.readFileSync(path.join(directory, 'artifacts/baseline-before.json'), 'utf8')
     ) as {workspace: string; hashes: Record<string, string>}
     if (before.workspace !== '_main') throw new Error('Snapshot updates require a target in the invoking workspace')
-    validateBaselines(path.join(directory, 'baselines'), true)
+    validateBaselines(path.join(directory, 'artifacts/reference'), true)
     validateBaselines(destination)
     withBaselineUpdate(destination, before.hashes, options.update.write)
   }

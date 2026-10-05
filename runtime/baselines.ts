@@ -71,8 +71,3 @@ export function withBaselineUpdate(destination: string, before: Record<string, s
     fs.rmdirSync(lock)
   }
 }
-
-/** Snapshots are owned working/output data, never links into the input tree. */
-export function materializeSnapshots(source: string, destination: string): void {
-  fs.cpSync(source, destination, {recursive: true, dereference: true, force: false, errorOnExist: true})
-}

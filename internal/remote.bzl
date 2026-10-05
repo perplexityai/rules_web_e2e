@@ -298,4 +298,4 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         tags = ["manual"],
     )
     prefix = native.package_name() + "/" if native.package_name() else ""
-    source_update(name, action, "baselines", env["VRT_BASELINE_RELATIVE"].removeprefix(prefix), visual = True)
+    source_update(name, action, "artifacts/reference", env["VRT_BASELINE_RELATIVE"].removeprefix(prefix), visual = True)

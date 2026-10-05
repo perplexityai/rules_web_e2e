@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test} from 'node:test'
-import {baselineDestination, baselineHashes, validateBaselines, withBaselineUpdate, materializeSnapshots} from './baselines.js'
+import {baselineDestination, baselineHashes, validateBaselines, withBaselineUpdate} from './baselines.js'
 
 test('Bazel directory updates reject empty captures and mixed source directories', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-'))
@@ -48,17 +48,13 @@ test('capture hashes declared runfile symlinks without accepting source symlinks
   assert.throws(() => baselineHashes(runfiles), /regular files/)
 })
 
-test('declared snapshot trees preserve inputs and share update guards', t => {
+test('nested snapshot trees share source update guards', t => {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'declared-snapshots-')))
   t.after(() => fs.rmSync(root, {recursive: true, force: true}))
   const source = path.join(root, 'source')
-  const output = path.join(root, 'output')
   fs.mkdirSync(path.join(source, 'project'), {recursive: true})
   fs.writeFileSync(path.join(source, 'project/keep.png'), 'keep')
   fs.writeFileSync(path.join(source, 'project/change.png'), 'old')
-  materializeSnapshots(source, output)
-  assert.equal(fs.readFileSync(path.join(output, 'project/keep.png'), 'utf8'), 'keep')
-  assert.equal(fs.readFileSync(path.join(output, 'project/change.png'), 'utf8'), 'old')
   const before = baselineHashes(source, false, true)
   let invoked = false
   withBaselineUpdate(source, before, () => {invoked = true}, true)

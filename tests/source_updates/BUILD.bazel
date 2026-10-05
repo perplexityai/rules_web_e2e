@@ -13,7 +13,7 @@ copy_to_directory(
 source_update(
     "visual",
     "capture",
-    "baselines",
+    "artifacts/reference",
     "baselines",
     visual = True,
 )
