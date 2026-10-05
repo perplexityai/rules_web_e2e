@@ -20,10 +20,6 @@ export function inside(root: string, file: string) {
   const rel = path.relative(root, file)
   return !path.isAbsolute(rel) && rel !== '..' && !rel.startsWith('../')
 }
-export function files(input: string): string[] {
-  return fs.statSync(input).isDirectory()
-    ? fs.readdirSync(input).flatMap(name => files(path.join(input, name))) : [input]
-}
 export function copyFile(source: string, target: string) {
   fs.mkdirSync(path.dirname(target), {recursive: true})
   fs.copyFileSync(source, target)

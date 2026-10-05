@@ -239,10 +239,10 @@ uncached execution; see `cacheable` for explicit opt-in.
 | API | Purpose |
 | --- | --- |
 | `browser_presets.linux_amd64(name, release)` in `playwright:extensions.bzl` | Versioned complete runtime, exposed as `@name//:browser` |
-| `linux_chromium_runtime(name, chromium, node, arch?, system?, fonts?, ffmpeg?)` in `playwright:browser.bzl` | Custom binaries with pinned Linux libraries/fonts and optional video helper; `arch` defaults to `"x64"` |
+| `linux_chromium_runtime(name, chromium, node, arch?, system?, fonts?, ffmpeg?, chromium_path?, ffmpeg_path?)` in `playwright:browser.bzl` | Custom binaries with pinned Linux libraries/fonts and optional video helper; `arch` defaults to `"x64"` |
 | `browser_runtime(...)` in `playwright:defs.bzl` | Declare executable/loader paths in custom runtime tree |
 | `browser_runtime_archive(archive=...)` or `(archives=..., paths=..., files=...)` in `playwright:archive.bzl` | Assemble declared archives/files without package installation |
-| `playwright_browser_installation(name, chromium, ffmpeg, playwright?)` in `playwright:browser.bzl` | Host browser cache for Linux x64 or macOS x64/arm64 |
+| `playwright_browser_installation(name, chromium, ffmpeg, playwright?, chromium_path?, ffmpeg_path?)` in `playwright:browser.bzl` | Host browser cache for Linux x64 or macOS x64/arm64 |
 
 See [runtime attributes and examples](browser-runtime.md), [host provisioning](host-browsers.md),
 and [ARM64 VRT](macos-arm64-vrt.md).

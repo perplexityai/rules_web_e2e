@@ -138,6 +138,9 @@ playwright_browser_installation(
 ```
 
 Use platform `select()` for Linux x64 and macOS x64/arm64 browser/FFmpeg labels.
+For nested declared directories, set `chromium_path` and `ffmpeg_path`.
+Defaults: `chrome-headless-shell` and `ffmpeg-linux` (Linux) or `ffmpeg-mac` (macOS).
+Paths relative. No dot segments. No directory scan.
 Pass this target in test `data` and set
 `PLAYWRIGHT_BROWSERS_PATH = "$(rootpath :browsers)"` as before.
 

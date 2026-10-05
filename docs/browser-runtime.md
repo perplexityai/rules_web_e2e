@@ -34,7 +34,12 @@ linux_chromium_runtime(
 )
 ```
 
-`chromium` accepts Chrome for Testing headless-shell files or declared directory.
+`chromium` accepts Chrome for Testing headless-shell files or one declared directory.
+Bazel selects filegroup paths during analysis. For a directory with a nested
+bundle, set `chromium_path = "nested/chrome-headless-shell"`. Default path:
+`chrome-headless-shell`. Its parent supplies the browser bundle.
+Use `ffmpeg_path` for a nested helper; default: `ffmpeg-linux`.
+Paths must be relative, with no dot segments. Directories are not scanned.
 `node` actual Linux Node executable, not launcher script. This helper
 supplies executable/loader paths and assembles default
 `@rules_web_e2e//playwright/presets:noble_20260901` library/font preset. Its package
