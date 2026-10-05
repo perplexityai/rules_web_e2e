@@ -1,3 +1,4 @@
+load("@rules_web_e2e//worker:runfiles.bzl", "WORKER_REPOSITORY")
 load("@aspect_rules_js//js:defs.bzl", "js_test")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
@@ -21,4 +22,20 @@ js_test(
     size = "small",
     entry_point = "@rules_web_e2e//worker:supervisor_config_test.js",
     data = ["@rules_web_e2e//worker:supervisor_config_test_files"],
+)
+
+js_test(
+    name = "worker_inputs_test",
+    copy_data_to_bin = False,
+    patch_node_fs = False,
+    size = "small",
+    entry_point = "@rules_web_e2e//worker:inputs_test.js",
+    args = [
+        "$(rlocationpath @rules_web_e2e//worker:linux_amd64.json)",
+        WORKER_REPOSITORY,
+    ],
+    data = [
+        "@rules_web_e2e//worker:inputs_test_files",
+        "@rules_web_e2e//worker:linux_amd64.json",
+    ],
 )

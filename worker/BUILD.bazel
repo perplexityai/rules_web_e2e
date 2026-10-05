@@ -1,5 +1,6 @@
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
 load("//tools:typescript.bzl", "tool_sources")
+load(":runfiles.bzl", "WORKER_REPOSITORY")
 
 load("@aspect_rules_js//js:defs.bzl", "js_library")
 
@@ -19,6 +20,7 @@ js_binary(
     copy_data_to_bin = False,
     entry_point = "main.js",
     args = [
+        "--source-repository=" + WORKER_REPOSITORY,
         "--worker-runfile=$(rlocationpath @actiond_linux_amd64//file)",
         "--manifest-runfile=$(rlocationpath :linux_amd64.json)",
     ],
@@ -40,5 +42,12 @@ js_library(
     name = "supervisor_config_test_files",
     srcs = ["supervisor_config_test.js"],
     deps = [":supervisor"],
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "inputs_test_files",
+    srcs = ["inputs_test.js"],
+    deps = [":typecheck"],
     visibility = ["//visibility:public"],
 )

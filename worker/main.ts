@@ -1,6 +1,5 @@
-import fs from 'node:fs'
 import {parseArgs} from 'node:util'
-import {runfiles} from '@bazel/runfiles'
+import {workerInputs} from './inputs.js'
 import {main as runMain} from '../tools/files.js'
 import {preflight, supervise} from './supervisor.js'
 
@@ -8,7 +7,7 @@ export async function cli(argv = process.argv.slice(2)) {
   // Options following the operation belong to the child command.
   const operations = ['doctor', 'build', 'test', 'run', 'exec']
   const options = Object.fromEntries(
-    ['worker-runfile', 'manifest-runfile', 'bazel', 'port', 'log-dir', 'startup-timeout', 'memory-mib', 'cas-image-size-mib']
+    ['source-repository', 'worker-runfile', 'manifest-runfile', 'bazel', 'port', 'log-dir', 'startup-timeout', 'memory-mib', 'cas-image-size-mib']
       .map(name => [name, {type: 'string' as const}]))
   const operationToken = parseArgs({args: argv, options, tokens: true, strict: false, allowPositionals: true})
     .tokens.find(token => token.kind === 'positional')
@@ -20,8 +19,7 @@ export async function cli(argv = process.argv.slice(2)) {
   if (!operationToken || !operations.includes(operationToken.value)) throw new Error('Supply doctor, build, test, run, or exec')
   const index = operationToken.index
   const {values} = parseArgs({args: argv.slice(0, index), options})
-  const worker = fs.realpathSync(runfiles.resolve(values['worker-runfile']!))
-  const manifest = JSON.parse(fs.readFileSync(runfiles.resolve(values['manifest-runfile']!), 'utf8'))
+  const {worker, manifest} = workerInputs(values['worker-runfile']!, values['manifest-runfile']!, values['source-repository']!)
   if (process.env.BUILD_WORKSPACE_DIRECTORY) process.chdir(process.env.BUILD_WORKSPACE_DIRECTORY)
   preflight(worker, manifest.sha256)
   const operation = argv[index]
