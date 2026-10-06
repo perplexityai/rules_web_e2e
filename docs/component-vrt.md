@@ -116,6 +116,11 @@ For hover states, set `vrt.hoverSelector` to CSS selector for visible
 target. Runner moves real browser pointer after mounting visual and
 before calling `beforeCapture`, so hook can assert `:hover` styles.
 
+
+Capture writes PNGs straight into the Bazel result at `artifacts/reference/`.
+Partial PNGs survive test failure or a stalled runner. The guarded Bazel writer
+applies them to source only after the full capture succeeds.
+
 ## Build the capture catalog
 
 Pass `capture_manifest = ":gallery-captures.json"` to use a declared JSON catalog

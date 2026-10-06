@@ -255,6 +255,7 @@ try {
   assert(Date.now() - started < 90_000)
   const deadlineOutput = result('actiond_deadline_test')
   nonempty(`${deadlineOutput}/artifacts/deadline-ready.png`)
+  nonempty(`${deadlineOutput}/artifacts/reference/partial.png`)
   assert.equal(text(`${deadlineOutput}/artifacts/runner-stalled`), 'event loop blocked\n')
   assert.deepEqual(fs.readdirSync('__actiond_deadline__'), ['keep.png'])
   assert.deepEqual(fs.readFileSync('__actiond_deadline__/keep.png'), original)

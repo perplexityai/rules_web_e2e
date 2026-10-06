@@ -36,7 +36,7 @@ export function runRemoteJob(job: RemoteJob, node: string, environment: NodeJS.P
       RUNFILES_MANIFEST_FILE: '',
       JS_BINARY__NODE_BINARY: node,
       TEST_UNDECLARED_OUTPUTS_DIR: artifacts,
-      VRT_CAPTURE_OUTPUT: path.join(output, 'baselines'),
+      VRT_CAPTURE_OUTPUT: path.join(artifacts, 'reference'),
     },
     stdio: 'inherit',
   })
