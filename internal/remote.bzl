@@ -198,7 +198,7 @@ _attrs = {
     "execution": attr.string(default = "actiond"),
     "cacheable": attr.bool(),
     "_local_launcher": attr.label(default = Label("//internal/local:launcher.sh.tpl"), allow_single_file = True),
-    "_local_tools": attr.label(default = Label("//internal/local:tools"), allow_single_file = True),
+    "local_tools": attr.label(allow_single_file = True),
     "_bash_runfiles": attr.label(default = "@rules_shell//shell/runfiles"),
     "_runfiles_tools": attr.label(default = Label("//internal/test_tools:runfiles_tools"), allow_single_file = True),
     "_runtime": attr.label(default = Label("//runtime:files")),
@@ -210,7 +210,6 @@ _capture_attrs = dict(_attrs)
 _capture_attrs["_capture_launcher"] = attr.label(default = Label("//internal:capture-launcher.sh.tpl"), allow_single_file = True)
 _remote = rule(implementation = _remote_impl, attrs = _capture_attrs, executable = True)
 _arm64_capture_attrs = dict(_capture_attrs)
-_arm64_capture_attrs["_local_tools"] = attr.label(default = Label("//internal/local:tools_arm64"), allow_single_file = True)
 _arm64_capture_attrs["_runfiles_tools"] = attr.label(default = Label("//internal/test_tools:runfiles_tools_arm64"), allow_single_file = True)
 _remote_arm64 = rule(implementation = _remote_impl, attrs = _arm64_capture_attrs, executable = True)
 
@@ -224,7 +223,6 @@ _native_browser_test = rule(
 )
 
 _arm64_test_attrs = dict(_test_attrs)
-_arm64_test_attrs["_local_tools"] = attr.label(default = Label("//internal/local:tools_arm64"), allow_single_file = True)
 _arm64_test_attrs["_runfiles_tools"] = attr.label(default = Label("//internal/test_tools:runfiles_tools_arm64"), allow_single_file = True)
 _arm64_test_attrs["_test_tools"] = attr.label(default = Label("//internal/test_tools:tools_arm64"), providers = [TestToolsInfo])
 _native_arm64_browser_test = rule(
@@ -248,6 +246,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
     if not visual and target_arch == "arm64" and execution != "local":
         fail("ARM64 isolated execution currently supports VRT only; omit browser for host interaction tests")
     native_test = _native_arm64_browser_test if target_arch == "arm64" else _native_browser_test
+    local_tools = Label("//internal/local:tools" + ("_arm64" if target_arch == "arm64" else "")) if execution == "local" else None
     native_test(
         name = name,
         inputs = ":" + name + "_inputs",
@@ -260,6 +259,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         target_arch = target_arch,
         host_vrt = host_vrt,
         execution = execution,
+        local_tools = local_tools,
         cacheable = cacheable,
         exec_properties = execution_properties,
         exec_compatible_with = constraints,
@@ -283,6 +283,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         target_arch = target_arch,
         host_vrt = host_vrt,
         execution = execution,
+        local_tools = local_tools,
         cacheable = cacheable,
         exec_properties = execution_properties,
         tags = ["manual"],

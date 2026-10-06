@@ -3,6 +3,19 @@ import path from 'node:path'
 import {main, readJson, relative} from '../tools/files.js'
 
 export interface Layout {files: {source: string; destination: string}[]; executables: string[]}
+export function copyLayout(plan: Layout, output: string) {
+  fs.mkdirSync(output, {recursive: true})
+  for (const {source, destination} of plan.files) {
+    const target = path.join(output, destination)
+    fs.mkdirSync(path.dirname(target), {recursive: true})
+    fs.cpSync(source, target, {recursive: true, dereference: true, filter: (source, target) => {
+      // Bazel tree inputs are read-only; output directories must permit later layout entries.
+      if (fs.statSync(source).isDirectory()) fs.mkdirSync(target, {recursive: true})
+      return true
+    }})
+  }
+  for (const executable of plan.executables) fs.chmodSync(path.join(output, executable), 0o755)
+}
 export function checkElfArch(file: string, arch: string) {
   const fd = fs.openSync(file, 'r'), header = Buffer.alloc(20)
   try { fs.readSync(fd, header, 0, 20, 0) } finally { fs.closeSync(fd) }
@@ -55,6 +68,14 @@ export function layout(manifest: any): Layout {
 }
 
 main(import.meta.url, () => {
+  if (process.argv[2] === '--copy-layout') {
+    const entries = fs.readFileSync(process.argv[3], 'utf8').split('\0').slice(0, -1)
+    const files = []
+    for (let i = 0; i < entries.length; i += 2) files.push({source: entries[i], destination: entries[i + 1]})
+    const executables = fs.readFileSync(process.argv[4], 'utf8').split('\0').filter(Boolean)
+    copyLayout({files, executables}, process.argv[5])
+    return
+  }
   if (process.argv[2] === '--validate-linux') {
     validateLinux(readJson(process.argv[3]))
     fs.writeFileSync(process.argv[4], 'validated\n')

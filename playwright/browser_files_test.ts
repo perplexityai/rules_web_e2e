@@ -3,15 +3,9 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {test, type TestContext} from 'node:test'
-import {execFileSync} from 'node:child_process'
-import {layout, validateLinux} from './browser_files.js'
-const coreutils = path.resolve(process.argv[2]), copyScript = path.resolve(process.argv[3])
+import {copyLayout, layout, validateLinux} from './browser_files.js'
 function assemble(manifest: unknown, output: string) {
-  const plan = layout(manifest)
-  const config = output + '.copy-layout', executables = output + '.executables'
-  fs.writeFileSync(config, plan.files.flatMap(({source, destination}) => [source, destination]).map(value => value + '\0').join(''))
-  fs.writeFileSync(executables, plan.executables.map(file => file + '\0').join(''))
-  execFileSync('bash', [copyScript, coreutils, config, executables, output])
+  copyLayout(layout(manifest), output)
 }
 function temp(t: TestContext) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-files-'))
@@ -23,6 +17,26 @@ function bundle(root: string) {
   write(path.join(root, 'chrome-headless-shell'), 'browser'); fs.chmodSync(path.join(root, 'chrome-headless-shell'), 0o755)
   write(path.join(root, 'icudtl.dat'), 'resources'); return root
 }
+test('Linux layout copies a relative tree input into the output root', t => {
+  const root = temp(t), source = path.join(root, 'system'), output = path.relative(process.cwd(), path.join(root, 'runtime'))
+  write(path.join(source, 'lib/loader'), 'loader')
+  fs.chmodSync(path.join(source, 'lib/loader'), 0o555)
+  fs.chmodSync(path.join(source, 'lib'), 0o555)
+  fs.chmodSync(source, 0o555)
+  fs.symlinkSync(source, path.join(root, 'declared-system'))
+  write(path.join(root, 'node'), 'node')
+  copyLayout({files: [
+    {source: path.relative(process.cwd(), path.join(root, 'declared-system')), destination: ''},
+    {source: path.join(root, 'node'), destination: 'lib/node'},
+  ], executables: ['lib/node']}, output)
+  assert.equal(fs.statSync(source).mode & 0o777, 0o555)
+  assert.equal(fs.statSync(path.join(source, 'lib')).mode & 0o777, 0o555)
+  assert.equal(fs.readFileSync(path.join(output, 'lib/node'), 'utf8'), 'node')
+  assert.equal(fs.statSync(path.join(output, 'lib/node')).mode & 0o777, 0o755)
+  fs.chmodSync(source, 0o755); fs.chmodSync(path.join(source, 'lib'), 0o755)
+  fs.rmSync(source, {recursive: true})
+  assert.equal(fs.readFileSync(path.join(output, 'lib/loader'), 'utf8'), 'loader')
+})
 test('FFmpeg cache is relocatable and never chmods declared inputs', t => {
   const root = temp(t), core = path.join(root, 'core'), runtime = path.join(root, 'runtime')
   write(path.join(core, 'browsers.json'), JSON.stringify({browsers: [{name: 'ffmpeg', revision: '1011'}]}))

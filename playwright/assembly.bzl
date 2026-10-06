@@ -1,9 +1,5 @@
 """Write known layouts during analysis; resolve package revisions in an action."""
 
-BROWSER_ASSEMBLY_TOOLCHAINS = [
-    "@bazel_lib//lib:coreutils_toolchain_type",
-]
-
 def browser_directory(ctx, manifest, inputs, name = None, layout = None):
     name = name or ctx.label.name
     output = ctx.actions.declare_directory(name)
@@ -25,14 +21,12 @@ def browser_directory(ctx, manifest, inputs, name = None, layout = None):
         outputs = validation if layout != None else [plan, executables],
         mnemonic = "BrowserValidation" if layout != None else "BrowserLayout",
     )
-    coreutils = ctx.toolchains["@bazel_lib//lib:coreutils_toolchain_type"].coreutils_info.bin
-    ctx.actions.run_shell(
-        arguments = [ctx.file._copy_layout.path, coreutils.path, plan.path, executables.path, output.path],
-        inputs = inputs + [plan, executables, ctx.file._copy_layout] + validation,
-        tools = [coreutils],
+    ctx.actions.run(
+        executable = ctx.executable._browser_files,
+        arguments = ["--copy-layout", plan.path, executables.path, output.path],
+        env = {"BAZEL_BINDIR": ctx.bin_dir.path},
+        inputs = inputs + [plan, executables] + validation,
         outputs = [output],
-        command = 'source "$1" "${@:2}"',
         mnemonic = "BrowserDirectory",
-        toolchain = None,
     )
     return output
