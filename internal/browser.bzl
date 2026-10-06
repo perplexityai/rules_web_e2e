@@ -7,6 +7,7 @@ load("//playwright:assembly.bzl", "BROWSER_ASSEMBLY_TOOLCHAINS", "browser_direct
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo")
 load(":matching.bzl", "matching_config")
 load(":remote.bzl", "remote_browser_test")
+load(":runtime_inputs.bzl", "compiled_runtime_runfiles")
 load(":snapshots.bzl", "snapshot_update")
 
 ShellInfo = provider(fields = ["directory", "entry_point"])
@@ -105,10 +106,14 @@ def _inputs_impl(ctx):
         "browser": ctx.attr.browser[BrowserRuntimeInfo].descriptor if ctx.attr.browser else None,
     }))
     inputs = ctx.runfiles(files = [result, harness] + ([ctx.file.capture_manifest] if ctx.file.capture_manifest else []) + ([browser_cache] if browser_cache else []))
-    for target in [ctx.attr.tests, ctx.attr.config, ctx.attr.matching, ctx.attr.server, ctx.attr.shell, ctx.attr.playwright, ctx.attr.browser, ctx.attr.sources]:
+    compiled_inputs = [ctx.attr.tests, ctx.attr.config, ctx.attr.matching, ctx.attr.server]
+    for target in compiled_inputs + [ctx.attr.shell, ctx.attr.playwright, ctx.attr.browser, ctx.attr.sources]:
         if target:
-            inputs = inputs.merge(target[DefaultInfo].default_runfiles)
-            inputs = inputs.merge(ctx.runfiles(transitive_files = target[DefaultInfo].files))
+            if ctx.attr.runtime_only and target in compiled_inputs:
+                inputs = inputs.merge(compiled_runtime_runfiles(ctx, target))
+            else:
+                inputs = inputs.merge(target[DefaultInfo].default_runfiles)
+                inputs = inputs.merge(ctx.runfiles(transitive_files = target[DefaultInfo].files))
     return [DefaultInfo(files = depset([result]), runfiles = inputs)]
 
 _inputs = rule(
@@ -125,6 +130,7 @@ _inputs = rule(
         "browser": attr.label(providers = [BrowserRuntimeInfo]),
         "sources": attr.label(),
         "mode": attr.string(),
+        "runtime_only": attr.bool(default = True),
         "_copy_layout": attr.label(default = Label("//playwright:copy_layout.sh"), allow_single_file = True),
         "_browser_files": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
         "_capture_template": attr.label(default = Label("//runtime:capture_template"), allow_single_file = True),
@@ -167,7 +173,8 @@ def browser_test(
         component = False,
         process_owned = False,
         cacheable = False,
-        exec_properties = {}):
+        exec_properties = {},
+        runtime_only = True):
     """Internal common implementation; public wrappers select the test mode."""
     if execution not in ["actiond", "local"]:
         fail("execution must be actiond or local")
@@ -247,6 +254,7 @@ def browser_test(
         matching = matching,
         sources = ":" + name + "_sources",
         mode = "process" if process_owned else "visual-spec" if visual and tests else "visual" if visual else "component" if component else "e2e",
+        runtime_only = runtime_only,
     )
     common = dict(
         copy_data_to_bin = False,

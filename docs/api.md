@@ -3,7 +3,8 @@
 Rules consume built artifacts. Your build owns typechecking, compilation, and
 bundling. Start with [preset setup](getting-started.md).
 
-Browser runfiles include each input target's default files and declared runfiles,
+Browser runfiles include each input target's default files and declared runfiles
+with runtime-only filtering enabled by default for compiled inputs,
 not its `transitive_typecheck` output group. Keep semantic typechecking in separate
 validation targets; executing browser test does not replace that validation.
 
@@ -38,6 +39,7 @@ and application-specific output can still contain sensitive data.
 | `base_url` / `base_url_env` | Unset | Existing HTTP(S) URL or its environment-variable name |
 | `config` | Generated | Compiled ESM Playwright config |
 | `data` | `[]` | Additional runtime inputs |
+| `runtime_only` | `True` | Exclude source/type/debug files from compiled inputs in the test target's repository; explicit `data` stays unfiltered. Set `False` to retain source/debug inputs. See [runtime-only inputs](e2e.md#runtime-only-inputs). |
 | `env` / `env_inherit` | `{}` / `[]` | Explicit values / inherited names; inheritance host-only |
 | `network_origins` / `network_origins_env` | `[]` / `[]` | Extra allowed origins / env names containing them; host-only |
 | `args` | `[]` | Default selection flags; see below |
@@ -56,9 +58,9 @@ For isolated tests, URLs must be action-local and environment values explicit.
 `browser_process_test` needs none of these URL/server options; its compiled
 `config` optional, and specs select their own declared executable inputs.
 
-Spec producers must include typechecking, module markers, imports, and generated
-files in their build graph. Rules request available `transitive_typecheck`
-outputs; shell producers must depend on their own typecheck action.
+Spec producers must include module markers, imports, and generated files in
+their build graph. Keep semantic typechecking in separate validation targets;
+browser tests do not request `transitive_typecheck` outputs.
 
 E2E/component tests accept `--grep`, `--grep-invert`, `--project`, `--shard`,
 declared spec paths, and `--pass-with-no-tests` in `args` or `--test_arg`.
