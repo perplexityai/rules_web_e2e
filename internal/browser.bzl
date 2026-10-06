@@ -130,7 +130,7 @@ _inputs = rule(
         "browser": attr.label(providers = [BrowserRuntimeInfo]),
         "sources": attr.label(),
         "mode": attr.string(),
-        "runtime_only": attr.bool(),
+        "runtime_only": attr.bool(default = True),
         "_copy_layout": attr.label(default = Label("//playwright:copy_layout.sh"), allow_single_file = True),
         "_browser_files": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
         "_capture_template": attr.label(default = Label("//runtime:capture_template"), allow_single_file = True),
@@ -174,7 +174,7 @@ def browser_test(
         process_owned = False,
         cacheable = False,
         exec_properties = {},
-        runtime_only = False):
+        runtime_only = True):
     """Internal common implementation; public wrappers select the test mode."""
     if execution not in ["actiond", "local"]:
         fail("execution must be actiond or local")

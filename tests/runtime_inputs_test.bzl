@@ -77,9 +77,9 @@ _runtime_inputs_test = analysistest.make(
 def runtime_inputs_tests():
     for name, module in [("runtime_specs", "module.spec.js"), ("runtime_config", "module.js"), ("runtime_server", "module.js")]:
         _fixture(name = name, module = module, external = _EXTERNAL_FILES)
-    for policy in ["default", "enabled", "explicit_data"]:
+    for policy in ["default", "enabled", "disabled", "explicit_data"]:
         name = "runtime_" + policy
-        options = {} if policy == "default" else {"runtime_only": True}
+        options = {} if policy == "default" else {"runtime_only": policy != "disabled"}
         web_e2e_test(
             name = name,
             tests = ":runtime_specs",
@@ -91,7 +91,7 @@ def runtime_inputs_tests():
         _runtime_inputs_test(
             name = name + "_test",
             target_under_test = ":" + name,
-            runtime_only = policy != "default",
+            runtime_only = policy != "disabled",
             explicit_source = policy == "explicit_data",
             external = _EXTERNAL_FILES,
         )

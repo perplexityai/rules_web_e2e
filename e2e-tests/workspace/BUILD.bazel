@@ -150,7 +150,6 @@ component_browser_test(
 web_e2e_test(
     playwright = ":playwright",
     name = "host_native_config_test",
-    runtime_only = True,
     config = ":native_config",
     tests = ":native_specs",
 )

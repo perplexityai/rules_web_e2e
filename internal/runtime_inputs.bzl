@@ -1,4 +1,4 @@
-"""Opt-in runfiles for compiled browser inputs, without source/debug metadata."""
+"""Runfiles for compiled browser inputs, without source/debug metadata."""
 
 def _is_runtime_file(ctx, file):
     # Other repositories may publish sources as runtime package contents.

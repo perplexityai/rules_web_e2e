@@ -175,8 +175,9 @@ changes, force execution with `--cache_test_results=no`. Caller `no-cache` or
 
 ## Runtime-only inputs
 
-Set `runtime_only = True` to keep source/type/debug files out of compiled
-`tests`, `config`, `server`, and `matching` runfiles. Defaults are unchanged.
+`runtime_only` defaults to `True`, keeping source/type/debug files out of compiled
+`tests`, `config`, `server`, and `matching` runfiles. Set it to `False` to restore
+unfiltered compiled inputs, including sources and maps used for debugging.
 The option applies to the shared browser rules, independently of `cacheable`.
 
 ```starlark
@@ -184,7 +185,7 @@ web_e2e_test(
     name = "e2e_test",
     tests = ":compiled_specs",
     config = ":compiled_config",
-    runtime_only = True,
+    runtime_only = False,  # Retain source/debug inputs for this suite.
 )
 ```
 
@@ -201,7 +202,7 @@ reuse passing browser results if all runtime inputs remain identical. Upstream
 build actions may still run. Changes that affect emitted JavaScript must
 invalidate results. Keep separate typecheck targets enabled; runtime filtering
 does not validate types. Excluding maps can also remove mapped stack traces for
-those modules, so keep the default when source-level debugging is required.
+those modules, so set `runtime_only = False` when source-level debugging is required.
 
 This option does not enable caching, make a live service deterministic, or
 change execution/network policy. See the caching contract above.
