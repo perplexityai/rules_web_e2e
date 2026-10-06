@@ -48,21 +48,18 @@ async function run(temp: string) {
   fs.mkdirSync(outputs, {recursive: true})
   const inputs = process.env.RUNFILES_DIR || required('JS_BINARY__RUNFILES')
   const input = (relative: string) => path.join(inputs, relative)
-  const snapshotInputs = snapshotRelative ? path.join(inputs, required('VRT_DESCRIPTOR').split('/')[0], snapshotRelative) : undefined
+  const workspace = required('VRT_DESCRIPTOR').split('/')[0]
+  const snapshotInputs = snapshotRelative ? path.join(inputs, workspace, snapshotRelative) : undefined
   if (snapshotCapture) {
     if (!exportSnapshots || !snapshotInputs) throw new Error('Snapshot capture requires export mode and snapshot_dir')
-    fs.writeFileSync(path.join(snapshotCapture, 'baseline-before.json'), JSON.stringify({workspace: required('VRT_DESCRIPTOR').split('/')[0], hashes: baselineHashes(snapshotInputs, true, true)}))
+    fs.writeFileSync(path.join(snapshotCapture, 'baseline-before.json'), JSON.stringify({workspace, hashes: baselineHashes(snapshotInputs, true, true)}))
   }
   const descriptorPath = input(required('VRT_DESCRIPTOR'))
   const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8')) as {
-    captureManifest?: string | null
+    environment: Record<string, string>
+    fileEnvironment: Record<string, string>
     harness: string
-    browserCache: string | null
     tests: string[]
-    config: string | null
-    matching: string | null
-    server: string | null
-    shell: {directory: string; entryPoint: string} | null
     browser?: BrowserRuntime | null
     playwright: {
       test: string
@@ -70,6 +67,9 @@ async function run(temp: string) {
       version: string
     }
   }
+  const fileEnvironment = Object.fromEntries(
+    Object.entries(descriptor.fileEnvironment).map(([name, file]) => [name, input(file)])
+  )
   const testFiles = descriptor.tests.map(name => fs.realpathSync(input(name)))
   let discoveryRoot = testFiles.length ? path.dirname(testFiles[0]) : inputs
   while (testFiles.some(file => path.relative(discoveryRoot, file).split(path.sep)[0] === '..'))
@@ -86,11 +86,12 @@ async function run(temp: string) {
   const hostEnv = declaredBrowser || processOwned ? {} : hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
   const node = declaredBrowser?.node || fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
   const testRoot = processOwned
-    ? path.join(inputs, required('VRT_DESCRIPTOR').split('/')[0])
+    ? path.join(inputs, workspace)
     : path.dirname(descriptorPath)
   const config = fs.realpathSync(path.join(input(descriptor.harness), 'suite-config.js'))
   const generated = path.dirname(config)
-  const modules = [...descriptor.tests, ...(descriptor.config ? [descriptor.config] : [])]
+  const configOverride = descriptor.fileEnvironment.VRT_CONFIG_OVERRIDE
+  const modules = [...descriptor.tests, ...(configOverride ? [configOverride] : [])]
   const modulePackage = (module: string) => path.dirname(
     createRequire(pathToFileURL(fs.realpathSync(input(module))))
       .resolve('@playwright/test/package.json')
@@ -117,14 +118,14 @@ async function run(temp: string) {
   const baselineInputs = visual
     ? path.join(
         inputs,
-        required('VRT_DESCRIPTOR').split('/')[0],
+        workspace,
         required('VRT_BASELINE_RELATIVE')
       )
     : undefined
   if (captureOutput)
     fs.writeFileSync(
       path.join(outputs, 'baseline-before.json'),
-      JSON.stringify({workspace: required('VRT_DESCRIPTOR').split('/')[0], hashes: baselineInputs ? baselineHashes(baselineInputs, true) : {}})
+      JSON.stringify({workspace, hashes: baselineInputs ? baselineHashes(baselineInputs, true) : {}})
     )
   // Comparisons read immutable runfiles; only capture needs writable snapshots.
   const baselines = captureOutput || baselineInputs!
@@ -134,11 +135,12 @@ async function run(temp: string) {
     [...JSON.parse(required('VRT_ENV_NAMES')) as string[], 'TEST_RUN_NUMBER', 'TEST_RANDOM_SEED'],
     temp
   )
-  const env = {
+  const env: NodeJS.ProcessEnv = {
     ...fixtureEnv,
     ...hostEnv,
     ...declaredBrowser?.env,
-    ...(descriptor.browserCache ? {PLAYWRIGHT_BROWSERS_PATH: input(descriptor.browserCache)} : {}),
+    ...descriptor.environment,
+    ...fileEnvironment,
     ...(declaredBrowser ? {
       NODE_OPTIONS: [
         fixtureEnv.NODE_OPTIONS || '',
@@ -154,29 +156,18 @@ async function run(temp: string) {
     VRT_MODE: required('VRT_MODE'),
     VRT_TEST_ROOT: gallery ? generated : discoveryRoot,
     VRT_TEST_FILES: JSON.stringify(testFiles),
-    ...(descriptor.config
-      ? {VRT_CONFIG_OVERRIDE: input(descriptor.config)}
-      : {}),
-    ...(descriptor.matching ? {VRT_MATCHING: input(descriptor.matching)} : {}),
-    ...(descriptor.server ? {VRT_CUSTOM_SERVER: input(descriptor.server)} : {}),
-    ...(descriptor.shell
-      ? {
-          VRT_SHELL: input(descriptor.shell.directory),
-          VRT_SHELL_ENTRY: descriptor.shell.entryPoint,
-        }
-      : {}),
     VRT_UPDATE: update ? '1' : '0',
     VRT_EXPORT_SNAPSHOTS: exportSnapshots ? '1' : '0',
-    VRT_SNAPSHOT_ROOT: snapshotRelative ? path.join(inputs, required('VRT_DESCRIPTOR').split('/')[0], snapshotRelative) : '',
+    VRT_SNAPSHOT_ROOT: snapshotRelative ? path.join(inputs, workspace, snapshotRelative) : '',
     VRT_BASELINES: baselines,
     VRT_OUTPUTS: outputs,
-    VRT_VISUAL_CATALOG: descriptor.captureManifest ? input(descriptor.captureManifest) : path.join(temp, 'visual-catalog.json'),
+    VRT_VISUAL_CATALOG: fileEnvironment.VRT_VISUAL_CATALOG || path.join(temp, 'visual-catalog.json'),
     VRT_CACHE: path.join(temp, 'server-cache'),
     RUNFILES_DIR: inputs,
     RUNFILES: inputs,
     RUNFILES_MANIFEST_FILE: '',
-    TEST_WORKSPACE: required('VRT_DESCRIPTOR').split('/')[0],
-    BAZEL_WORKSPACE: required('VRT_DESCRIPTOR').split('/')[0],
+    TEST_WORKSPACE: workspace,
+    BAZEL_WORKSPACE: workspace,
     BAZEL_BINDIR: '.',
     TEST_TMPDIR: temp,
     TEST_UNDECLARED_OUTPUTS_DIR: outputs,
@@ -203,7 +194,7 @@ async function run(temp: string) {
   process.once('SIGINT', onSignal)
   try {
     let appUrl = remote
-    if (!appUrl && !processOwned && (descriptor.server || descriptor.shell)) {
+    if (!appUrl && !processOwned && (fileEnvironment.VRT_CUSTOM_SERVER || fileEnvironment.VRT_SHELL)) {
       const server = spawn(
         node,
         [
@@ -284,7 +275,7 @@ async function run(temp: string) {
           reject(error)
         })
       })
-    const discoveryCode = gallery && !descriptor.captureManifest ? await run(true) : 0
+    const discoveryCode = gallery && !fileEnvironment.VRT_VISUAL_CATALOG ? await run(true) : 0
     const code = discoveryCode === 0 ? await run(false) : discoveryCode
     if (code !== 0) {
       // Captures already live in the declared outputs, including partial failures.

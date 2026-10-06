@@ -83,16 +83,20 @@ def _inputs_impl(ctx):
             "runtime": browser.root_file.path,
             "ffmpeg": browser.descriptor["ffmpeg"],
         }, [runtime.core_file, browser.root_file], name = ctx.label.name + ".browser-cache")
+    file_environment = {
+        "VRT_CONFIG_OVERRIDE": _compiled(ctx, ctx.attr.config, "config"),
+        "VRT_MATCHING": _compiled(ctx, ctx.attr.matching, "matching"),
+        "VRT_CUSTOM_SERVER": _compiled(ctx, ctx.attr.server, "server"),
+        "VRT_SHELL": shell.directory if shell else None,
+        "VRT_VISUAL_CATALOG": to_rlocation_path(ctx, ctx.file.capture_manifest) if ctx.file.capture_manifest else None,
+        "PLAYWRIGHT_BROWSERS_PATH": to_rlocation_path(ctx, browser_cache) if browser_cache else None,
+    }
     result = ctx.actions.declare_file(ctx.label.name + ".json")
     ctx.actions.write(result, json.encode({
-        "captureManifest": to_rlocation_path(ctx, ctx.file.capture_manifest) if ctx.file.capture_manifest else None,
-        "browserCache": to_rlocation_path(ctx, browser_cache) if browser_cache else None,
+        "fileEnvironment": {name: value for name, value in file_environment.items() if value != None},
+        "environment": {"VRT_SHELL_ENTRY": shell.entry_point} if shell else {},
         "harness": to_rlocation_path(ctx, harness),
         "tests": [to_rlocation_path(ctx, f) for f in tests],
-        "config": _compiled(ctx, ctx.attr.config, "config"),
-        "matching": _compiled(ctx, ctx.attr.matching, "matching"),
-        "server": _compiled(ctx, ctx.attr.server, "server"),
-        "shell": {"directory": shell.directory, "entryPoint": shell.entry_point} if shell else None,
         "playwright": {
             "test": runtime.test,
             "core": runtime.core,
