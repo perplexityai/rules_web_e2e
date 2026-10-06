@@ -9,7 +9,7 @@ coreutils(name = "coreutils", testonly = True)
 
 exports_files(["defs.bzl", "archive.bzl", "copy_layout.sh"])
 
-tool_sources(deps = ["//tools:typecheck", "//runtime:typecheck", "//:node_modules/tar", "//:node_modules/seek-bzip"])
+tool_sources(deps = ["//tools:typecheck", "//runtime:versions", "//:node_modules/tar", "//:node_modules/seek-bzip"])
 
 [
     js_binary(
@@ -28,7 +28,7 @@ tool_sources(deps = ["//tools:typecheck", "//runtime:typecheck", "//:node_module
         name = name + "_test",
         size = "small",
         entry_point = name + "_test.js",
-        data = [":typecheck", "package.json"] + ([":coreutils", "copy_layout.sh"] if name == "browser_files" else []),
+        data = [":test_typecheck", "package.json"] + ([":coreutils", "copy_layout.sh"] if name == "browser_files" else []),
         args = ["$(rootpath :coreutils)", "$(rootpath copy_layout.sh)"] if name == "browser_files" else [],
         no_copy_to_bin = [":coreutils"] if name == "browser_files" else [],
     )
@@ -37,6 +37,7 @@ tool_sources(deps = ["//tools:typecheck", "//runtime:typecheck", "//:node_module
 
 js_library(
     name = "preset_runtime_test_files",
+    testonly = True,
     srcs = ["preset_runtime_test.js", "package.json"],
     visibility = ["//visibility:public"],
 )

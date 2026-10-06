@@ -4,30 +4,56 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("//internal:matching.bzl", "matching_config")
 load("//playwright:defs.bzl", "playwright_runtime")
 
+RUNTIME_TSCONFIG = {"compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": True,
+    "declaration": True,
+    "skipLibCheck": True,
+    "types": ["node"],
+    "lib": [
+        "ES2022",
+        "DOM",
+        "DOM.Iterable",
+    ],
+}}
+
 ts_project(
-    name = "typecheck",
-    srcs = glob([
-        "*.ts",
-        "fixtures/*.ts",
-    ]),
+    name = "versions",
+    srcs = ["versions.ts"],
+    data = ["package.json"],
     declaration = True,
     transpiler = "tsc",
-    tsconfig = {"compilerOptions": {
-        "target": "ES2022",
-        "module": "ESNext",
-        "moduleResolution": "Bundler",
-        "strict": True,
-        "declaration": True,
-        "skipLibCheck": True,
-        "types": ["node"],
-        "lib": [
-            "ES2022",
-            "DOM",
-            "DOM.Iterable",
-        ],
-    }},
+    tsconfig = {"compilerOptions": dict(RUNTIME_TSCONFIG["compilerOptions"], types = [], lib = ["ES2022"])},
+    visibility = ["//visibility:public"],
+)
+
+ts_project(
+    name = "typecheck",
+    srcs = glob(["*.ts"], exclude = ["*.test.ts", "versions.ts"]),
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = RUNTIME_TSCONFIG,
     visibility = ["//visibility:public"],
     deps = [
+        ":versions",
+        "//:node_modules/@playwright/test",
+        "//:node_modules/@types/node",
+        "//:node_modules/playwright",
+    ],
+)
+
+ts_project(
+    name = "test_typecheck",
+    testonly = True,
+    srcs = glob(["*.test.ts", "fixtures/*.ts"]),
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = RUNTIME_TSCONFIG,
+    deps = [
+        ":typecheck",
+        ":versions",
         "//:node_modules/@playwright/test",
         "//:node_modules/@types/node",
         "//:node_modules/playwright",
@@ -99,7 +125,7 @@ filegroup(
 js_test(
     name = "remote_result_test",
     size = "small",
-    data = ["package.json", ":typecheck"],
+    data = ["package.json", ":test_typecheck"],
     entry_point = "remote-result.test.js",
 )
 
@@ -129,7 +155,7 @@ js_test(
     size = "small",
     data = [
         "package.json",
-        ":typecheck",
+        ":test_typecheck",
     ],
     entry_point = "baselines.test.js",
 )
@@ -139,7 +165,7 @@ js_test(
     size = "small",
     data = [
         "package.json",
-        ":typecheck",
+        ":test_typecheck",
     ],
     entry_point = "isolation.test.js",
 )
@@ -149,7 +175,7 @@ js_test(
     size = "small",
     data = [
         "package.json",
-        ":typecheck",
+        ":test_typecheck",
     ],
     entry_point = "server.test.js",
 )
@@ -159,7 +185,7 @@ js_test(
     size = "small",
     data = [
         "package.json",
-        ":typecheck",
+        ":test_typecheck",
     ],
     entry_point = "arguments.test.js",
 )
@@ -169,7 +195,7 @@ js_test(
     size = "small",
     data = [
         "package.json",
-        ":typecheck",
+        ":test_typecheck",
     ],
     entry_point = "network.test.js",
 )
@@ -179,7 +205,7 @@ js_test(
     size = "small",
     data = [
         "package.json",
-        ":typecheck",
+        ":test_typecheck",
     ],
     entry_point = "config.test.js",
 )
@@ -187,7 +213,7 @@ js_test(
 js_test(
     name = "browser_runtime_test",
     size = "small",
-    data = ["package.json", ":typecheck"],
+    data = ["package.json", ":test_typecheck"],
     entry_point = "browser-runtime.test.js",
 )
 
@@ -196,7 +222,7 @@ js_test(
     size = "small",
     data = [
         "package.json",
-        ":typecheck",
+        ":test_typecheck",
     ],
     entry_point = "visuals.test.js",
 )
@@ -213,7 +239,7 @@ js_test(
     size = "small",
     data = [
         "package.json",
-        ":typecheck",
+        ":test_typecheck",
     ],
     entry_point = "built-inputs.test.js",
 )
@@ -235,7 +261,7 @@ MATCHING_FIXTURES = {
 js_test(
     name = "matching_config_test",
     size = "small",
-    data = ["package.json", ":typecheck"] + [":" + name for name in MATCHING_FIXTURES],
+    data = ["package.json", ":test_typecheck"] + [":" + name for name in MATCHING_FIXTURES],
     entry_point = "matching-config.test.js",
 )
 
@@ -244,7 +270,7 @@ js_test(
     name = "capture_browser_test",
     copy_data_to_bin = False,
     size = "large",
-    data = ["package.json", ":typecheck"],
+    data = ["package.json", ":test_typecheck"],
     entry_point = "capture-browser.test.js",
     env_inherit = ["PLAYWRIGHT_BROWSERS_PATH", "CAPTURE_CHROMIUM_EXECUTABLE"],
     tags = ["manual", "no-sandbox", "no-remote", "no-cache"],
@@ -254,7 +280,7 @@ js_test(
 js_test(
     name = "host_browser_test",
     size = "small",
-    data = ["package.json", ":typecheck"],
+    data = ["package.json", ":test_typecheck"],
     entry_point = "host-browser.test.js",
 )
 
@@ -263,7 +289,7 @@ js_test(
     size = "small",
     data = [
         "package.json",
-        ":typecheck",
+        ":test_typecheck",
     ],
     entry_point = "versions.test.js",
 )
@@ -271,7 +297,7 @@ js_test(
 js_test(
     name = "host_browser_check_test",
     size = "small",
-    data = ["package.json", ":typecheck"],
+    data = ["package.json", ":test_typecheck"],
     entry_point = "host-browser-check.test.js",
 )
 
@@ -279,28 +305,28 @@ js_test(
     name = "remote_job_test",
     size = "small",
     timeout = "short",
-    data = ["package.json", ":typecheck"],
+    data = ["package.json", ":test_typecheck"],
     entry_point = "remote-job.test.js",
 )
 
 js_test(
     name = "output_test",
     size = "small",
-    data = ["package.json", ":typecheck"],
+    data = ["package.json", ":test_typecheck"],
     entry_point = "output.test.js",
 )
 
 js_test(
     name = "runner_cleanup_test",
     size = "small",
-    data = ["package.json", ":typecheck"],
+    data = ["package.json", ":test_typecheck"],
     entry_point = "runner-cleanup.test.js",
 )
 
 js_test(
     name = "child_process_test",
     size = "small",
-    data = ["package.json", ":typecheck"],
+    data = ["package.json", ":test_typecheck"],
     entry_point = "child-process.test.js",
 )
 

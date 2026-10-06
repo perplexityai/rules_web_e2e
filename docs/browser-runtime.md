@@ -101,8 +101,7 @@ visual_test(
 with Bazel's downloader using pinned checksum. Paths above describe
 prototype's layout; select paths matching caller's runtime.
 
-Archive extraction uses Bazel-provided Python interpreter and makes no network
-requests. Absolute archive symlinks resolved within archive root, then links
+Generated archives use a declared TypeScript build tool. No network requests. Absolute archive symlinks resolved within archive root, then links
  materialized into regular files and directories for output tree. Missing
 link targets errors, so runtime packaging cannot silently borrow host files.
 Font configuration must use paths relative to its configuration file, rather

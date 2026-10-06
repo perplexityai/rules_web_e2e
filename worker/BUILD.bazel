@@ -33,13 +33,14 @@ js_test(
     name = "supervisor_test",
     size = "small",
     entry_point = "supervisor_test.js",
-    data = [":typecheck", "package.json"],
+    data = [":test_typecheck", "package.json"],
     target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
 )
 
 
 js_library(
     name = "supervisor_config_test_files",
+    testonly = True,
     srcs = ["supervisor_config_test.js"],
     deps = [":supervisor"],
     visibility = ["//visibility:public"],
@@ -47,7 +48,8 @@ js_library(
 
 js_library(
     name = "inputs_test_files",
+    testonly = True,
     srcs = ["inputs_test.js"],
-    deps = [":typecheck"],
+    deps = [":test_typecheck"],
     visibility = ["//visibility:public"],
 )
