@@ -381,3 +381,42 @@ test('local execution enables Chromium sandbox while preserving caller launch tu
     fs.rmSync(temp, {recursive: true, force: true})
   }
 })
+
+test('config-only suites resolve the application URL in Playwright and reject incompatible origins', async () => {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const {tmpdir} = await import('node:os')
+  const temp = fs.mkdtempSync(path.join(tmpdir(), 'config-only-'))
+  const previous = {...process.env}
+  try {
+    fs.writeFileSync(path.join(temp, 'package.json'), '{"type":"module"}')
+    Object.assign(process.env, {
+      VRT_MODE: 'e2e', VRT_ISOLATED: '1', VRT_OUTPUTS: temp,
+      VRT_TEST_ROOT: temp, VRT_TEST_FILES: JSON.stringify([path.join(temp, 'app.spec.js')]),
+      VRT_CHROMIUM_EXECUTABLE: '/declared/chromium',
+    })
+    delete process.env.VRT_MATCHING
+    const cases = [
+      {use: {baseURL: 'http://127.0.0.1:1234/app/'}, projects: [{name: 'nested', use: {baseURL: 'http://127.0.0.1:1234/other/'}}]},
+      {},
+      {use: {baseURL: 'http://user:secret@127.0.0.1:1234/'}},
+      {use: {baseURL: 'http://127.0.0.1:1234/'}, projects: [{use: {baseURL: 'http://127.0.0.1:5678/'}}]},
+    ]
+    for (const [index, custom] of cases.entries()) {
+      delete process.env.VRT_APP_URL
+      process.env.VRT_CONFIG_OVERRIDE = path.join(temp, `config-${index}.js`)
+      fs.writeFileSync(process.env.VRT_CONFIG_OVERRIDE, `export default ${JSON.stringify(custom)}`)
+      const loaded = import(new URL(`./suite-config.js?config-only-${index}`, import.meta.url).href)
+      if (index) await assert.rejects(loaded, [/must set use.baseURL/, /without credentials/, /different origins/][index - 1])
+      else {
+        const {default: config} = await loaded
+        assert.equal(config.use.baseURL, 'http://127.0.0.1:1234/app/')
+        assert.equal(config.projects[0].use.baseURL, 'http://127.0.0.1:1234/other/')
+      }
+    }
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key]
+    Object.assign(process.env, previous)
+    fs.rmSync(temp, {recursive: true, force: true})
+  }
+})

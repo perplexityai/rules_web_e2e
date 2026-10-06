@@ -33,6 +33,7 @@ web_e2e_test(
 For existing Playwright setup, pass `config = ":compiled_config"` instead of
 `server`. Set `use.baseURL` and optional `webServer` in that config; Playwright
 starts and stops declared server. Declare its executable and assets as data.
+The Playwright config load resolves the URL; no separate config-reader process.
 Built `shell` or existing URL also supported. See
 [setup guide](getting-started.md) and [all attributes](api.md).
 Runner selects emitted `*.spec.js`, excluding component/visual specs.

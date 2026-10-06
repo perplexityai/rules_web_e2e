@@ -41,7 +41,6 @@ js_library(
         "baselines.js",
         "browser-runtime.js",
         "child-process.js",
-        "config-url.js",
         "isolation.js",
         "host-browser.js",
         "network.js",
