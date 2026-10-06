@@ -15,7 +15,7 @@ def local_browser_launch(ctx, root, descriptor, runfiles, job):
     nsswitch = ctx.actions.declare_file(ctx.label.name + ".nsswitch.conf")
     ctx.actions.write(hosts, "127.0.0.1 localhost bazel-browser\n::1 localhost bazel-browser\n")
     ctx.actions.write(nsswitch, "hosts: files\n")
-    inputs = runfiles.merge(ctx.runfiles(files = [hosts, nsswitch])).merge(bash).merge(ctx.runfiles(files = [job, library, ctx.file._local_tools, ctx.file._runfiles_tools]))
+    inputs = runfiles.merge(ctx.runfiles(files = [hosts, nsswitch])).merge(bash).merge(ctx.runfiles(files = [job, library, ctx.file.local_tools, ctx.file._runfiles_tools]))
     mounts = {}
     for file in inputs.files.to_list():
         source = to_rlocation_path(ctx, file)
@@ -39,7 +39,7 @@ def local_browser_launch(ctx, root, descriptor, runfiles, job):
             "%{library_runfile}": to_rlocation_path(ctx, library),
             "%{lookup_execpath}": ctx.file._runfiles_tools.path,
             "%{lookup_runfile}": to_rlocation_path(ctx, ctx.file._runfiles_tools),
-            "%{bwrap}": to_rlocation_path(ctx, ctx.file._local_tools),
+            "%{bwrap}": to_rlocation_path(ctx, ctx.file.local_tools),
             "%{root}": to_rlocation_path(ctx, root),
             "%{mounts}": to_rlocation_path(ctx, manifest),
             "%{bootstrap}": to_rlocation_path(ctx, ctx.file._bootstrap),

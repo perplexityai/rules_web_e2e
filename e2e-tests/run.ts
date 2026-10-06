@@ -6,6 +6,16 @@ import {consumerTest, copyConsumer, repository, run, text} from './harness.ts'
 const mode = process.argv[2] || 'host'
 if (mode === 'host') {
   consumerTest((_work, consumer, command) => {
+    for (const [target, needsNamespace] of [
+      ['actiond_gallery_test', false],
+      ['actiond_gallery_test_capture_launcher', false],
+      ['local_cached_test', true],
+    ] as const) {
+      const dependencies = run([...command, 'query', `deps(//:${target}, 1)`, '--output=label'],
+        {cwd: consumer, stdio: 'pipe'})
+      assert.equal(/\/internal\/local:tools(?:_arm64)?\b/.test(dependencies), needsNamespace,
+        `${target}: namespace tools must only be dependencies of local execution`)
+    }
     run([...command, 'test', '//:host_package_test', '//:host_component_test', '//:host_native_config_test',
       '--nocache_test_results', '--test_output=errors'], {cwd: consumer})
     const failure = run([...command, 'test', '//:host_missing_package_test',

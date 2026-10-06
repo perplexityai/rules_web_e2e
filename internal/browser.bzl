@@ -3,7 +3,7 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("@bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory_bin_action")
 load("@bazel_lib//lib:paths.bzl", "to_repository_relative_path", "to_rlocation_path")
-load("//playwright:assembly.bzl", "BROWSER_ASSEMBLY_TOOLCHAINS", "browser_directory")
+load("//playwright:assembly.bzl", "browser_directory")
 load("//playwright:defs.bzl", "BrowserRuntimeInfo", "PlaywrightInfo")
 load(":matching.bzl", "matching_config")
 load(":remote.bzl", "remote_browser_test")
@@ -118,7 +118,7 @@ def _inputs_impl(ctx):
 
 _inputs = rule(
     implementation = _inputs_impl,
-    toolchains = BROWSER_ASSEMBLY_TOOLCHAINS + ["@bazel_lib//lib:copy_to_directory_toolchain_type"],
+    toolchains = ["@bazel_lib//lib:copy_to_directory_toolchain_type"],
     attrs = {
         "tests": attr.label(),
         "capture_manifest": attr.label(allow_single_file = [".json"]),
@@ -131,7 +131,6 @@ _inputs = rule(
         "sources": attr.label(),
         "mode": attr.string(),
         "runtime_only": attr.bool(default = True),
-        "_copy_layout": attr.label(default = Label("//playwright:copy_layout.sh"), allow_single_file = True),
         "_browser_files": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
         "_capture_template": attr.label(default = Label("//runtime:capture_template"), allow_single_file = True),
         "_harness_templates": attr.label(default = Label("//runtime:harness_templates")),

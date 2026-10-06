@@ -25,7 +25,7 @@ browser_runtime_archive(
     files = {"package.json": "extra.json"},
 )
 
-exports_files(["defs.bzl", "archive.bzl", "copy_layout.sh"])
+exports_files(["defs.bzl", "archive.bzl"])
 
 tool_sources(deps = ["//tools:typecheck", "//runtime:versions", "//:node_modules/tar"])
 
@@ -52,7 +52,7 @@ tool_sources(deps = ["//tools:typecheck", "//runtime:versions", "//:node_modules
     )
     for name, test_data in [
         ("unpack_runtime", [":bsd_tar", ":assembled_fixture"]),
-        ("browser_files", [":coreutils", "copy_layout.sh"]),
+        ("browser_files", []),
         ("validate_packages", []),
     ]
 ]
