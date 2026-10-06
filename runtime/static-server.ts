@@ -1,21 +1,10 @@
 import fs from 'node:fs/promises'
+import {createReadStream} from 'node:fs'
+import {pipeline} from 'node:stream/promises'
+import {lookup} from 'mrmime'
 import path from 'node:path'
 import {createServer} from 'node:http'
 import type {RunningServer} from './server-types.js'
-
-const contentTypes: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ico': 'image/x-icon',
-  '.wasm': 'application/wasm',
-}
 
 /** Serve only a built asset directory; never resolve source imports or compile code. */
 export async function serveDirectory(
@@ -54,17 +43,17 @@ export async function serveDirectory(
         const file = await resolve(relative)
         if (!(await fs.stat(file)).isFile())
           throw new Error('Not a file')
+        const type = lookup(file) || 'application/octet-stream'
         response.writeHead(200, {
-          'content-type':
-            contentTypes[path.extname(file)] || 'application/octet-stream',
+          'content-type': type.startsWith('text/') ? `${type}; charset=utf-8` : type,
           'cache-control': 'no-store',
           'x-content-type-options': 'nosniff',
         })
-        response.end(
-          request.method === 'HEAD' ? undefined : await fs.readFile(file)
-        )
+        if (request.method === 'HEAD') response.end()
+        else await pipeline(createReadStream(file), response)
       } catch {
-        response.writeHead(404).end('Not found')
+        if (response.headersSent) response.destroy()
+        else response.writeHead(404).end('Not found')
       }
     })().catch(() => response.destroy())
   })

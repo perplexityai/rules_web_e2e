@@ -21,5 +21,8 @@
     "typescript": "7.0.2",
     "vite": "8.2.2"
   },
-  "packageManager": "pnpm@12.3.4"
+  "packageManager": "pnpm@12.3.4",
+  "dependencies": {
+    "mrmime": "2.0.1"
+  }
 }

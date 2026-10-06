@@ -16,6 +16,7 @@ test('serves a built shell and assets without exposing adjacent files or symlink
     path.join(root, 'gallery.html'),
     '<main>Built shell</main>'
   )
+  await fs.writeFile(path.join(root, 'space %20.avif'), 'image')
   await fs.writeFile(path.join(root, 'app.js'), 'export const ready = true')
   await fs.writeFile(path.join(temp, 'secret'), 'outside')
   await fs.symlink(path.join(temp, 'secret'), path.join(root, 'link'))
@@ -28,6 +29,11 @@ test('serves a built shell and assets without exposing adjacent files or symlink
   const script = await fetch(new URL('app.js', server.url))
   assert.match(script.headers.get('content-type')!, /javascript/)
   assert.equal(await script.text(), 'export const ready = true')
+  assert.equal(script.headers.get('cache-control'), 'no-store')
+  assert.equal(script.headers.get('x-content-type-options'), 'nosniff')
+  const image = await fetch(new URL('space%20%2520.avif?version=1', server.url))
+  assert.equal(image.headers.get('content-type'), 'image/avif')
+  assert.equal(await image.text(), 'image')
   for (const url of ['link', '%2e%2e%2fsecret', 'missing.ts', 'app.js.map'])
     assert.equal((await fetch(new URL(url, server.url))).status, 404, url)
   assert.equal((await fetch(server.url, {method: 'POST'})).status, 405)
