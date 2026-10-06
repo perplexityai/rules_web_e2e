@@ -1,15 +1,33 @@
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
+load("@tar.bzl//tar:tar.bzl", "tar")
 load("//tools:typescript.bzl", "tool_sources")
+load(":archive.bzl", "browser_runtime_archive")
 load(":layout_test.bzl", "layout_tests")
-load(":test_tools.bzl", "coreutils")
+load(":test_tools.bzl", "bsd_tar", "coreutils")
 
 layout_tests(name = "layout_tests")
 
 coreutils(name = "coreutils", testonly = True)
+bsd_tar(name = "bsd_tar", testonly = True)
+
+tar(
+    name = "archive_fixture",
+    testonly = True,
+    srcs = ["package.json"],
+    compress = "xz",
+)
+
+browser_runtime_archive(
+    name = "assembled_fixture",
+    testonly = True,
+    archive = ":archive_fixture",
+    paths = {"playwright/package.json": "metadata.json"},
+    files = {"package.json": "extra.json"},
+)
 
 exports_files(["defs.bzl", "archive.bzl", "copy_layout.sh"])
 
-tool_sources(deps = ["//tools:typecheck", "//runtime:versions", "//:node_modules/tar", "//:node_modules/seek-bzip"])
+tool_sources(deps = ["//tools:typecheck", "//runtime:versions", "//:node_modules/tar"])
 
 [
     js_binary(
@@ -28,11 +46,15 @@ tool_sources(deps = ["//tools:typecheck", "//runtime:versions", "//:node_modules
         name = name + "_test",
         size = "small",
         entry_point = name + "_test.js",
-        data = [":test_typecheck", "package.json"] + ([":coreutils", "copy_layout.sh"] if name == "browser_files" else []),
-        args = ["$(rootpath :coreutils)", "$(rootpath copy_layout.sh)"] if name == "browser_files" else [],
-        no_copy_to_bin = [":coreutils"] if name == "browser_files" else [],
+        data = [":test_typecheck", "package.json"] + test_data,
+        args = ["$(rootpath %s)" % label for label in test_data],
+        no_copy_to_bin = [label for label in test_data if label.startswith(":")],
     )
-    for name in ["unpack_runtime", "browser_files", "validate_packages"]
+    for name, test_data in [
+        ("unpack_runtime", [":bsd_tar", ":assembled_fixture"]),
+        ("browser_files", [":coreutils", "copy_layout.sh"]),
+        ("validate_packages", []),
+    ]
 ]
 
 js_library(

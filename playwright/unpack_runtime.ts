@@ -2,8 +2,6 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import * as tar from 'tar'
-import {createRequire} from 'node:module'
-const bzip = createRequire(import.meta.url)('seek-bzip') as {decode(input: Buffer): Buffer}
 import {copyFile, inside, main, readJson, relative} from '../tools/files.js'
 
 function materialize(root: string, source: string, target: string, parents = new Set<string>()) {
@@ -37,14 +35,7 @@ export function assemble({archives, paths = {}, files = {}, exclude = []}: Archi
   fs.mkdirSync(root)
   try {
     for (const archive of archives) {
-      let file = archive
-      const fd = fs.openSync(archive, 'r'), header = Buffer.alloc(3)
-      try { fs.readSync(fd, header, 0, 3, 0) } finally { fs.closeSync(fd) }
-      if (header.toString() === 'BZh') {
-        file = path.join(temporary, 'decoded.tar')
-        fs.writeFileSync(file, bzip.decode(fs.readFileSync(archive)))
-      }
-      tar.x({file, cwd: root, sync: true, strict: true,
+      tar.x({file: archive, cwd: root, sync: true, strict: true,
       filter: (name, entry) => {
         if (!(entry instanceof tar.ReadEntry)) throw new Error("Expected archive entry")
         if (name.startsWith('/') || name.split('/').includes('..'))

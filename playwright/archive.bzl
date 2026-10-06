@@ -6,24 +6,22 @@ def _archive_impl(ctx):
     archives = ([ctx.file.archive] if ctx.file.archive else []) + ctx.files.archives
     if not archives:
         fail("Supply archive or archives")
-    # node-tar handles tar/gzip. Use the existing declared decompressor for
-    # the XZ payloads also accepted by runtime archives.
+    # Libarchive detects compression from the bytes. Preserve entry paths and
+    # links so the assembler can validate them before touching the filesystem.
+    toolchain = ctx.toolchains["@tar.bzl//tar/toolchain:type"]
     normalized = []
     for index, archive in enumerate(archives):
-        if archive.extension in ["xz", "zst"]:
-            unpacked = ctx.actions.declare_file(ctx.label.name + ".archive-%d.tar" % index)
-            toolchain = ctx.toolchains["@bazel_lib//lib:zstd_toolchain_type"]
-            ctx.actions.run(
-                executable = toolchain.zstdinfo.binary,
-                arguments = ["--decompress", "--force", archive.path, "-o", unpacked.path],
-                inputs = [archive],
-                tools = toolchain.default.files,
-                outputs = [unpacked],
-                mnemonic = "BrowserArchiveTar",
-            )
-            normalized.append(unpacked)
-        else:
-            normalized.append(archive)
+        unpacked = ctx.actions.declare_file(ctx.label.name + ".archive-%d.tar" % index)
+        ctx.actions.run(
+            executable = toolchain.tarinfo.binary,
+            arguments = ["-c", "-f", unpacked.path, "--format=pax", "-P", "@" + archive.path],
+            env = toolchain.tarinfo.default_env,
+            inputs = [archive],
+            tools = toolchain.default.files,
+            outputs = [unpacked],
+            mnemonic = "BrowserArchiveTar",
+        )
+        normalized.append(unpacked)
     archives = normalized
     root = ctx.actions.declare_directory(ctx.label.name)
     extracted = ctx.actions.declare_directory(ctx.label.name + ".archive") if ctx.attr.files else root
@@ -57,7 +55,7 @@ def _archive_impl(ctx):
 
 browser_runtime_archive = rule(
     implementation = _archive_impl,
-    toolchains = ["@bazel_lib//lib:zstd_toolchain_type", "@bazel_lib//lib:coreutils_toolchain_type"],
+    toolchains = ["@tar.bzl//tar/toolchain:type", "@bazel_lib//lib:coreutils_toolchain_type"],
     doc = "Assemble filesystem tar archives and declared files into a closed directory for browser_runtime(root=...).",
     attrs = {
         "archive": attr.label(allow_single_file = True, doc = "A single filesystem tar; may be combined with archives."),

@@ -101,8 +101,10 @@ visual_test(
 with Bazel's downloader using pinned checksum. Paths above describe
 prototype's layout; select paths matching caller's runtime.
 
-Generated archives use a declared TypeScript build tool. No network requests. Absolute archive symlinks resolved within archive root, then links
- materialized into regular files and directories for output tree. Missing
+Generated archives use Bazel’s BSD tar toolchain for compression, then a TS
+validator for paths and links. Compression detected from bytes, not filename.
+No network requests. Absolute archive symlinks resolved within archive root, then links
+materialized into regular files and directories for output tree. Missing
 link targets errors, so runtime packaging cannot silently borrow host files.
 Font configuration must use paths relative to its configuration file, rather
 than absolute system or build-machine paths.
