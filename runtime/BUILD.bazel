@@ -41,6 +41,7 @@ ts_project(
         "//:node_modules/@playwright/test",
         "//:node_modules/@types/node",
         "//:node_modules/playwright",
+        "//:node_modules/mrmime",
     ],
 )
 
@@ -62,6 +63,7 @@ ts_project(
 
 js_library(
     name = "files",
+    deps = ["//:node_modules/mrmime"],
     srcs = [
         "arguments.js",
         "baselines.js",
@@ -131,7 +133,13 @@ js_test(
 
 npm_package(
     name = "package",
+    # Bundle the dependency: npm_package_store links assume one repository.
+    include_srcs_packages = ["**"],
+    exclude_srcs_patterns = [],
+    root_paths = [".", "**/node_modules"],
+    replace_prefixes = {"mrmime": "node_modules/mrmime"},
     srcs = [
+        "//:node_modules/mrmime/dir",
         "config.d.ts",
         "config.js",
         "matching.d.ts",
