@@ -11,12 +11,13 @@ consumerTest((work, consumer, command) => {
   fs.writeFileSync(path.join(browserFiles, 'cache-input.txt'), 'browser revision 1')
   fs.writeFileSync(path.join(consumer, 'cache-app.html'), '<div id="result"></div><script>fetch("/api").then(r => r.json()).then(x => document.querySelector("#result").textContent = x.message)</script>')
   fs.writeFileSync(path.join(consumer, 'cache-mock.json'), '{"message":"first"}')
+  fs.writeFileSync(path.join(consumer, 'cache-debug.map'), '{"version":3,"sources":[],"mappings":""}')
   fs.appendFileSync(path.join(consumer, 'BUILD.bazel'), `
 js_library(name = "cache_config", srcs = ["cache.config.js"], deps = [":typecheck_project"], data = ["package.json"])
 filegroup(name = "cache_browsers", srcs = glob(["cache-browsers/**"]))
 genrule(name = "cache_component_spec", srcs = ["cache.spec.js"], outs = ["cache.browser.spec.js"], cmd = "cp $(SRCS) $(OUTS)")
-js_library(name = "cache_specs", srcs = ["cache.spec.js"], deps = [":typecheck_project"])
-js_library(name = "cache_component_specs", srcs = [":cache_component_spec"], deps = [":typecheck_project"])
+js_library(name = "cache_specs", srcs = ["cache.spec.js"], deps = [":typecheck_project"], data = ["cache-debug.map"])
+js_library(name = "cache_component_specs", srcs = [":cache_component_spec"], deps = [":typecheck_project"], data = ["cache-debug.map"])
 `)
   for (const [name, macro, specs, policy] of [
     ['cached_e2e', 'web_e2e_test', 'cache_specs', 'True'],
@@ -27,6 +28,7 @@ js_library(name = "cache_component_specs", srcs = [":cache_component_spec"], dep
 ${macro}(
     name = "${name}", tests = ":${specs}", config = ":cache_config",
     playwright = ":playwright",
+    runtime_only = True,
     data = [":cache_browsers", "cache-app.html", "cache-mock.json"],
     env = {
         "PLAYWRIGHT_BROWSERS_PATH": ${JSON.stringify(browserFiles)},
@@ -74,6 +76,13 @@ ${macro}(name = "rejected", tests = ":cache_specs", config = ":cache_config", ca
       fs.writeFileSync(build, original)
     }
   }
+  check(false)
+  check(true)
+  fs.appendFileSync(path.join(consumer, 'cache.spec.ts'), '\nexport type CacheMetadata = {label?: string}\n')
+  check(true)
+  fs.writeFileSync(path.join(consumer, 'cache-debug.map'), '{"version":3,"sources":["cache.spec.ts"],"mappings":""}')
+  check(true)
+  fs.appendFileSync(path.join(consumer, 'cache.spec.ts'), '\nexport const runtimeRevision: number = 1\n')
   check(false)
   check(true)
   fs.appendFileSync(path.join(consumer, 'cache-app.html'), '<!-- app changed -->')

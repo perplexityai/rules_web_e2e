@@ -42,6 +42,14 @@ bazel_dep(name = "rules_license", version = "1.0.0")
 bazel_dep(name = "zip", version = "3.0")
 bazel_dep(name = "rules_cc", version = "0.2.22")
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
+
+runtime_input_files = use_repo_rule("//tests:runtime_inputs_repo.bzl", "runtime_inputs_repo")
+
+runtime_input_files(
+    name = "runtime_input_files",
+    dev_dependency = True,
+)
+
 bazel_dep(name = "ncurses", version = "6.4.20221231.bcr.4")
 
 test_tool_sources = use_extension("//internal/test_tools:repositories.bzl", "sources")
@@ -52,5 +60,6 @@ workers = use_extension("//worker:repositories.bzl", "workers")
 use_repo(workers, "actiond_linux_amd64", "web_e2e_worker_identity")
 
 bazel_dep(name = "bubblewrap", version = "0.13.0.bcr.1")
+
 # libcap's sed generator needs the upstream header-layout fix with Bazel 8.
 bazel_dep(name = "sed", version = "4.9.bcr.5")

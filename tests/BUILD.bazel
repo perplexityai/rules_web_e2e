@@ -1,8 +1,12 @@
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load(":cacheable_test.bzl", "cacheable_tests")
+load(":runtime_inputs_test.bzl", "runtime_inputs_tests")
 load(":shell_test.bzl", "shell_tests")
 
 cacheable_tests()
+
+runtime_inputs_tests()
+
 shell_tests()
 
 exports_files(["module_smoke_test.sh"])

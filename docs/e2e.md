@@ -173,6 +173,39 @@ Host execution stays manual, unsandboxed, and network-enabled. After host OS/lib
 changes, force execution with `--cache_test_results=no`. Caller `no-cache` or
 `external` tags still disable reuse.
 
+## Runtime-only inputs
+
+Set `runtime_only = True` to keep source/type/debug files out of compiled
+`tests`, `config`, `server`, and `matching` runfiles. Defaults are unchanged.
+The option applies to the shared browser rules, independently of `cacheable`.
+
+```starlark
+web_e2e_test(
+    name = "e2e_test",
+    tests = ":compiled_specs",
+    config = ":compiled_config",
+    runtime_only = True,
+)
+```
+
+This excludes individual `.ts`, `.tsx`, `.mts`, `.cts`, `.map`, and
+`.tsbuildinfo` files owned by the test target's repository, including TypeScript
+declarations. Emitted JavaScript, runtime assets, and their runfile aliases
+remain. Other repositories' files and directory artifacts remain intact;
+filtering a built directory requires a separate build action. Browser/runtime
+packages, explicit `data`, and snapshot inputs are not filtered. Declare a
+source file or map in `data` if the test intentionally reads it.
+
+When result caching is enabled, erased type edits or source-map changes can
+reuse passing browser results if all runtime inputs remain identical. Upstream
+build actions may still run. Changes that affect emitted JavaScript must
+invalidate results. Keep separate typecheck targets enabled; runtime filtering
+does not validate types. Excluding maps can also remove mapped stack traces for
+those modules, so keep the default when source-level debugging is required.
+
+This option does not enable caching, make a live service deterministic, or
+change execution/network policy. See the caching contract above.
+
 ## Existing application URLs
 
 Choose exactly one endpoint source: `server`, `shell`,

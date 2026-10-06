@@ -47,6 +47,11 @@ VM suite also freezes runner after real screenshot and verifies parent deadline,
 
 Host CI also runs `temp-paths.ts` with deep and symlinked temp roots, checking real Chromium screenshots and scratch cleanup.
 
+`cacheable.ts` checks host E2E/component result reuse with runtime-only inputs:
+erased type edits and map-only edits retain cache hits, while emitted JavaScript,
+app, mock, and browser input changes rerun tests. Default uncached targets still
+execute on every invocation.
+
 VM gallery also captures and compares real pointer-hover state, asserting CSS `:hover` inside `beforeCapture`.
 
 Linux amd64 VM suite also records page interaction using caller-pinned
