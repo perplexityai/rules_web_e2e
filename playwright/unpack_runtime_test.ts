@@ -5,7 +5,18 @@ import path from 'node:path'
 import {test, type TestContext} from 'node:test'
 import {gzipSync} from 'node:zlib'
 import {Header} from 'tar'
-import {assemble} from './unpack_runtime.js'
+import {execFileSync} from 'node:child_process'
+import {assemble as unpack, type ArchiveManifest} from './unpack_runtime.js'
+
+// Exercise validation after native normalization, including hostile headers.
+function assemble(manifest: ArchiveManifest, output: string) {
+  const archives = manifest.archives.map(archive => {
+    const normalized = archive + '.normalized.tar'
+    execFileSync(path.resolve(process.argv[2]), ['-c', '-f', normalized, '--format=pax', '-P', '@' + archive])
+    return normalized
+  })
+  unpack({...manifest, archives}, output)
+}
 
 function temp(t: TestContext) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'unpack-test-'))
@@ -95,4 +106,22 @@ test('bzip2 archives retain the same extraction checks', t => {
   fs.writeFileSync(source, Buffer.from('QlpoOTFBWSZTWenZGb4AAHh7gsEQACRAAH+AAAhmRJ8AQAAACCAAdQ1PUm0TTTRpoB6nqCSp5NQ0AAAefczd0IKYASMYMMneRdQkgabD9M2ZAtJOeCRbF+Bcg2olBIxvaU0iJwgFN/B2OW9CgKzfQWpIPxdyRThQkOnZGb4=', 'base64'))
   assemble({archives: [source]}, output)
   assert.equal(fs.readFileSync(path.join(output, 'hello'), 'utf8'), 'hello\n')
+})
+
+test('native compression is detected without a filename suffix', t => {
+  const root = temp(t)
+  const source = archive(root, [['hello', 'hello', 'file']])
+  for (const compression of ['--bzip2', '--xz', '--zstd']) {
+    const compressed = path.join(root, compression)
+    execFileSync(path.resolve(process.argv[2]), ['-c', '-f', compressed, compression, '@' + source])
+    const output = path.join(root, compression + '-output')
+    assemble({archives: [compressed]}, output)
+    assert.equal(fs.readFileSync(path.join(output, 'hello'), 'utf8'), 'hello')
+  }
+})
+
+test('Bazel assembles a generated compressed archive and declared files', () => {
+  const output = path.resolve(process.argv[3])
+  assert.equal(JSON.parse(fs.readFileSync(path.join(output, 'metadata.json'), 'utf8')).type, 'module')
+  assert.equal(fs.readFileSync(path.join(output, 'extra.json'), 'utf8'), fs.readFileSync(path.join(output, 'metadata.json'), 'utf8'))
 })
