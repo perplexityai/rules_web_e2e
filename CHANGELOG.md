@@ -26,6 +26,46 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.8.0 (2026-10-06)
+
+## What's Changed
+* fix(vrt): guard baseline edits and concurrent updates by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/72
+* fix(runtime): harden browser output and cleanup boundaries by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/74
+* feat(e2e): support caller-owned browser processes by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/75
+* feat: allow opt-in local caching for host browser tests by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/77
+* feat(e2e): add generic snapshot export and update targets by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/76
+* refactor: build suite harnesses as declared Bazel outputs by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/78
+* refactor: prepare Playwright video helpers in Bazel actions by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/79
+* fix: run amd64 visual comparisons as native Bazel tests by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/80
+* docs: use caveman prose across guides and readmes by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/81
+* refactor: use Bazel runfiles for capture actions by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/83
+* refactor: run ARM64 visual comparisons as native Bazel tests by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/84
+* refactor: compare snapshots directly from Bazel runfiles by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/86
+* refactor: use bazel-lib for harness assembly and runfiles paths by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/87
+* refactor: validate declared Playwright packages during build by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/88
+* refactor: replace Python tools with TypeScript by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/89
+* refactor: move runtime assembly into Bazel tool actions by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/90
+* refactor: assemble browser presets with native Bazel inputs by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/91
+* feat: support local Linux browser tests with declared runtimes by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/92
+* fix: honor Bazel test selection and JUnit outputs by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/93
+* refactor: run native browser tests in the launcher process by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/94
+* refactor: use Bazel source writers for VRT updates by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/95
+* refactor: make declared Playwright packages authoritative by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/96
+* feat: accept declared gallery capture manifests by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/97
+* refactor: let Bazel own browser test deadlines by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/98
+* refactor: merge snapshots with Bazel directory actions by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/99
+* refactor: load config-only URLs inside Playwright by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/101
+* refactor: capture screenshots directly into Bazel outputs by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/102
+* build: keep tests out of production TypeScript targets by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/104
+* refactor: use the BSD tar toolchain for archive compression by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/105
+* refactor: generate suite environment mappings in Bazel by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/106
+* refactor: reuse MIME data and native streams for built assets by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/107
+* feat: use runtime-only browser inputs by default by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/109
+* fix: assemble read-only browser runtimes without unused namespace tools by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/110
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.7.0...v3.8.0
+
 ## 3.7.0 (2026-10-01)
 
 ## What's Changed
