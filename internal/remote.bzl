@@ -109,7 +109,7 @@ def _remote_impl(ctx):
         "args": [] if native_test else [ctx.expand_location(value, targets = locations) for value in ctx.attr.args],
         "output": "",
         "mode": ctx.attr.mode,
-        # Make the local environment identity an input to every cache layer.
+        # Include caller execution properties in each cache layer.
         "execution_properties": ctx.attr.exec_properties if ctx.attr.execution == "local" else {},
     }))
     descriptor = browser.descriptor

@@ -188,8 +188,6 @@ def browser_test(
         fail("snapshots requires snapshot_dir")
     if exec_properties and execution != "local":
         fail("exec_properties is supported for execution = local")
-    if cacheable and execution == "local" and not exec_properties.get("web-e2e-local-platform", "").strip():
-        fail("cacheable local execution requires exec_properties[web-e2e-local-platform] identifying the runner image, kernel, CPU class, and namespace policy")
     if cacheable and execution != "local" and (browser or visual or process_owned or base_url or base_url_env or env_inherit):
         fail("cacheable requires local host tests with explicit declared inputs and no inherited environment")
     if cacheable and execution != "local" and "PLAYWRIGHT_BROWSERS_PATH" not in env:

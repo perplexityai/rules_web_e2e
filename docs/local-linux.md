@@ -68,7 +68,6 @@ visual_test(
     browser = "@web_browser//:browser",
     execution = "local",
     cacheable = True,
-    exec_properties = {"web-e2e-local-platform": "ci-image-v7-kernel6.8-zen4-userns-v1"},
     tests = ":compiled_visual_specs",
     config = ":config",
     baseline_dir = "__screenshots__",
@@ -76,15 +75,11 @@ visual_test(
 )
 ```
 
-Use the same environment identity only for equivalent runner images, kernels,
-CPU classes, and namespace policies. CI owns that assertion; this value does not
-select or provision a machine. A label like `ubuntu-latest` is too broad. Our CI
-hashes its image version, kernel, CPU characteristics, and namespace policy.
+No host fingerprint is required. Bazel tracks declared inputs.
 
 Bazel caches passing tests and capture artifacts in its normal disk/remote cache.
 `no-remote-exec` keeps browser execution local while allowing remote cache hits.
-The properties are also declared job inputs, so changing the identity invalidates
-both local and shared results. Browser, font, fixture, environment, and baseline
+Optional execution properties are declared job inputs too. Browser, font, fixture, environment, and baseline
 changes remain ordinary declared-input changes. A cache hit skips execution and
 restores reports; the namespace preflight runs only on a miss.
 

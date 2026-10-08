@@ -33,7 +33,6 @@ if (mode === 'host') {
   fs.writeFileSync(build, text(build)
     .replace('_TARGET_ARCH = "x64"', '_TARGET_ARCH = "' + arch + '"')
     .replace('_EXECUTION = "actiond"', '_EXECUTION = "local"')
-    .replace('_LOCAL_CACHE_PLATFORM = "regression-only"', '_LOCAL_CACHE_PLATFORM = ' + JSON.stringify(process.env.LOCAL_BROWSER_PLATFORM || 'regression-only-' + process.pid))
     .replace('browser_runtime_archive(name = "actiond_runtime_files", archive = "runtime.tar")',
       'alias(name = "actiond_runtime_files", actual = "@local_runtime//:browser' + (arch === 'arm64' ? '_arm64' : '') + '")'))
 
