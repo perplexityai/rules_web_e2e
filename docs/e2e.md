@@ -192,9 +192,14 @@ web_e2e_test(
 This excludes individual `.ts`, `.tsx`, `.mts`, `.cts`, `.map`, and
 `.tsbuildinfo` files owned by the test target's repository, including TypeScript
 declarations. Emitted JavaScript, runtime assets, and their runfile aliases
-remain. Other repositories' files and directory artifacts remain intact;
-filtering a built directory requires a separate build action. Browser/runtime
-packages, explicit `data`, and snapshot inputs are not filtered. Declare a
+remain. Directory artifacts owned by the test's repository are copied without
+`*.map` files, including nested maps, while preserving their runfiles paths and
+aliases. This also applies to built `browser_shell` assets. Other files within
+directories are preserved. A map-only change may rerun the copy action without
+invalidating the browser result when the projected contents are identical.
+Other repositories' files, browser/runtime packages, explicit `data`, and snapshot
+inputs are not filtered. Explicit `data` wins when the same directory also appears
+in compiled inputs. Declare a
 source file or map in `data` if the test intentionally reads it.
 
 When result caching is enabled, erased type edits or source-map changes can

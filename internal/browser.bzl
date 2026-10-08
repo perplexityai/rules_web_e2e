@@ -106,11 +106,27 @@ def _inputs_impl(ctx):
         "browser": ctx.attr.browser[BrowserRuntimeInfo].descriptor if ctx.attr.browser else None,
     }))
     inputs = ctx.runfiles(files = [result, harness] + ([ctx.file.capture_manifest] if ctx.file.capture_manifest else []) + ([browser_cache] if browser_cache else []))
-    compiled_inputs = [ctx.attr.tests, ctx.attr.config, ctx.attr.matching, ctx.attr.server]
-    for target in compiled_inputs + [ctx.attr.shell, ctx.attr.playwright, ctx.attr.browser, ctx.attr.sources]:
+    compiled_inputs = [ctx.attr.tests, ctx.attr.config, ctx.attr.matching, ctx.attr.server, ctx.attr.shell]
+    unfiltered_inputs = [ctx.attr.playwright, ctx.attr.browser, ctx.attr.sources]
+    directories = {}
+
+    # Explicit data and runtime packages win when also present in compiled inputs.
+    for target in unfiltered_inputs:
+        if not target:
+            continue
+        info = target[DefaultInfo]
+        files = info.files.to_list()
+        for runfiles in [info.default_runfiles, info.data_runfiles]:
+            if runfiles:
+                files.extend(runfiles.files.to_list())
+                files.extend([entry.target_file for entry in runfiles.symlinks.to_list() + runfiles.root_symlinks.to_list()])
+        for file in files:
+            if file.is_directory:
+                directories[file] = file
+    for target in compiled_inputs + unfiltered_inputs:
         if target:
             if ctx.attr.runtime_only and target in compiled_inputs:
-                inputs = inputs.merge(compiled_runtime_runfiles(ctx, target))
+                inputs = inputs.merge(compiled_runtime_runfiles(ctx, target, directories))
             else:
                 inputs = inputs.merge(target[DefaultInfo].default_runfiles)
                 inputs = inputs.merge(ctx.runfiles(transitive_files = target[DefaultInfo].files))

@@ -12,12 +12,16 @@ consumerTest((work, consumer, command) => {
   fs.writeFileSync(path.join(consumer, 'cache-app.html'), '<div id="result"></div><script>fetch("/api").then(r => r.json()).then(x => document.querySelector("#result").textContent = x.message)</script>')
   fs.writeFileSync(path.join(consumer, 'cache-mock.json'), '{"message":"first"}')
   fs.writeFileSync(path.join(consumer, 'cache-debug.map'), '{"version":3,"sources":[],"mappings":""}')
+  fs.writeFileSync(path.join(consumer, 'cache-assets.map'), '{"version":3,"sources":[],"mappings":""}')
+  const buildFile = path.join(consumer, 'BUILD.bazel')
+  fs.writeFileSync(buildFile, 'load("@bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")\n' + text(buildFile))
   fs.appendFileSync(path.join(consumer, 'BUILD.bazel'), `
+copy_to_directory(name = "cache_assets", srcs = ["cache-app.html", "cache-assets.map"])
 js_library(name = "cache_config", srcs = ["cache.config.js"], deps = [":typecheck_project"], data = ["package.json"])
 filegroup(name = "cache_browsers", srcs = glob(["cache-browsers/**"]))
 genrule(name = "cache_component_spec", srcs = ["cache.spec.js"], outs = ["cache.browser.spec.js"], cmd = "cp $(SRCS) $(OUTS)")
-js_library(name = "cache_specs", srcs = ["cache.spec.js"], deps = [":typecheck_project"], data = ["cache-debug.map"])
-js_library(name = "cache_component_specs", srcs = [":cache_component_spec"], deps = [":typecheck_project"], data = ["cache-debug.map"])
+js_library(name = "cache_specs", srcs = ["cache.spec.js"], deps = [":typecheck_project"], data = ["cache-debug.map", ":cache_assets"])
+js_library(name = "cache_component_specs", srcs = [":cache_component_spec"], deps = [":typecheck_project"], data = ["cache-debug.map", ":cache_assets"])
 `)
   for (const [name, macro, specs, policy] of [
     ['cached_e2e', 'web_e2e_test', 'cache_specs', 'True'],
@@ -28,10 +32,10 @@ js_library(name = "cache_component_specs", srcs = [":cache_component_spec"], dep
 ${macro}(
     name = "${name}", tests = ":${specs}", config = ":cache_config",
     playwright = ":playwright",
-    data = [":cache_browsers", "cache-app.html", "cache-mock.json"],
+    data = [":cache_browsers", "cache-mock.json"],
     env = {
         "PLAYWRIGHT_BROWSERS_PATH": ${JSON.stringify(browserFiles)},
-        "CACHE_INPUTS": json.encode({"app": "$(rootpath cache-app.html)", "mock": "$(rootpath cache-mock.json)"}),
+        "CACHE_INPUTS": json.encode({"app": "cache_assets/cache-app.html", "mock": "$(rootpath cache-mock.json)"}),
     },
     ${policy ? `cacheable = ${policy},` : ''}
 )
@@ -80,6 +84,8 @@ ${macro}(name = "rejected", tests = ":cache_specs", config = ":cache_config", ca
   fs.appendFileSync(path.join(consumer, 'cache.spec.ts'), '\nexport type CacheMetadata = {label?: string}\n')
   check(true)
   fs.writeFileSync(path.join(consumer, 'cache-debug.map'), '{"version":3,"sources":["cache.spec.ts"],"mappings":""}')
+  check(true)
+  fs.writeFileSync(path.join(consumer, 'cache-assets.map'), '{"version":3,"sources":["cache-app.html"],"mappings":""}')
   check(true)
   fs.appendFileSync(path.join(consumer, 'cache.spec.ts'), '\nexport const runtimeRevision: number = 1\n')
   check(false)
