@@ -26,6 +26,15 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.8.1 (2026-10-08)
+
+## What's Changed
+* fix: scope development-only module dependencies by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/111
+* fix: use Bazel inputs for local result caching by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/113
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.8.0...v3.8.1
+
 ## 3.8.0 (2026-10-06)
 
 ## What's Changed
