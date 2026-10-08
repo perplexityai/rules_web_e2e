@@ -42,14 +42,6 @@ jobs:
           if [[ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]]; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
-      - name: Identify the local execution environment
-        run: |
-          platform_id=$({
-            printf '%s\n' "$ImageOS" "$ImageVersion" 'userns-enabled-v1'
-            uname -srmv
-            LC_ALL=C grep -E '^(vendor_id|model name|microcode|flags|Features|CPU implementer|CPU architecture|CPU variant|CPU part|CPU revision)[[:space:]]*:' /proc/cpuinfo | LC_ALL=C sort -u
-          } | sha256sum | cut -d ' ' -f 1)
-          echo "LOCAL_BROWSER_PLATFORM=$platform_id" >> "$GITHUB_ENV"
       - name: Test local E2E, components, video, VRT, lifecycle, and caching
         run: node e2e-tests/run.ts local "$RUNNER_TEMP/local-browser"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

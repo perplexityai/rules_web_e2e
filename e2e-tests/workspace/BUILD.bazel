@@ -516,15 +516,15 @@ web_e2e_test(
     tests = ":native_specs",
 )
 
-# Cache probes run in disposable consumers and use an environment-specific key.
-_LOCAL_CACHE_PLATFORM = "regression-only"
+# Cache probes start without execution properties.
+_LOCAL_CACHE_PLATFORM = ""
 _LOCAL_CACHE_INPUT = "original"
 
 visual_test(
     name = "local_cached_test",
     execution = "local",
     cacheable = True,
-    exec_properties = {"web-e2e-local-platform": _LOCAL_CACHE_PLATFORM},
+    exec_properties = {"test-cache-partition": _LOCAL_CACHE_PLATFORM} if _LOCAL_CACHE_PLATFORM else {},
     target_arch = _TARGET_ARCH,
     browser = ":actiond_browser",
     playwright = ":playwright",

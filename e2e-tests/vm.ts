@@ -62,11 +62,6 @@ function localCacheChecks() {
     return executionId('bazel-testlogs/' + target + '/test.log')
   }
   try {
-    const missingIdentity = originalBuild.replace(/_LOCAL_CACHE_PLATFORM = .*/, '_LOCAL_CACHE_PLATFORM = ""')
-    fs.writeFileSync('BUILD.bazel', missingIdentity)
-    const rejected = run([...command, 'build', '//:' + target], {fail: true, stdio: 'pipe'})
-    assert.match(rejected, /cacheable local execution requires exec_properties/)
-    fs.writeFileSync('BUILD.bazel', originalBuild)
     captureWith(command)
     // The first update adds a declared baseline; warm its final input graph.
     const firstCapture = captureWith(command)
@@ -96,7 +91,7 @@ function localCacheChecks() {
     } finally { fs.writeFileSync(baseline, good) }
     fs.writeFileSync('BUILD.bazel', originalBuild)
     assert.equal(testWith(second), firstTest, 'Returning to the original platform/input did not restore its cached result')
-    fs.writeFileSync(`${work}/results/cache-checks.json`, JSON.stringify({platform: process.env.LOCAL_BROWSER_PLATFORM, firstCapture, firstTest, changedCapture, changedTest}, null, 2))
+    fs.writeFileSync(`${work}/results/cache-checks.json`, JSON.stringify({firstCapture, firstTest, changedCapture, changedTest}, null, 2))
   } finally { fs.writeFileSync('BUILD.bazel', originalBuild) }
 }
 

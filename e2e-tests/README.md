@@ -90,5 +90,5 @@ keeps generated baselines in the supplied disposable directory. See
 Local cache probes use a disposable disk cache by default. Set
 `LOCAL_BROWSER_CACHE_CONFIGURED=1` to use your normal Bazel cache configuration.
 CI does this so `setup-bazel` persists the tested cache between jobs.
-`LOCAL_BROWSER_PLATFORM` supplies the CI-owned environment identity; without it,
-the driver uses an invocation-specific regression key.
+The cache probe starts without execution properties, then checks that declared
+input, baseline, and optional execution-property changes invalidate results.
