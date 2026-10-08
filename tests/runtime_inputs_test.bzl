@@ -96,24 +96,20 @@ _runtime_inputs_test = analysistest.make(
 
 def _directory_contents_test_impl(ctx):
     lines = ["#!/usr/bin/env bash", "set -euo pipefail", 'cd "$TEST_SRCDIR"']
-    for fixture in ["runtime_specs", "runtime_config", "runtime_server"]:
-        for directory in [
-            ctx.workspace_name + "/tests/" + fixture + "/opaque.map",
-            ctx.workspace_name + "/" + fixture + "/directory-alias",
-            fixture + "/root-directory-alias",
-        ]:
+    for fixture in (["runtime_server"] if ctx.attr.shell else ["runtime_specs", "runtime_config", "runtime_server"]):
+        directories = [ctx.workspace_name + "/tests/" + fixture + "/opaque.map"]
+        if not ctx.attr.shell:
+            directories.extend([
+                ctx.workspace_name + "/" + fixture + "/directory-alias",
+                fixture + "/root-directory-alias",
+            ])
+        for directory in directories:
             lines.extend([
                 "test \"$(cat '%s/nested/asset.js')\" = 'runtime asset'" % directory,
                 "test -f '%s/fixture.map.json'" % directory,
                 "test %s '%s/asset.js.map'" % ("-f" if ctx.attr.keep_maps else "! -e", directory),
                 "test %s '%s/nested/asset.js.map'" % ("-f" if ctx.attr.keep_maps else "! -e", directory),
             ])
-    if ctx.attr.shell:
-        directory = ctx.workspace_name + "/tests/runtime_specs/opaque.map"
-        lines = lines[:3] + [
-            "test -f '%s/nested/asset.js'" % directory,
-            "test %s '%s/nested/asset.js.map'" % ("-f" if ctx.attr.keep_maps else "! -e", directory),
-        ]
     ctx.actions.write(ctx.outputs.executable, "\n".join(lines) + "\n", is_executable = True)
     return [DefaultInfo(executable = ctx.outputs.executable, runfiles = ctx.attr.inputs[DefaultInfo].default_runfiles)]
 
@@ -162,7 +158,7 @@ def runtime_inputs_tests():
         inputs = ":runtime_explicit_directories_inputs",
         keep_maps = True,
     )
-    browser_shell(name = "runtime_directory_shell", assets = ":runtime_specs_assets")
+    browser_shell(name = "runtime_directory_shell", assets = ":runtime_server_assets")
     for enabled in [True, False]:
         name = "runtime_shell_" + str(enabled)
         web_e2e_test(name = name, tests = ":runtime_specs", shell = ":runtime_directory_shell", runtime_only = enabled)
