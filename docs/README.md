@@ -19,6 +19,7 @@ Need guide? Pick below.
 | --- | --- |
 | [API reference](api.md) | Attributes, defaults, TypeScript contracts |
 | [E2E](e2e.md) | Navigation specs, filtering, existing URLs |
+| [Playwright UI](ui.md) | Aggregate split suites for local debugging and source watching |
 | [Component tests](component-browser.md) | Mounts, updates, assertions |
 | [Component VRT](component-vrt.md) | Visual cases, baselines, diffs |
 | [Customization](customization.md) | Servers, providers, fixtures |

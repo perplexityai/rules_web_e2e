@@ -1,6 +1,9 @@
 """Managed-server Playwright end-to-end tests."""
 
 load("//internal:browser.bzl", "browser_test")
+load("//internal:ui.bzl", _web_e2e_ui = "web_e2e_ui")
+
+web_e2e_ui = _web_e2e_ui
 
 def web_e2e_test(name, **kwargs):
     """Run native Playwright specs; see docs/e2e.md for the execution contract."""
