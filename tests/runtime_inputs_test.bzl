@@ -37,7 +37,7 @@ printf 'debug metadata' > "$1/nested/asset.js.map"
                     ctx.label.name + "/root-source-alias": files["source.ts"],
                     ctx.label.name + "/root-directory-alias": tree,
                 },
-            ).merge(ctx.attr._playwright[DefaultInfo].default_runfiles),
+            ).merge(ctx.attr._playwright[DefaultInfo].default_runfiles).merge(ctx.attr._npm[DefaultInfo].default_runfiles),
             data_runfiles = ctx.runfiles(files = [files["data-only.json"]]),
         ),
         OutputGroupInfo(transitive_typecheck = depset([files["semantic-check.txt"]]), assets = depset([tree])),
@@ -49,6 +49,7 @@ _fixture = rule(
         "module": attr.string(),
         "external": attr.label_list(allow_files = True),
         "_playwright": attr.label(default = "//runtime:playwright"),
+        "_npm": attr.label(default = "//:node_modules/typescript"),
     },
     outputs = {"source": "%{name}/source.ts"},
 )
@@ -82,6 +83,10 @@ def _runtime_inputs_test_impl(ctx):
         if file.is_directory:
             asserts.true(env, file in files, "Runtime package must remain unfiltered: " + file.short_path)
             asserts.equals(env, file, aliases.get(file.short_path, file))
+    for file in ctx.attr._npm[DefaultInfo].default_runfiles.files.to_list():
+        if file.is_directory:
+            asserts.true(env, file in files, "Node resolves compiled modules against original npm package trees: " + file.short_path)
+            asserts.equals(env, file, aliases.get(file.short_path, file))
     return analysistest.end(env)
 
 _runtime_inputs_test = analysistest.make(
@@ -91,6 +96,7 @@ _runtime_inputs_test = analysistest.make(
         "explicit_source": attr.bool(),
         "external": attr.label_list(allow_files = True),
         "_playwright": attr.label(default = "//runtime:playwright"),
+        "_npm": attr.label(default = "//:node_modules/typescript"),
     },
 )
 

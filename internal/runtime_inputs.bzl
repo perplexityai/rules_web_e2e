@@ -3,14 +3,18 @@
 load("@bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory_bin_action")
 load("@bazel_lib//lib:paths.bzl", "to_repository_relative_path")
 
+def _is_package_file(ctx, file):
+    # Node resolves imports from real compiled-file paths, so npm trees must stay put.
+    return file.owner.workspace_name != ctx.label.workspace_name or "node_modules" in file.short_path.split("/")
+
 def _is_runtime_file(ctx, file):
     # Other repositories may publish sources as runtime package contents.
-    if file.is_directory or file.owner.workspace_name != ctx.label.workspace_name:
+    if file.is_directory or _is_package_file(ctx, file):
         return True
     return not file.basename.endswith((".ts", ".tsx", ".mts", ".cts", ".map", ".tsbuildinfo"))
 
 def _runtime_directory(ctx, file, directories):
-    if not file.is_directory or file.owner.workspace_name != ctx.label.workspace_name:
+    if not file.is_directory or _is_package_file(ctx, file):
         return file
     if file not in directories:
         output = ctx.actions.declare_directory(ctx.label.name + ".runtime/" + str(len(directories)))
