@@ -181,6 +181,11 @@ services in a separate workflow can opt out with `tags = ["manual"]` and select
 those targets explicitly. This selection policy is independent of `cacheable`
 and `execution`; capture and update helpers remain manual.
 
+Platform validators, Linux tools, and browser presets do not use `manual` to
+hide platform variants. Platform validation uses compatibility constraints;
+Linux tools use their architecture transition. Analysis fixtures and host-browser
+integration tests that need explicit selection set `manual` at their callsites.
+
 ## Runtime-only inputs
 
 `runtime_only` defaults to `True`, keeping source/type/debug files out of compiled

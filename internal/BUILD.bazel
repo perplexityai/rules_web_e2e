@@ -28,7 +28,7 @@ platform(
 
 linux_platform(
     name = "target_platform",
-    tags = ["manual"],
+    target_compatible_with = ["@platforms//os:linux"],
 )
 
 exports_files(["matching-config.ts"], visibility = ["//visibility:private"])
