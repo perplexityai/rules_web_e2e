@@ -4,6 +4,7 @@ import path from 'node:path'
 
 test('declared app and mocked API', async ({page}) => {
   const inputs = JSON.parse(process.env.CACHE_INPUTS!) as {app: string, mock: string}
+  expect(fs.existsSync(path.join(path.dirname(inputs.app), 'cache-assets.map'))).toBe(false)
   await page.route('**/*', async route => {
     const url = new URL(route.request().url())
     if (url.origin !== 'https://fixture.invalid') throw new Error(`Unexpected request: ${url}`)

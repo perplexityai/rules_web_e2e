@@ -22,6 +22,7 @@ def _capture_impl(ctx):
     asserts.equals(env, 1, len(actions))
     action = actions[0]
     asserts.true(env, action.argv[0].endswith("_capture_launcher"))
+
     # Bazel 8 exposes a runfiles middleman; Bazel 9 exposes a runfiles tree.
     asserts.true(env, any([file.basename.endswith(".runfiles") or file.basename.endswith("-runfiles") for file in action.inputs.to_list()]), "Bazel must supply launcher runfiles")
     asserts.true(env, any([file.basename.endswith(".job.json") for file in action.inputs.to_list()]), "Execpath inputs must remain available outside the runfiles tree")
@@ -90,7 +91,7 @@ def _runtime_inputs_test_impl(ctx):
     harness = [file for file in files if file.basename.endswith(".suite")]
     asserts.equals(env, 1, len(harness))
     asserts.true(env, harness[0].is_directory)
-    actions = [action for action in analysistest.target_actions(env) if action.mnemonic == "CopyToDirectory"]
+    actions = [action for action in analysistest.target_actions(env) if action.mnemonic == "CopyToDirectory" and harness[0] in action.outputs.to_list()]
     asserts.equals(env, 1, len(actions))
     asserts.true(env, harness[0] in actions[0].outputs.to_list())
     return analysistest.end(env)
@@ -108,6 +109,7 @@ def _harness_selection_test_impl(ctx):
     inputs = [file.path for file in action.inputs.to_list()]
     for source in configuration["files"]:
         asserts.true(env, source["path"] in inputs, "Mapped source must be a declared action input: " + source["path"])
+
     # Ordinary suites should not depend on an unused capture template either.
     asserts.equals(env, ctx.attr.gallery, any([file.basename == "capture.js" for file in action.inputs.to_list()]))
     return analysistest.end(env)
@@ -120,6 +122,7 @@ harness_selection_test = analysistest.make(
 def _native_visual_test_impl(ctx):
     env = analysistest.begin(ctx)
     target = analysistest.target_under_test(env)
+
     # Assert the public visual target owns remote execution, rather than a
     # local JS wrapper reporting the status of a cached build action.
     asserts.equals(env, "1", target[testing.ExecutionInfo].requirements.get("no-local"))
