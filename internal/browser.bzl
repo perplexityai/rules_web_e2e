@@ -125,7 +125,7 @@ def _inputs_impl(ctx):
                 directories[file] = file
     for target in compiled_inputs + unfiltered_inputs:
         if target:
-            if ctx.attr.runtime_only and target in compiled_inputs:
+            if target in compiled_inputs:
                 inputs = inputs.merge(compiled_runtime_runfiles(ctx, target, directories))
             else:
                 inputs = inputs.merge(target[DefaultInfo].default_runfiles)
@@ -146,7 +146,6 @@ _inputs = rule(
         "browser": attr.label(providers = [BrowserRuntimeInfo]),
         "sources": attr.label(),
         "mode": attr.string(),
-        "runtime_only": attr.bool(default = True),
         "_browser_files": attr.label(default = Label("//playwright:browser_files"), executable = True, cfg = "exec"),
         "_capture_template": attr.label(default = Label("//runtime:capture_template"), allow_single_file = True),
         "_harness_templates": attr.label(default = Label("//runtime:harness_templates")),
@@ -187,8 +186,7 @@ def browser_test(
         visual = False,
         component = False,
         process_owned = False,
-        exec_properties = {},
-        runtime_only = True):
+        exec_properties = {}):
     """Internal common implementation; public wrappers select the test mode."""
     if execution not in ["actiond", "local"]:
         fail("execution must be actiond or local")
@@ -262,7 +260,6 @@ def browser_test(
         matching = matching,
         sources = ":" + name + "_sources",
         mode = "process" if process_owned else "visual-spec" if visual and tests else "visual" if visual else "component" if component else "e2e",
-        runtime_only = runtime_only,
     )
     common = dict(
         copy_data_to_bin = False,
