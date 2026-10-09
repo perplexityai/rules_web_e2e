@@ -24,3 +24,10 @@ const report = JSON.parse(result.stdout)
 assert.equal(report.stats.expected, 2)
 assert.equal(report.stats.unexpected, 0)
 assert.deepEqual(snapshot(), before)
+
+const selected = spawnSync(process.execPath, [playwrightCli, 'test', '--config', configFile, 'auth\\.spec\\.ts', '--reporter=json'], {
+  encoding: 'utf8',
+  env: {...process.env, UI_FIXTURE_PACKAGE: undefined},
+})
+assert.equal(selected.status, 0, selected.stderr + selected.stdout)
+assert.equal(JSON.parse(selected.stdout).stats.expected, 1)

@@ -23,6 +23,7 @@ ts_project(
         "strict": True,
         "types": ["node"],
         "declaration": True,
+        "sourceMap": True,
         "skipLibCheck": True,
     }},
     deps = [

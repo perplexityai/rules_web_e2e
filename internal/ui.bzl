@@ -53,16 +53,34 @@ def _inputs_impl(ctx):
     bundle = ctx.actions.declare_directory(ctx.label.name + ".suite")
     generated = []
     destinations = {}
+    wrappers = []
     for file in tests:
-        destination = "specs/" + to_rlocation_path(ctx, file) + ".mjs"
+        destination = "specs/" + to_rlocation_path(ctx, file) + ".js"
         wrapper = ctx.actions.declare_file(ctx.label.name + ".generated/" + destination)
         helper = "../" * (len(destination.split("/")) - 1) + "runfiles.mjs"
-        ctx.actions.write(wrapper, "import { importModule } from %s;\nawait importModule(%s);\n" % (
-            json.encode(helper),
-            json.encode(to_rlocation_path(ctx, file)),
-        ))
+        wrappers.append({
+            "input": file.path,
+            "output": wrapper.path,
+            "destination": bundle.path + "/" + destination,
+            "helper": helper,
+            "runfile": to_rlocation_path(ctx, file),
+        })
         generated.append(wrapper)
         destinations[to_repository_relative_path(wrapper)] = destination
+    manifest = ctx.actions.declare_file(ctx.label.name + ".wrappers.json")
+    ctx.actions.write(manifest, json.encode(wrappers))
+    ctx.actions.run(
+        executable = ctx.executable._wrapper_tool,
+        arguments = [manifest.path],
+        inputs = depset([manifest] + tests + [file for file in runfiles.files.to_list() if file.path.endswith(".map")]),
+        outputs = generated[:],
+        env = {"BAZEL_BINDIR": ctx.bin_dir.path},
+        mnemonic = "PlaywrightUiWrappers",
+    )
+    package = ctx.actions.declare_file(ctx.label.name + ".generated/package.json")
+    ctx.actions.write(package, '{"type":"module"}')
+    generated.append(package)
+    destinations[to_repository_relative_path(package)] = "package.json"
     root_up = "/".join([".."] * (len(tests[0].path.split("/")) - 1 - len(_common_directory(tests)))) or "."
     substitutions = {
         "%{config}": json.encode(to_rlocation_path(ctx, config_files[0])),
@@ -114,6 +132,7 @@ _inputs = rule(
         "playwright": attr.label(mandatory = True, providers = [PlaywrightInfo]),
         "data": attr.label_list(allow_files = True),
         "output_name": attr.string(mandatory = True),
+        "_wrapper_tool": attr.label(default = Label("//internal:ui_wrapper_tool"), executable = True, cfg = "exec"),
         "_config_template": attr.label(default = Label("//internal:ui-config.mjs.tpl"), allow_single_file = True),
         "_runfiles_template": attr.label(default = Label("//internal:ui-runfiles.mjs.tpl"), allow_single_file = True),
         "_launcher_template": attr.label(default = Label("//internal:ui-launcher.mjs.tpl"), allow_single_file = True),

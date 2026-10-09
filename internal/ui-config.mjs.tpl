@@ -9,7 +9,7 @@ const {default: config} = await importModule(%{config})
 const originalDirectory = path.dirname(configFile)
 const selection = {
   testDir: path.join(path.dirname(fileURLToPath(import.meta.url)), 'specs'),
-  testMatch: '**/*.mjs',
+  testMatch: '**/*.js',
   testIgnore: [],
 }
 const reportRoot = path.resolve(path.dirname(fs.realpathSync(resolveRunfile(%{root_anchor}))), %{root_up})

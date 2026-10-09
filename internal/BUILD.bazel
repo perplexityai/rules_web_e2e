@@ -1,3 +1,4 @@
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load(":remote.bzl", "linux_platform")
 
 exports_files([
@@ -36,5 +37,12 @@ linux_platform(
 
 exports_files(
     ["matching-config.ts"],
+    visibility = ["//visibility:private"],
+)
+
+js_binary(
+    name = "ui_wrapper_tool",
+    entry_point = "ui-wrapper-tool.mjs",
+    patch_node_fs = False,
     visibility = ["//visibility:private"],
 )
