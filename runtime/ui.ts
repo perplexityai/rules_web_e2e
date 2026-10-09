@@ -5,15 +5,23 @@ import {createRequire} from 'node:module'
 import {spawn} from 'node:child_process'
 import {pathToFileURL} from 'node:url'
 
-export function aggregateConfig(config: string, tests: string[]): string {
+export function aggregateConfig(config: string, tests: string[], directory: string): string {
   if (!tests.length) throw new Error('UI aggregation requires at least one spec')
   let root = path.dirname(tests[0])
   while (tests.some(file => path.relative(root, file).split(path.sep)[0] === '..')) root = path.dirname(root)
-  const matches = tests.map(file => '^' + file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$')
+  const stagedRoot = path.join(directory, 'specs')
+  // Watching the Bazel output tree also watches runfiles and can exhaust macOS file descriptors.
+  const staged = tests.map(file => {
+    const target = path.join(stagedRoot, path.relative(root, file) + '.mjs')
+    fs.mkdirSync(path.dirname(target), {recursive: true})
+    fs.writeFileSync(target, `import ${JSON.stringify(pathToFileURL(file).href)};\n`)
+    return target
+  })
+  const matches = staged.map(file => '^' + file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$')
   return `import config from ${JSON.stringify(pathToFileURL(config).href)};
-const selection = {testDir: ${JSON.stringify(root)}, testMatch: ${JSON.stringify(matches)}.map(pattern => new RegExp(pattern)), testIgnore: []};
+const selection = {testDir: ${JSON.stringify(stagedRoot)}, testMatch: ${JSON.stringify(matches)}.map(pattern => new RegExp(pattern)), testIgnore: []};
 const servers = config.webServer ? (Array.isArray(config.webServer) ? config.webServer : [config.webServer]).map(server => ({...server, cwd: server.cwd ?? ${JSON.stringify(path.dirname(config))}})) : undefined;
-export default {...config, ...selection, webServer: servers, projects: config.projects?.map(project => ({...project, ...selection}))};
+export default {...config, ...selection, testDir: ${JSON.stringify(root)}, webServer: servers, projects: (config.projects ?? [{}]).map(project => ({...project, ...selection}))};
 `
 }
 
@@ -49,7 +57,7 @@ export async function launchUI(): Promise<number> {
           throw new Error('UI specs and config must resolve the declared playwright runtime: ' + module)
       }
       config = path.join(scratch, 'playwright.config.mjs')
-      fs.writeFileSync(config, aggregateConfig(original, tests))
+      fs.writeFileSync(config, aggregateConfig(original, tests, scratch))
       cwd = path.join(runfiles, process.env.JS_BINARY__WORKSPACE || '_main')
     }
     const args = process.argv.slice(2)

@@ -36,8 +36,11 @@ UI aggregation: every explicitly listed managed E2E target is selected.
 
 The rule selects compiled specs from each suite and includes their dependencies
 and explicit data. Duplicate specs appear once. At launch, it writes a temporary
-aggregate config that discovers exactly those specs. Source maps and original
-source inputs are retained for debugging. Temporary configuration is removed
+aggregate config and small modules that import exactly those specs. The UI watches
+this isolated directory rather than recursively watching Bazel outputs and runfiles,
+which can exhaust macOS file descriptors before a test worker starts. Imports still
+resolve from the original compiled specs. Source maps and original source inputs
+are retained for debugging. Temporary configuration is removed
 when Playwright exits. The UI process runs until closed and receives terminal
 interrupts; it has no suite execution timer.
 
