@@ -122,15 +122,16 @@ route registries, and framework conventions remain in consuming repository.
 Page objects and `test.extend` fixtures work normally. Prefer `page.route` or local
 fixture APIs for deterministic data; declare any authentication state files in
 `data`. Keep credentials in explicitly declared environment variables rather
-than checked-in state. Host browsers use host networking; VRT uses separate offline Linux actions.
+than checked-in state. VRT uses separate offline Linux actions.
 
 Host E2E is local and uncached by default. It requires a provisioned host browser, not
 Docker; see [host setup](host-browsers.md).
 Server processes and browser resources cleaned up after completion. Failures
 return nonzero status and preserve JUnit, screenshots, and traces in Bazel's
-undeclared outputs. Host test process (including Playwright's `request`
-fixture), custom server code, and setup scripts remain trusted and unsandboxed;
-host browser and Node requests use host networking. Remote endpoints caller-owned; automatic backend provisioning and authentication
+undeclared outputs. Host test processes, custom servers, and setup scripts follow
+Bazel's sandbox and network policy. Callers that need external network access
+must add `requires-network`; callers that need unsandboxed execution must add
+`no-sandbox`. Remote endpoints are caller-owned; automatic backend provisioning and authentication
 conventions remain consumer responsibilities.
 
 ## Opt-in local result caching
@@ -169,7 +170,7 @@ host environment. Rules cannot verify mocks or browser pinning. Explicit
 prove browser files declared. Live URLs hidden in config remain undeclared inputs.
 
 Unsupported: `browser`, visual/process-owned modes, URL attributes, `env_inherit`.
-Host execution stays unsandboxed and network-enabled. After host OS/library
+Host execution stays local but does not opt out of Bazel sandboxing. After host OS/library
 changes, force execution with `--cache_test_results=no`. Caller `no-cache` or
 `external` tags still disable reuse.
 
@@ -185,6 +186,12 @@ Platform validators, Linux tools, and browser presets do not use `manual` to
 hide platform variants. Platform validation uses compatibility constraints;
 Linux tools use their architecture transition. Analysis fixtures and host-browser
 integration tests that need explicit selection set `manual` at their callsites.
+
+Host-browser tests retain `no-remote` because they rely on a provisioned host
+browser. Process-owned tests do not add it: callers must declare their executables
+or add execution restrictions themselves. Neither mode adds `requires-network`
+or `no-sandbox`. The isolated local Linux backend retains its execution constraints
+because it provides its own namespace sandbox.
 
 ## Runtime-only inputs
 

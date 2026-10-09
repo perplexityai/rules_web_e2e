@@ -6,7 +6,9 @@ load("//e2e:defs.bzl", "web_e2e_test")
 
 def _selection_policy_test_impl(ctx):
     env = unittest.begin(ctx)
-    asserts.equals(env, [tag for tag in ctx.attr.caller_tags if tag == "manual"], [tag for tag in ctx.attr.observed_tags if tag == "manual"])
+    caller_controlled = ["manual", "requires-network", "no-sandbox"] + (["no-remote"] if "browser_process_test" in ctx.attr.observed_tags else [])
+    for tag in caller_controlled:
+        asserts.equals(env, [value for value in ctx.attr.caller_tags if value == tag], [value for value in ctx.attr.observed_tags if value == tag], "Only the caller may add " + tag)
     for tag in ctx.attr.caller_tags:
         asserts.true(env, tag in ctx.attr.observed_tags)
     return unittest.end(env)
@@ -25,8 +27,10 @@ def selection_policy_test(name, target, caller_tags = []):
 
 def _cache_policy_test_impl(ctx):
     env = unittest.begin(ctx)
-    for tag in ["no-sandbox", "no-remote", "requires-network", ctx.attr.mode_tag, "consumer-tag"]:
+    for tag in ["no-remote", ctx.attr.mode_tag, "consumer-tag"]:
         asserts.true(env, tag in ctx.attr.observed_tags, "Missing execution constraint: " + tag)
+    for tag in ["no-sandbox", "requires-network"]:
+        asserts.equals(env, ctx.attr.restricted, tag in ctx.attr.observed_tags, "Only the caller may add " + tag)
     asserts.equals(env, ["manual"], [tag for tag in ctx.attr.observed_tags if tag == "manual"], "Only the caller may add manual")
     for tag in ["external", "no-cache"]:
         asserts.equals(env, not ctx.attr.cacheable, tag in ctx.attr.observed_tags)
@@ -40,6 +44,7 @@ _cache_policy_test = unittest.make(
         "inherited_env": attr.string_list(),
         "mode_tag": attr.string(),
         "cacheable": attr.bool(),
+        "restricted": attr.bool(),
     },
 )
 
@@ -51,7 +56,7 @@ def cacheable_tests():
         cmd = "touch $(OUTS)",
     )
     for mode, macro in [("e2e", web_e2e_test), ("component_browser", component_browser_test)]:
-        for policy in ["default", "disabled", "enabled"]:
+        for policy in ["default", "disabled", "enabled", "restricted"]:
             name = mode + "_" + policy
             options = {} if policy == "default" else {"cacheable": policy == "enabled"}
             macro(
@@ -59,7 +64,7 @@ def cacheable_tests():
                 tests = ":cache_policy_inputs",
                 config = ":policy.config.js",
                 env = {"PLAYWRIGHT_BROWSERS_PATH": "/declared-browser-fixture"},
-                tags = ["consumer-tag", "manual"],
+                tags = ["consumer-tag", "manual"] + (["requires-network", "no-sandbox"] if policy == "restricted" else []),
                 **options
             )
             expanded = native.existing_rule(name)
@@ -69,4 +74,5 @@ def cacheable_tests():
                 inherited_env = expanded["env_inherit"],
                 mode_tag = mode + "_test",
                 cacheable = policy == "enabled",
+                restricted = policy == "restricted",
             )

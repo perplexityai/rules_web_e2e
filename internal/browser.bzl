@@ -300,7 +300,7 @@ def browser_test(
         patch_node_fs = False,
         args = args,
         env_inherit = browser_env_inherit + env_inherit,
-        tags = ([] if cacheable else ["external", "no-cache"]) + ["browser_process_test" if process_owned else "visual_test" if visual else "component_browser_test" if component else "e2e_test", "requires-network", "no-sandbox", "no-remote"] + tags,
+        tags = ([] if cacheable else ["external", "no-cache"]) + ["browser_process_test" if process_owned else "visual_test" if visual else "component_browser_test" if component else "e2e_test"] + ([] if process_owned else ["no-remote"]) + tags,
         timeout = timeout,
         shard_count = shard_count,
         **common
