@@ -7,13 +7,11 @@ exports_files([
 alias(
     name = "noble_20260901",
     actual = "@rules_web_e2e_noble_20260901//:runtime",
-    tags = ["manual"],
     visibility = ["//visibility:public"],
 )
 
 alias(
     name = "noble_20260901_arm64",
     actual = "@rules_web_e2e_noble_20260901_arm64//:runtime",
-    tags = ["manual"],
     visibility = ["//visibility:public"],
 )

@@ -24,9 +24,9 @@ js_library(name = "cache_specs", srcs = ["cache.spec.js"], deps = [":typecheck_p
 js_library(name = "cache_component_specs", srcs = [":cache_component_spec"], deps = [":typecheck_project"], data = ["cache-debug.map", ":cache_assets"])
 `)
   for (const [name, macro, specs, policy] of [
-    ['cached_e2e', 'web_e2e_test', 'cache_specs', 'True'],
-    ['cached_component', 'component_browser_test', 'cache_component_specs', 'True'],
-    ['uncached_e2e', 'web_e2e_test', 'cache_specs', undefined],
+    ['cached_e2e', 'web_e2e_test', 'cache_specs', []],
+    ['cached_component', 'component_browser_test', 'cache_component_specs', []],
+    ['uncached_e2e', 'web_e2e_test', 'cache_specs', ['external', 'no-cache']],
   ]) {
     fs.appendFileSync(path.join(consumer, 'BUILD.bazel'), `
 ${macro}(
@@ -37,7 +37,7 @@ ${macro}(
         "PLAYWRIGHT_BROWSERS_PATH": ${JSON.stringify(browserFiles)},
         "CACHE_INPUTS": json.encode({"app": "cache_assets/cache-app.html", "mock": "$(rootpath cache-mock.json)"}),
     },
-    ${policy ? `cacheable = ${policy},` : ''}
+    tags = ${JSON.stringify(policy)},
 )
 `)
   }
@@ -53,30 +53,6 @@ ${macro}(
       assert(result, `Missing test result: ${name}`)
       assert.equal(result.testResult.status, 'PASSED')
       assert.equal(Boolean(result.testResult.cachedLocally), name === 'uncached_e2e' ? false : cached, name)
-    }
-  }
-  const build = path.join(consumer, 'BUILD.bazel')
-  const original = text(build)
-  for (const [macro, options, explicitBrowser] of [
-    ['web_e2e_test', 'browser = ":actiond_browser",', true],
-    ['web_e2e_test', 'base_url = "https://live.invalid",', true],
-    ['web_e2e_test', 'base_url_env = "LIVE_URL",', true],
-    ['web_e2e_test', 'env_inherit = ["TOKEN"],', true],
-    ['web_e2e_test', '', false],
-    ['visual_test', '', true],
-    ['browser_process_test', '', true],
-  ] as const) {
-    try {
-      fs.writeFileSync(build, `load("@rules_web_e2e//e2e:defs.bzl", "browser_process_test")\n` + original + `
-${macro}(name = "rejected", tests = ":cache_specs", config = ":cache_config", cacheable = True,
-    ${options}
-    ${explicitBrowser ? 'env = {"PLAYWRIGHT_BROWSERS_PATH": "/explicit-browser"},' : ''}
-)
-`)
-      const output = run([...command, 'query', '//:rejected'], {cwd: consumer, fail: true, stdio: 'pipe'})
-      assert.match(output, /cacheable requires/, `${macro}: ${options}`)
-    } finally {
-      fs.writeFileSync(build, original)
     }
   }
   check(false)

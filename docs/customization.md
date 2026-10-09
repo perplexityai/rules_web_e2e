@@ -47,7 +47,8 @@ They must implement their own dotenv/config-discovery and filesystem policies;
 runtime cannot enforce discovery settings on arbitrary server. Adapter can
 launch declared executable when project already has server command. It
 must resolve that tool inside `inputs`, pass explicit environment, wait for
-readiness, and stop its children. Host code remains trusted and unsandboxed.
+readiness, and stop its children. Host code follows Bazel's sandbox policy;
+callsites can request `no-sandbox` when necessary.
 
 ## UI shell
 

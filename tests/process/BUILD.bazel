@@ -1,5 +1,6 @@
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("//e2e:defs.bzl", "browser_process_test")
+load("//tests:execution_tags_test.bzl", "selection_policy_test")
 
 ts_project(
     name = "compiled",
@@ -28,6 +29,11 @@ browser_process_test(
         "OWNED_PROCESS_VALUE": "declared",
         "OWNED_PROCESS_TOOL": "$(rootpath //tests/process/tool:echo.ts)",
     },
+)
+
+selection_policy_test(
+    name = "default_selection_test",
+    target = "owned_test",
 )
 
 browser_process_test(

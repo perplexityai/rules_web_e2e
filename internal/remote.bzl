@@ -149,11 +149,10 @@ def _artifact_impl(ctx):
     launcher = ctx.attr.launcher[DefaultInfo]
     requirements = {"no-local": "1"}
     if ctx.attr.host_vrt or ctx.attr.execution == "local":
-        requirements = {"no-remote": "1", "no-cache": "1"}
+        requirements = {"no-remote": "1"}
     if ctx.attr.execution == "local":
         requirements = {"no-remote-exec": "1", "no-sandbox": "1"}
-        if not ctx.attr.cacheable:
-            requirements.update({"no-remote-cache": "1", "no-cache": "1"})
+    requirements.update({tag: "1" for tag in ctx.attr.tags if tag in ["no-cache", "no-remote-cache", "no-remote-cache-upload"]})
     ctx.actions.run(
         executable = launcher.files_to_run,
         # Preserve declared execpaths used by expanded env/args, not only rlocations.
@@ -181,7 +180,6 @@ _artifact = rule(
         "launcher": attr.label(executable = True, cfg = "target", mandatory = True),
         "host_vrt": attr.bool(),
         "execution": attr.string(default = "actiond"),
-        "cacheable": attr.bool(),
     },
 )
 
@@ -196,7 +194,6 @@ _attrs = {
     "mode": attr.string(mandatory = True, values = ["capture", "test"]),
     "host_vrt": attr.bool(default = False),
     "execution": attr.string(default = "actiond"),
-    "cacheable": attr.bool(),
     "_local_launcher": attr.label(default = Label("//internal/local:launcher.sh.tpl"), allow_single_file = True),
     "local_tools": attr.label(allow_single_file = True),
     "_bash_runfiles": attr.label(default = "@rules_shell//shell/runfiles"),
@@ -232,7 +229,7 @@ _native_arm64_browser_test = rule(
     exec_groups = {"test": exec_group(exec_compatible_with = [str(Label("@platforms//os:linux")), str(Label("@platforms//cpu:arm64"))])},
 )
 
-def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256 = None, host_vrt = False, execution = "actiond", cacheable = False, exec_properties = {}, shard_count = 0):
+def remote_browser_test(name, browser, env, args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256 = None, host_vrt = False, execution = "actiond", exec_properties = {}, shard_count = 0):
     """Run native browser tests and produce downloadable VRT captures."""
     if worker_sha256 != None and (len(worker_sha256) != 64 or any([c not in "0123456789abcdef" for c in worker_sha256.elems()])):
         fail("worker_sha256 must be a lowercase SHA256 digest")
@@ -260,10 +257,9 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         host_vrt = host_vrt,
         execution = execution,
         local_tools = local_tools,
-        cacheable = cacheable,
         exec_properties = execution_properties,
         exec_compatible_with = constraints,
-        tags = ["manual", "visual_test" if visual else "browser_test"] + (["external", "no-cache"] if execution == "local" and not cacheable else []) + tags,
+        tags = ["visual_test" if visual else "browser_test"] + tags,
         timeout = timeout,
         shard_count = shard_count,
     )
@@ -284,7 +280,6 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         host_vrt = host_vrt,
         execution = execution,
         local_tools = local_tools,
-        cacheable = cacheable,
         exec_properties = execution_properties,
         tags = ["manual"],
     )
@@ -293,10 +288,9 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         launcher = ":" + action + "_launcher",
         host_vrt = host_vrt,
         execution = execution,
-        cacheable = cacheable,
         exec_compatible_with = constraints,
         exec_properties = execution_properties,
-        tags = ["manual"],
+        tags = ["manual"] + [tag for tag in tags if tag != "manual"],
     )
     prefix = native.package_name() + "/" if native.package_name() else ""
     source_update(name, action, "artifacts/reference", env["VRT_BASELINE_RELATIVE"].removeprefix(prefix), visual = True)

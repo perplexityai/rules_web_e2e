@@ -125,10 +125,13 @@ def _native_visual_test_impl(ctx):
 
     # Assert the public visual target owns remote execution, rather than a
     # local JS wrapper reporting the status of a cached build action.
-    asserts.equals(env, "1", target[testing.ExecutionInfo].requirements.get("no-local"))
+    requirements = target[testing.ExecutionInfo].requirements
+    asserts.equals(env, "1", requirements.get("no-remote-exec" if ctx.attr.local_execution else "no-local"))
+    for tag in ["no-cache", "no-remote-cache"]:
+        asserts.false(env, tag in requirements, "Execution mode must not disable caching")
     asserts.true(env, any([file.basename.endswith(".job.json") for file in target[DefaultInfo].default_runfiles.files.to_list()]))
     asserts.false(env, any([file.basename.endswith(".results") for file in target[DefaultInfo].default_runfiles.files.to_list()]))
     asserts.false(env, any([action.mnemonic == "VrtCompare" for action in analysistest.target_actions(env)]))
     return analysistest.end(env)
 
-native_visual_test = analysistest.make(_native_visual_test_impl, config_settings = _PLATFORMS)
+native_visual_test = analysistest.make(_native_visual_test_impl, config_settings = _PLATFORMS, attrs = {"local_execution": attr.bool()})

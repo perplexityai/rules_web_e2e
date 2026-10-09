@@ -6,7 +6,7 @@ exports_files(["launcher.sh.tpl"])
     local_tools(
         name = "tools" + suffix,
         target_arch = arch,
-        tags = ["manual"],
+        target_compatible_with = ["@platforms//os:linux"],
         # The browser macro attaches this dependency to targets in consumer repositories.
         visibility = ["//visibility:public"],
     )

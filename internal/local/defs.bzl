@@ -7,10 +7,9 @@ def _tools_impl(ctx):
 
 local_tools = rule(
     implementation = _tools_impl,
-    cfg = linux_tools,
     attrs = {
         "target_arch": attr.string(default = "x64", values = ["x64", "arm64"]),
-        "bwrap": attr.label(default = "@bubblewrap//:bwrap", executable = True, cfg = "target"),
+        "bwrap": attr.label(default = "@bubblewrap//:bwrap", executable = True, cfg = linux_tools),
         "_allowlist_function_transition": attr.label(default = "@bazel_tools//tools/allowlists/function_transition_allowlist"),
     },
 )

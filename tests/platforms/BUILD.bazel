@@ -1,5 +1,6 @@
 load("//component:defs.bzl", "browser_shell", "component_browser_test")
 load("//playwright:defs.bzl", "browser_runtime")
+load("//tests:execution_tags_test.bzl", "selection_policy_test")
 load("//vrt:defs.bzl", "component_visual_test", "visual_test")
 load(":defs.bzl", "capture_test", "directory", "failure_test", "harness_selection_test", "native_visual_test", "properties_test", "runtime_inputs_test", "typed_fixture")
 
@@ -39,14 +40,15 @@ browser_shell(
         root = ":files",
     )
     for arch, loader in [
-        ("x64", "ld-linux-x86-64.so.2"),
-        ("arm64", "ld-linux-aarch64.so.1"),
+        ("x64", "lib/ld-linux-x86-64.so.2"),
+        ("arm64", "lib/ld-linux-aarch64.so.1"),
     ]
 ]
 
 [
     component_visual_test(
         name = arch,
+        tags = ["manual"],
         browser = ":" + arch + "_browser",
         shell = ":shell",
         target_arch = arch,
@@ -63,6 +65,43 @@ capture_test(
     target_under_test = ":arm64_capture",
 )
 
+component_visual_test(
+    name = "local_visual",
+    browser = ":x64_browser",
+    execution = "local",
+    shell = ":shell",
+    tags = ["manual"],
+)
+
+native_visual_test(
+    name = "local_visual_cache_contract_test",
+    target_under_test = ":local_visual",
+    local_execution = True,
+)
+
+component_visual_test(
+    name = "local_no_cache_visual",
+    browser = ":x64_browser",
+    execution = "local",
+    shell = ":shell",
+    tags = ["manual", "no-cache", "no-remote-cache"],
+)
+
+selection_policy_test(
+    name = "caller_capture_cache_tags_test",
+    target = "local_no_cache_visual_capture",
+    caller_tags = ["manual", "no-cache", "no-remote-cache"],
+)
+
+[
+    selection_policy_test(
+        name = target + "_selection_test",
+        target = target,
+        caller_tags = ["manual"],
+    )
+    for target in ["x64", "local_visual"]
+]
+
 capture_test(
     name = "x64_test",
     loader = "ld-linux-x86-64.so.2",
@@ -71,6 +110,7 @@ capture_test(
 
 component_visual_test(
     name = "wrong_runtime",
+    tags = ["manual"],
     browser = ":arm64_browser",
     shell = ":shell",
 )
@@ -83,6 +123,7 @@ failure_test(
 
 component_visual_test(
     name = "wrong_platform",
+    tags = ["manual"],
     browser = ":arm64_browser",
     shell = ":shell",
     target_arch = "arm64",
@@ -97,6 +138,7 @@ failure_test(
 
 component_visual_test(
     name = "custom_worker",
+    tags = ["manual"],
     browser = ":x64_browser",
     shell = ":shell",
     worker_sha256 = "a" * 64,
@@ -133,6 +175,7 @@ genrule(
 
 component_browser_test(
     name = "native_browser",
+    tags = ["manual"],
     browser = ":x64_browser",
     shell = ":shell",
     tests = ":spec",
@@ -156,6 +199,7 @@ properties_test(
 
 visual_test(
     name = "native_visual_fixture",
+    tags = ["manual"],
     browser = ":x64_browser",
     shell = ":shell",
     tests = ":typed_fixture",

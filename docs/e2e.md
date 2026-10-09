@@ -122,21 +122,24 @@ route registries, and framework conventions remain in consuming repository.
 Page objects and `test.extend` fixtures work normally. Prefer `page.route` or local
 fixture APIs for deterministic data; declare any authentication state files in
 `data`. Keep credentials in explicitly declared environment variables rather
-than checked-in state. Host browsers use host networking; VRT uses separate offline Linux actions.
+than checked-in state. VRT uses separate offline Linux actions.
 
-E2E manual, local, and uncached by default. It requires provisioned host browser, not
+Host E2E is local and uses Bazel test caching by default. It requires a provisioned host browser, not
 Docker; see [host setup](host-browsers.md).
 Server processes and browser resources cleaned up after completion. Failures
 return nonzero status and preserve JUnit, screenshots, and traces in Bazel's
-undeclared outputs. Host test process (including Playwright's `request`
-fixture), custom server code, and setup scripts remain trusted and unsandboxed;
-host browser and Node requests use host networking. Remote endpoints caller-owned; automatic backend provisioning and authentication
+undeclared outputs. Host test processes, custom servers, and setup scripts follow
+Bazel's sandbox and network policy. Callers that need external network access
+must add `requires-network`; callers that need unsandboxed execution must add
+`no-sandbox`. Remote endpoints are caller-owned; automatic backend provisioning and authentication
 conventions remain consumer responsibilities.
 
-## Opt-in local result caching
+## Result caching
 
-Fully mocked host E2E/component suites can set `cacheable = True`. Unchanged
-inputs reuse local results. Defaults stay uncached; remote caching stays disabled.
+Tests use normal Bazel caching. Unchanged inputs reuse passing results. Host-browser
+tests retain `no-remote`, so their results stay local. Non-hermetic suites must
+set `tags = ["external", "no-cache"]` at the callsite to force execution and
+disable cache storage. `no-cache` alone does not prevent local test-result reuse.
 
 ```starlark
 load("@rules_web_e2e//playwright:browser.bzl", "playwright_browser_installation")
@@ -155,7 +158,6 @@ web_e2e_test(
     playwright = ":playwright",
     data = [":browsers", ":mock_fixtures"],
     env = {"PLAYWRIGHT_BROWSERS_PATH": "$(rootpath :browsers)"},
-    cacheable = True,
 )
 ```
 
@@ -163,22 +165,40 @@ Use caller-pinned browser downloads; see [browser provisioning](host-browsers.md
 Declare specs, app assets, servers, mocks, fixtures, and browser files. Mock external
 services, including calls from Node setup/server code. Reject unexpected requests.
 
-`cacheable = True` promises results depend on declared inputs plus controlled
+Caching assumes results depend on declared inputs plus a controlled
 host environment. Rules cannot verify mocks or browser pinning. Explicit
 `PLAYWRIGHT_BROWSERS_PATH` prevents implicit browser inheritance; it does not
 prove browser files declared. Live URLs hidden in config remain undeclared inputs.
 
-Unsupported: `browser`, visual/process-owned modes, URL attributes, `env_inherit`.
-Host execution stays manual, unsandboxed, and network-enabled. After host OS/library
-changes, force execution with `--cache_test_results=no`. Caller `no-cache` or
-`external` tags still disable reuse.
+Host execution stays local but does not opt out of Bazel sandboxing. After host OS/library
+changes, force execution with `--cache_test_results=no`. Caller `external` tags
+force fresh tests; `no-cache` and `no-remote-cache` restrict cache storage.
+
+## Test selection
+
+Public browser and visual test macros do not add `manual`. Tests participate in
+wildcard patterns and test suites by default. Callers that provision browsers or
+services in a separate workflow can opt out with `tags = ["manual"]` and select
+those targets explicitly. This selection policy is independent of caching
+and `execution`; capture and update helpers remain manual.
+
+Platform validators, Linux tools, and browser presets do not use `manual` to
+hide platform variants. Platform validation uses compatibility constraints;
+Linux tools use their architecture transition. Analysis fixtures and host-browser
+integration tests that need explicit selection set `manual` at their callsites.
+
+Host-browser tests retain `no-remote` because they rely on a provisioned host
+browser. Process-owned tests do not add it: callers must declare their executables
+or add execution restrictions themselves. Neither mode adds `requires-network`
+or `no-sandbox`. The isolated local Linux backend retains its execution constraints
+because it provides its own namespace sandbox.
 
 ## Runtime-only inputs
 
 `runtime_only` defaults to `True`, keeping source/type/debug files out of compiled
 `tests`, `config`, `server`, and `matching` runfiles. Set it to `False` to restore
 unfiltered compiled inputs, including sources and maps used for debugging.
-The option applies to the shared browser rules, independently of `cacheable`.
+The option applies to the shared browser rules, independently of cache policy.
 
 ```starlark
 web_e2e_test(
@@ -242,8 +262,8 @@ Supply credentials through declared environment or private generated inputs.
 
 Version-matched host browser, staged specs, clean environment, and artifacts
  shared with local E2E.
-Live data and remote deployments external inputs, so these tests remain
-uncached and do not promise reproducible application state. VRT fixtures must run inside their Linux action; deployed URLs belong in host E2E.
+Live data and remote deployments are external inputs: add `tags = ["external", "no-cache", "requires-network"]`
+to these tests. They do not promise reproducible application state. VRT fixtures must run inside their Linux action; deployed URLs belong in host E2E.
 
 `//:remote_integration_test` in React example starts independent fixture
 on random port and verifies base paths, interactions, host-network
