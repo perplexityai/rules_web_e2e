@@ -61,7 +61,8 @@ Use `--bazel=bazelisk` before `doctor`, `test`, or `run` if needed. Ignore
 `.web-e2e/` in Git and regenerate launcher after dependency upgrades. Run it
 outside `bazel run` to avoid holding Bazel's lock. Review screenshot updates.
 
-Browser targets `manual`; select them explicitly in CI. Retain
+Browser targets participate in wildcard test selection by default. Add
+`tags = ["manual"]` at callsites that require a separately provisioned CI lane. Retain
 `bazel-testlogs/` and `.web-e2e/logs/`. See [worker options and CI buckets](worker-preset.md).
 
 ## Advanced: custom inputs or workers

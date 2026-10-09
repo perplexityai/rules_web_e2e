@@ -131,6 +131,7 @@ def runtime_inputs_tests():
             tests = ":runtime_specs",
             config = ":runtime_config",
             server = ":runtime_server",
+            tags = ["manual"],
             data = [":runtime_specs/source.ts"] if policy == "explicit_data" else [],
             **options
         )
@@ -148,6 +149,7 @@ def runtime_inputs_tests():
         )
     web_e2e_test(
         name = "runtime_explicit_directories",
+        tags = ["manual"],
         tests = ":runtime_specs",
         config = ":runtime_config",
         server = ":runtime_server",
@@ -161,5 +163,5 @@ def runtime_inputs_tests():
     browser_shell(name = "runtime_directory_shell", assets = ":runtime_server_assets")
     for enabled in [True, False]:
         name = "runtime_shell_" + str(enabled)
-        web_e2e_test(name = name, tests = ":runtime_specs", shell = ":runtime_directory_shell", runtime_only = enabled)
+        web_e2e_test(name = name, tests = ":runtime_specs", shell = ":runtime_directory_shell", runtime_only = enabled, tags = ["manual"])
         _directory_contents_test(name = name + "_test", inputs = ":" + name + "_inputs", shell = True, keep_maps = not enabled)

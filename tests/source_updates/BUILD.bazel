@@ -49,6 +49,7 @@ ts_project(
 
 browser_process_test(
     name = "native_test",
+    tags = ["manual"],
     data = [":compiled"],
     snapshot_dir = "native",
     snapshots = glob(["native/**"]),

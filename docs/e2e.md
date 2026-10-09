@@ -124,7 +124,7 @@ fixture APIs for deterministic data; declare any authentication state files in
 `data`. Keep credentials in explicitly declared environment variables rather
 than checked-in state. Host browsers use host networking; VRT uses separate offline Linux actions.
 
-E2E manual, local, and uncached by default. It requires provisioned host browser, not
+Host E2E is local and uncached by default. It requires a provisioned host browser, not
 Docker; see [host setup](host-browsers.md).
 Server processes and browser resources cleaned up after completion. Failures
 return nonzero status and preserve JUnit, screenshots, and traces in Bazel's
@@ -169,9 +169,17 @@ host environment. Rules cannot verify mocks or browser pinning. Explicit
 prove browser files declared. Live URLs hidden in config remain undeclared inputs.
 
 Unsupported: `browser`, visual/process-owned modes, URL attributes, `env_inherit`.
-Host execution stays manual, unsandboxed, and network-enabled. After host OS/library
+Host execution stays unsandboxed and network-enabled. After host OS/library
 changes, force execution with `--cache_test_results=no`. Caller `no-cache` or
 `external` tags still disable reuse.
+
+## Test selection
+
+Public browser and visual test macros do not add `manual`. Tests participate in
+wildcard patterns and test suites by default. Callers that provision browsers or
+services in a separate workflow can opt out with `tags = ["manual"]` and select
+those targets explicitly. This selection policy is independent of `cacheable`
+and `execution`; capture and update helpers remain manual.
 
 ## Runtime-only inputs
 

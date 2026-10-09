@@ -55,7 +55,7 @@ review resulting image changes before committing them.
 
 ## Execution and evidence
 
-VRT explicit, `manual` lane of cacheable Linux execution actions. Runtime
+VRT uses cacheable Linux execution actions, with test selection controlled by callers. Runtime
 files, code, fixture data, and baselines declared inputs. Local wrapper
 reports downloaded results and applies successful captures on explicit updates.
 

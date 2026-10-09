@@ -263,7 +263,7 @@ def remote_browser_test(name, browser, env, args, tags, timeout, data, target_pl
         cacheable = cacheable,
         exec_properties = execution_properties,
         exec_compatible_with = constraints,
-        tags = ["manual", "visual_test" if visual else "browser_test"] + (["external", "no-cache"] if execution == "local" and not cacheable else []) + tags,
+        tags = ["visual_test" if visual else "browser_test"] + (["external", "no-cache"] if execution == "local" and not cacheable else []) + tags,
         timeout = timeout,
         shard_count = shard_count,
     )
