@@ -59,15 +59,14 @@ an audited boundary for hostile test code.
 
 ## Caching and lifecycle
 
-Local execution defaults to uncached browser results. For deterministic suites on
-a controlled CI worker pool, enable caching:
+Local execution uses normal Bazel caching by default. Deterministic suites on
+a controlled CI worker pool need no cache-specific attributes:
 
 ```starlark
 visual_test(
     name = "visuals",
     browser = "@web_browser//:browser",
     execution = "local",
-    cacheable = True,
     tests = ":compiled_visual_specs",
     config = ":config",
     baseline_dir = "__screenshots__",
@@ -83,11 +82,10 @@ Optional execution properties are declared job inputs too. Browser, font, fixtur
 changes remain ordinary declared-input changes. A cache hit skips execution and
 restores reports; the namespace preflight runs only on a miss.
 
-Use `--nocache_test_results` for fresh test runs. Default uncached tests retain
-`external`/`no-cache` behavior; default captures reject shared caches but may be
-reused within one output tree. Do not move output trees across hosts. Build inputs
-and the static runner stay cacheable in either mode. Use standard Bazel cache
-configuration; there is no separate browser cache.
+Use `--nocache_test_results` for fresh test runs. Callers can use `no-cache` or
+`no-remote-cache` tags to restrict result reuse; cache restrictions also apply to
+capture actions. Use standard Bazel cache configuration; there is no separate
+browser cache or rule-level cache opt-in.
 
 Private PID namespaces and Bubblewrap's parent-death handling bound descendants
 when Bazel cancels or times out. The existing runner watchdog also bounds stalled

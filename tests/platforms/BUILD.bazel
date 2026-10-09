@@ -1,6 +1,6 @@
 load("//component:defs.bzl", "browser_shell", "component_browser_test")
 load("//playwright:defs.bzl", "browser_runtime")
-load("//tests:cacheable_test.bzl", "selection_policy_test")
+load("//tests:execution_tags_test.bzl", "selection_policy_test")
 load("//vrt:defs.bzl", "component_visual_test", "visual_test")
 load(":defs.bzl", "capture_test", "directory", "failure_test", "harness_selection_test", "native_visual_test", "properties_test", "runtime_inputs_test", "typed_fixture")
 
@@ -40,8 +40,8 @@ browser_shell(
         root = ":files",
     )
     for arch, loader in [
-        ("x64", "ld-linux-x86-64.so.2"),
-        ("arm64", "ld-linux-aarch64.so.1"),
+        ("x64", "lib/ld-linux-x86-64.so.2"),
+        ("arm64", "lib/ld-linux-aarch64.so.1"),
     ]
 ]
 
@@ -71,6 +71,26 @@ component_visual_test(
     execution = "local",
     shell = ":shell",
     tags = ["manual"],
+)
+
+native_visual_test(
+    name = "local_visual_cache_contract_test",
+    target_under_test = ":local_visual",
+    local_execution = True,
+)
+
+component_visual_test(
+    name = "local_no_cache_visual",
+    browser = ":x64_browser",
+    execution = "local",
+    shell = ":shell",
+    tags = ["manual", "no-cache", "no-remote-cache"],
+)
+
+selection_policy_test(
+    name = "caller_capture_cache_tags_test",
+    target = "local_no_cache_visual_capture",
+    caller_tags = ["manual", "no-cache", "no-remote-cache"],
 )
 
 [

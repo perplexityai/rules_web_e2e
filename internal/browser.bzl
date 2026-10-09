@@ -187,7 +187,6 @@ def browser_test(
         visual = False,
         component = False,
         process_owned = False,
-        cacheable = False,
         exec_properties = {},
         runtime_only = True):
     """Internal common implementation; public wrappers select the test mode."""
@@ -204,10 +203,6 @@ def browser_test(
         fail("snapshots requires snapshot_dir")
     if exec_properties and execution != "local":
         fail("exec_properties is supported for execution = local")
-    if cacheable and execution != "local" and (browser or visual or process_owned or base_url or base_url_env or env_inherit):
-        fail("cacheable requires local host tests with explicit declared inputs and no inherited environment")
-    if cacheable and execution != "local" and "PLAYWRIGHT_BROWSERS_PATH" not in env:
-        fail("cacheable requires an explicit PLAYWRIGHT_BROWSERS_PATH")
     if target_arch not in ["x64", "arm64"]:
         fail("target_arch must be x64 or arm64")
     if target_platform == None:
@@ -293,14 +288,14 @@ def browser_test(
         if not process_owned and key not in env and key not in env_inherit
     ]
     if browser:
-        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256, host_vrt, execution, cacheable, exec_properties, shard_count)
+        remote_browser_test(name, browser, common["env"], args, tags, timeout, data, target_platform, visual, target_arch, worker_sha256, host_vrt, execution, exec_properties, shard_count)
         return
     js_test(
         name = name,
         patch_node_fs = False,
         args = args,
         env_inherit = browser_env_inherit + env_inherit,
-        tags = ([] if cacheable else ["external", "no-cache"]) + ["browser_process_test" if process_owned else "visual_test" if visual else "component_browser_test" if component else "e2e_test"] + ([] if process_owned else ["no-remote"]) + tags,
+        tags = ["browser_process_test" if process_owned else "visual_test" if visual else "component_browser_test" if component else "e2e_test"] + ([] if process_owned else ["no-remote"]) + tags,
         timeout = timeout,
         shard_count = shard_count,
         **common

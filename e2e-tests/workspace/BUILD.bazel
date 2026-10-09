@@ -523,7 +523,6 @@ _LOCAL_CACHE_INPUT = "original"
 visual_test(
     name = "local_cached_test",
     execution = "local",
-    cacheable = True,
     exec_properties = {"test-cache-partition": _LOCAL_CACHE_PLATFORM} if _LOCAL_CACHE_PLATFORM else {},
     target_arch = _TARGET_ARCH,
     browser = ":actiond_browser",

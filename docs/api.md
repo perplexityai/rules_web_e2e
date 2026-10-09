@@ -49,7 +49,6 @@ and application-specific output can still contain sensitive data.
 | `timeout` | `"long"` | Independent Bazel test timeout |
 | `snapshot_dir` | None | Host E2E/component/process snapshot directory, relative to package. Enables `.update`; owns snapshot layout. |
 | `snapshots` | `[]` | Declared baseline files for `snapshot_dir`, usually `glob(["snapshots/**"], allow_empty = True)`. |
-| `cacheable` | `False` | For `execution = "local"`, opt into normal Bazel disk/remote result caching; see [local caching](local-linux.md#caching-and-lifecycle). For host E2E/component tests, requires explicit browser path and caller-declared inputs. Host opt-in forbids URL attributes, env inheritance, visual, process-owned, or isolated browser modes. See [caching contract](e2e.md#opt-in-local-result-caching). |
 | `tags` | `[]` | Additional tags; use `["manual"]` to require explicit test selection |
 
 Choose one of `server`, `shell`, `base_url`, or `base_url_env`. Alternatively,
@@ -236,8 +235,8 @@ Use [worker preset](worker-preset.md) or [manual worker setup](actiond.md).
 Linux amd64 and ARM64 VRT comparisons use native Bazel test caching, retries,
 repeated runs, and timeouts. Isolated amd64 E2E/component tests use same path.
 VRT capture remains build action with local update command.
-Host E2E/component tests default to local,
-uncached execution; see `cacheable` for explicit opt-in.
+Host E2E/component tests execute locally and use normal Bazel test caching.
+Use caller tags such as `no-cache` or `external` for non-hermetic suites.
 
 ### Runtime convenience rules
 
