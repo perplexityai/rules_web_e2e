@@ -74,8 +74,12 @@ files must include Chromium/headless shell and any FFmpeg binary required by
 suite. Caller-owned Bazel browser repositories supported; these rules do not
 introduce another browser downloader or repository format.
 
-Tests use `no-remote-exec` to stay local while permitting
+Tests use caller-owned execution policy and
 [normal Bazel result caching](e2e.md#result-caching), including remote cache reuse.
+Declare browser executables and select compatible execution platforms with their
+required OS libraries and sandbox support. Add `no-remote-exec` at the callsite
+only when a suite requires a local host, such as an externally provisioned display
+or browser installation unavailable on remote workers.
 Non-hermetic suites must opt out with caller tags such as `external` plus `no-cache`.
 An externally provisioned host browser cache is an undeclared environmental input;
 such suites must opt out unless that environment is tracked in their cache key.

@@ -136,9 +136,8 @@ conventions remain consumer responsibilities.
 
 ## Result caching
 
-Tests use normal Bazel caching. Unchanged inputs reuse passing results. Host-browser
-tests retain `no-remote-exec`, keeping execution local without prohibiting remote
-result caching. Non-hermetic suites must
+Tests use normal Bazel caching. Unchanged inputs reuse passing results.
+Execution restrictions are caller-owned, independently of result caching. Non-hermetic suites must
 set `tags = ["external", "no-cache"]` at the callsite to force execution and
 disable cache storage. `no-cache` alone does not prevent local test-result reuse.
 
@@ -171,7 +170,7 @@ host environment. Rules cannot verify mocks or browser pinning. Explicit
 `PLAYWRIGHT_BROWSERS_PATH` prevents implicit browser inheritance; it does not
 prove browser files declared. Live URLs hidden in config remain undeclared inputs.
 
-Host execution stays local but does not opt out of Bazel sandboxing. After host OS/library
+Host-browser tests do not opt out of remote execution or Bazel sandboxing. After host OS/library
 changes, force execution with `--cache_test_results=no`. Caller `external` tags
 force fresh tests; `no-cache` and `no-remote-cache` restrict cache storage.
 
@@ -188,11 +187,13 @@ hide platform variants. Platform validation uses compatibility constraints;
 Linux tools use their architecture transition. Analysis fixtures and host-browser
 integration tests that need explicit selection set `manual` at their callsites.
 
-Host-browser tests retain `no-remote-exec` because they run on the configured host.
-Cache restrictions are caller-owned: declare browser artifacts and control the
+Host-browser and process-owned tests do not add execution restrictions. Declare
+browser executables and select compatible execution platforms with the required
+OS libraries and sandbox support. Callers that require a local host must add
+`no-remote-exec` themselves.
+Cache restrictions are also caller-owned: declare browser artifacts and control the
 host environment for shared result reuse, or supply cache opt-out tags.
-Process-owned tests do not add execution restrictions: callers must declare their executables
-or add execution restrictions themselves. Neither mode adds `requires-network`
+Neither mode adds `requires-network`
 or `no-sandbox`. The isolated local Linux backend retains its execution constraints
 because it provides its own namespace sandbox.
 
