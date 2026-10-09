@@ -6,6 +6,9 @@ if (!root) throw new Error('Playwright UI requires Bazel runfiles')
 const bundle = path.join(root, %{bundle})
 const {playwrightCli} = await import(pathToFileURL(path.join(bundle, 'runfiles.mjs')).href)
 const args = process.argv.slice(2)
+const serverOnly = process.platform === 'linux' && !process.env.DISPLAY && !process.env.WAYLAND_DISPLAY
+if (serverOnly && !args.includes('--list') && !args.includes('--help') && !args.some(arg => /^--ui-(host|port)(=|$)/.test(arg)))
+  args.push('--ui-host=127.0.0.1')
 process.chdir(path.join(root, process.env.JS_BINARY__WORKSPACE || '_main'))
 process.argv = [
   process.execPath, playwrightCli, 'test', '--config', path.join(bundle, 'playwright.config.mjs'),

@@ -64,3 +64,8 @@ this rule uses declared compiled suites and the declared Playwright runtime only
 
 Managed-server E2E suites are supported. Component, visual, and process-owned
 suites require different runtime contracts and are rejected.
+
+On Linux without `DISPLAY` or `WAYLAND_DISPLAY`, the launcher serves the UI on
+loopback and prints its URL instead of opening a headed browser. Forward that
+port from your devbox and open it locally. Explicit `--ui-host` and `--ui-port`
+options override the default.

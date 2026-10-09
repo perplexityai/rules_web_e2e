@@ -138,3 +138,13 @@ js_test(
     env = {"UI_BUNDLE": "$(rootpath :suite_bundle)"},
     patch_node_fs = False,
 )
+
+js_test(
+    name = "headless_startup_test",
+    size = "small",
+    data = [":suite_aggregate"],
+    entry_point = "headless_startup_test.mjs",
+    env = {"UI_LAUNCHER": "$(rootpath :suite_aggregate)"},
+    patch_node_fs = False,
+    target_compatible_with = ["@platforms//os:linux"],
+)
