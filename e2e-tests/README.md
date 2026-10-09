@@ -50,7 +50,7 @@ Host CI also runs `temp-paths.ts` with deep and symlinked temp roots, checking r
 `cacheable.ts` checks host E2E/component result reuse with runtime-only inputs:
 erased type edits and map-only edits (including maps inside built directories)
 retain cache hits, while emitted JavaScript,
-app, mock, and browser input changes rerun tests. Targets tagged `no-cache` still
+app, mock, and browser input changes rerun tests. Targets tagged `external` still
 execute on every invocation.
 
 VM gallery also captures and compares real pointer-hover state, asserting CSS `:hover` inside `beforeCapture`.

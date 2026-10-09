@@ -39,9 +39,12 @@ def _presets_impl(ctx):
         labels = {}
         for package in manifest["packages"]:
             name = preset + "_" + package["name"].replace("+", "_")
+            mirror = "https://ports.ubuntu.com/ubuntu-ports/pool/" if preset.endswith("_arm64") else "https://archive.ubuntu.com/ubuntu/pool/"
+            # Exact package hashes keep mirror fallback reproducible during snapshot outages.
+            mirrors = [mirror + url.split("/pool/", 1)[1] for url in package["urls"] if url.startswith("https://snapshot.ubuntu.com/ubuntu/") and "/pool/" in url]
             http_archive(
                 name = name,
-                urls = package["urls"],
+                urls = package["urls"] + mirrors,
                 sha256 = package["sha256"],
                 build_file_content = 'filegroup(name = "data", srcs = glob(["data.tar*"], allow_empty = False), visibility = ["//visibility:public"])',
             )

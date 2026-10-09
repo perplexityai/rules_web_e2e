@@ -236,7 +236,8 @@ Linux amd64 and ARM64 VRT comparisons use native Bazel test caching, retries,
 repeated runs, and timeouts. Isolated amd64 E2E/component tests use same path.
 VRT capture remains build action with local update command.
 Host E2E/component tests execute locally and use normal Bazel test caching.
-Use caller tags such as `no-cache` or `external` for non-hermetic suites.
+Use caller `external` tags for tests that must execute on every invocation.
+Use `no-cache`/`no-remote-cache` tags for cache storage restrictions.
 
 ### Runtime convenience rules
 

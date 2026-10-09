@@ -138,7 +138,8 @@ conventions remain consumer responsibilities.
 
 Tests use normal Bazel caching. Unchanged inputs reuse passing results. Host-browser
 tests retain `no-remote`, so their results stay local. Non-hermetic suites must
-set `tags = ["no-cache"]` or `tags = ["external"]` at the callsite.
+set `tags = ["external", "no-cache"]` at the callsite to force execution and
+disable cache storage. `no-cache` alone does not prevent local test-result reuse.
 
 ```starlark
 load("@rules_web_e2e//playwright:browser.bzl", "playwright_browser_installation")
@@ -170,8 +171,8 @@ host environment. Rules cannot verify mocks or browser pinning. Explicit
 prove browser files declared. Live URLs hidden in config remain undeclared inputs.
 
 Host execution stays local but does not opt out of Bazel sandboxing. After host OS/library
-changes, force execution with `--cache_test_results=no`. Caller `no-cache` or
-`external` tags still disable reuse.
+changes, force execution with `--cache_test_results=no`. Caller `external` tags
+force fresh tests; `no-cache` and `no-remote-cache` restrict cache storage.
 
 ## Test selection
 
@@ -261,7 +262,7 @@ Supply credentials through declared environment or private generated inputs.
 
 Version-matched host browser, staged specs, clean environment, and artifacts
  shared with local E2E.
-Live data and remote deployments are external inputs: add `tags = ["no-cache", "requires-network"]`
+Live data and remote deployments are external inputs: add `tags = ["external", "no-cache", "requires-network"]`
 to these tests. They do not promise reproducible application state. VRT fixtures must run inside their Linux action; deployed URLs belong in host E2E.
 
 `//:remote_integration_test` in React example starts independent fixture

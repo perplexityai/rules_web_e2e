@@ -26,7 +26,7 @@ js_library(name = "cache_component_specs", srcs = [":cache_component_spec"], dep
   for (const [name, macro, specs, policy] of [
     ['cached_e2e', 'web_e2e_test', 'cache_specs', []],
     ['cached_component', 'component_browser_test', 'cache_component_specs', []],
-    ['uncached_e2e', 'web_e2e_test', 'cache_specs', ['no-cache']],
+    ['uncached_e2e', 'web_e2e_test', 'cache_specs', ['external', 'no-cache']],
   ]) {
     fs.appendFileSync(path.join(consumer, 'BUILD.bazel'), `
 ${macro}(
