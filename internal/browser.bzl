@@ -295,7 +295,7 @@ def browser_test(
         patch_node_fs = False,
         args = args,
         env_inherit = browser_env_inherit + env_inherit,
-        tags = ["browser_process_test" if process_owned else "visual_test" if visual else "component_browser_test" if component else "e2e_test"] + ([] if process_owned else ["no-remote"]) + tags,
+        tags = ["browser_process_test" if process_owned else "visual_test" if visual else "component_browser_test" if component else "e2e_test"] + ([] if process_owned else ["no-remote-exec"]) + tags,
         timeout = timeout,
         shard_count = shard_count,
         **common

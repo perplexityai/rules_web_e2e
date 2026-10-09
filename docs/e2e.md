@@ -137,7 +137,8 @@ conventions remain consumer responsibilities.
 ## Result caching
 
 Tests use normal Bazel caching. Unchanged inputs reuse passing results. Host-browser
-tests retain `no-remote`, so their results stay local. Non-hermetic suites must
+tests retain `no-remote-exec`, keeping execution local without prohibiting remote
+result caching. Non-hermetic suites must
 set `tags = ["external", "no-cache"]` at the callsite to force execution and
 disable cache storage. `no-cache` alone does not prevent local test-result reuse.
 
@@ -187,8 +188,10 @@ hide platform variants. Platform validation uses compatibility constraints;
 Linux tools use their architecture transition. Analysis fixtures and host-browser
 integration tests that need explicit selection set `manual` at their callsites.
 
-Host-browser tests retain `no-remote` because they rely on a provisioned host
-browser. Process-owned tests do not add it: callers must declare their executables
+Host-browser tests retain `no-remote-exec` because they run on the configured host.
+Cache restrictions are caller-owned: declare browser artifacts and control the
+host environment for shared result reuse, or supply cache opt-out tags.
+Process-owned tests do not add execution restrictions: callers must declare their executables
 or add execution restrictions themselves. Neither mode adds `requires-network`
 or `no-sandbox`. The isolated local Linux backend retains its execution constraints
 because it provides its own namespace sandbox.
