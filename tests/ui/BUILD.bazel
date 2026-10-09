@@ -76,10 +76,42 @@ web_e2e_ui(
     ],
 )
 
+test_suite(
+    name = "auth_suite",
+    tags = ["manual"],
+    tests = [":auth_test"],
+)
+
+test_suite(
+    name = "all_tests",
+    tags = ["manual"],
+    tests = [
+        ":auth_suite",
+        ":billing_test",
+    ],
+)
+
+web_e2e_ui(
+    name = "suite_aggregate",
+    config = ":config",
+    suites = [
+        ":all_tests",
+        ":auth_test",
+    ],
+)
+
 sh_test(
     name = "discovery_test",
     size = "small",
     srcs = ["discovery_test.sh"],
     args = ["$(rootpath :aggregate)"],
     data = [":aggregate"],
+)
+
+sh_test(
+    name = "suite_discovery_test",
+    size = "small",
+    srcs = ["discovery_test.sh"],
+    args = ["$(rootpath :suite_aggregate)"],
+    data = [":suite_aggregate"],
 )

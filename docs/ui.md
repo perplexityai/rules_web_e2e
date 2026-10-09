@@ -1,15 +1,21 @@
 # Aggregate Playwright UI
 
 `web_e2e_ui` launches a local Playwright UI session over existing `web_e2e_test`
-targets. It is a developer executable, with no test-result caching, CI deadline,
-or remote browser worker. Suite compilation remains separate and reusable.
+targets, directly or through nested Bazel `test_suite` targets. It is a developer
+executable, with no test-result caching, CI deadline, or remote browser worker.
+Suite compilation remains separate and reusable.
 
 ```starlark
 load("@rules_web_e2e//e2e:defs.bzl", "web_e2e_ui")
 
+test_suite(
+    name = "e2e_tests",
+    tests = ["//e2e/auth:tests", "//e2e/billing:tests"],
+)
+
 web_e2e_ui(
     name = "e2e_ui",
-    suites = ["//e2e/auth:tests", "//e2e/billing:tests"],
+    suites = [":e2e_tests"],
     config = ":compiled_ui_config",
     playwright = ":playwright_runtime",
     env = {"APP_PORT": "1234"},
@@ -21,6 +27,12 @@ bazel run //e2e:e2e_ui
 bazel run //e2e:e2e_ui -- --ui-host=127.0.0.1 --ui-port=8080
 bazel run //e2e:e2e_ui -- --list
 ```
+
+Reuse the existing CI `test_suite` so adding a feature target updates both CI and
+UI without maintaining a second list. Suite traversal follows explicit `tests`
+entries recursively; specify those entries rather than relying on implicit
+package-wide test discovery. Bazel `test_suite` tag filtering is not applied by
+UI aggregation: every explicitly listed managed E2E target is selected.
 
 The rule selects compiled specs from each suite and includes their dependencies
 and explicit data. Duplicate specs appear once. At launch, it writes a temporary
@@ -47,7 +59,7 @@ source edits, or use source mode for the live edit/watch workflow.
 ```starlark
 web_e2e_ui(
     name = "e2e_ui_source",
-    suites = ["//e2e/auth:tests", "//e2e/billing:tests"],
+    suites = [":e2e_tests"],
     mode = "source",
     source_config = "playwright.source.config.ts",
 )

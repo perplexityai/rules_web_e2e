@@ -11,12 +11,15 @@ def _suites_impl(target, ctx):
     if BrowserSuiteInfo in target:
         return [_SuitesInfo(suites = [target[BrowserSuiteInfo]])]
     suites = []
-    for dependency in getattr(ctx.rule.attr, "data", []):
+    dependencies = getattr(ctx.rule.attr, "data", [])
+    if ctx.rule.kind == "test_suite":
+        dependencies = dependencies + ctx.rule.attr.tests
+    for dependency in dependencies:
         if _SuitesInfo in dependency:
             suites.extend(dependency[_SuitesInfo].suites)
     return [_SuitesInfo(suites = suites)]
 
-_suites = aspect(implementation = _suites_impl, attr_aspects = ["data"])
+_suites = aspect(implementation = _suites_impl, attr_aspects = ["data", "tests"])
 
 def _inputs_impl(ctx):
     tests = []
@@ -24,7 +27,7 @@ def _inputs_impl(ctx):
     for target in ctx.attr.suites:
         suites = target[_SuitesInfo].suites
         if not suites:
-            fail("suites must contain web_e2e_test targets: " + str(target.label))
+            fail("suites must contain web_e2e_test targets directly or through test_suite: " + str(target.label))
         for suite in suites:
             if suite.mode != "e2e":
                 fail("web_e2e_ui supports managed-server E2E suites only")
