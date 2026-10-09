@@ -217,8 +217,11 @@ remain. Directory artifacts owned by the test's repository are copied without
 aliases. This also applies to built `browser_shell` assets. Other files within
 directories are preserved. A map-only change may rerun the copy action without
 invalidating the browser result when the projected contents are identical.
-Other repositories' files, browser/runtime packages, explicit `data`, and snapshot
-inputs are not filtered. Explicit `data` wins when the same directory also appears
+Other repositories' files, npm packages under `node_modules`, browser/runtime
+packages, explicit `data`, and snapshot inputs are not filtered. npm package trees
+retain their original artifact paths so Node can resolve imports from real
+compiled-file paths without relying on previously materialized build outputs.
+Explicit `data` wins when the same directory also appears
 in compiled inputs. Declare a
 source file or map in `data` if the test intentionally reads it.
 
