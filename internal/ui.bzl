@@ -87,7 +87,7 @@ def web_e2e_ui(name, suites, config = None, source_config = None, mode = "compil
     js_binary(
         name = name,
         entry_point = Label("//runtime:ui_entry"),
-        data = [":" + name + "_ui_inputs", Label("//runtime:ui_files")],
+        data = [":" + name + "_ui_inputs", Label("//runtime:ui_files")] + data,
         env = env | {"WEB_E2E_UI_INPUTS": "$(rlocationpath :%s_ui_inputs)" % name},
         args = args,
         patch_node_fs = False,

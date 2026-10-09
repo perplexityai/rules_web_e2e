@@ -19,10 +19,14 @@ ts_project(
         "module": "ESNext",
         "moduleResolution": "Bundler",
         "strict": True,
+        "types": ["node"],
         "declaration": True,
         "skipLibCheck": True,
     }},
-    deps = ["//:node_modules/@playwright/test"],
+    deps = [
+        "//:node_modules/@playwright/test",
+        "//:node_modules/@types/node",
+    ],
 )
 
 js_library(
@@ -94,6 +98,8 @@ test_suite(
 web_e2e_ui(
     name = "suite_aggregate",
     config = ":config",
+    data = ["package.json"],
+    env = {"UI_FIXTURE_PACKAGE": "$(rootpath package.json)"},
     suites = [
         ":all_tests",
         ":auth_test",

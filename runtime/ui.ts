@@ -50,7 +50,7 @@ export async function launchUI(): Promise<number> {
       }
       config = path.join(scratch, 'playwright.config.mjs')
       fs.writeFileSync(config, aggregateConfig(original, tests))
-      cwd = runfiles
+      cwd = path.join(runfiles, process.env.JS_BINARY__WORKSPACE || '_main')
     }
     const args = process.argv.slice(2)
     const child = spawn(process.execPath, [path.join(testPackage, 'cli.js'), 'test', '--config', config,
