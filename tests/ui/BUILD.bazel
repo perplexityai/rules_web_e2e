@@ -1,0 +1,117 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//e2e:defs.bzl", "web_e2e_test", "web_e2e_ui")
+
+ts_project(
+    name = "compiled",
+    srcs = [
+        "auth.spec.ts",
+        "billing.spec.ts",
+        "ui.config.ts",
+        "unused.spec.ts",
+    ],
+    data = ["package.json"],
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = {"compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": True,
+        "declaration": True,
+        "skipLibCheck": True,
+    }},
+    deps = ["//:node_modules/@playwright/test"],
+)
+
+js_library(
+    name = "config",
+    srcs = ["ui.config.js"],
+    deps = [":compiled"],
+)
+
+[
+    js_library(
+        name = feature + "_specs",
+        srcs = [feature + ".spec.js"],
+        deps = [":compiled"],
+    )
+    for feature in [
+        "auth",
+        "billing",
+    ]
+]
+
+[
+    web_e2e_test(
+        name = feature + "_test",
+        config = ":config",
+        tags = ["manual"],
+        tests = ":" + feature + "_specs",
+    )
+    for feature in [
+        "auth",
+        "billing",
+    ]
+]
+
+web_e2e_ui(
+    name = "aggregate",
+    config = ":config",
+    suites = [
+        ":auth_test",
+        ":billing_test",
+        ":auth_test",
+    ],
+)
+
+web_e2e_ui(
+    name = "source",
+    mode = "source",
+    source_config = "source.config.ts",
+    suites = [
+        ":auth_test",
+        ":billing_test",
+    ],
+)
+
+test_suite(
+    name = "auth_suite",
+    tags = ["manual"],
+    tests = [":auth_test"],
+)
+
+test_suite(
+    name = "all_tests",
+    tags = ["manual"],
+    tests = [
+        ":auth_suite",
+        ":billing_test",
+    ],
+)
+
+web_e2e_ui(
+    name = "suite_aggregate",
+    config = ":config",
+    suites = [
+        ":all_tests",
+        ":auth_test",
+    ],
+)
+
+sh_test(
+    name = "discovery_test",
+    size = "small",
+    srcs = ["discovery_test.sh"],
+    args = ["$(rootpath :aggregate)"],
+    data = [":aggregate"],
+)
+
+sh_test(
+    name = "suite_discovery_test",
+    size = "small",
+    srcs = ["discovery_test.sh"],
+    args = ["$(rootpath :suite_aggregate)"],
+    data = [":suite_aggregate"],
+)

@@ -4,6 +4,9 @@
 Write clicks, navigation, form interactions, and assertions with `@playwright/test`.
 No screenshot baseline or `.update` target required.
 
+Use [aggregate Playwright UI](ui.md) to run one local UI session over split E2E
+targets, with compiled inputs or workspace source watching.
+
 ```ts
 import {expect, test} from '@playwright/test'
 

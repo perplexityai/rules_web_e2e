@@ -9,6 +9,7 @@ load(":matching.bzl", "matching_config")
 load(":remote.bzl", "remote_browser_test")
 load(":runtime_inputs.bzl", "compiled_runtime_runfiles")
 load(":snapshots.bzl", "snapshot_update")
+load(":ui.bzl", "BrowserSuiteInfo")
 
 ShellInfo = provider(fields = ["directory", "entry_point"])
 
@@ -130,7 +131,14 @@ def _inputs_impl(ctx):
             else:
                 inputs = inputs.merge(target[DefaultInfo].default_runfiles)
                 inputs = inputs.merge(ctx.runfiles(transitive_files = target[DefaultInfo].files))
-    return [DefaultInfo(files = depset([result]), runfiles = inputs)]
+    ui_runfiles = ctx.runfiles(files = tests)
+    for target in [ctx.attr.tests, ctx.attr.sources]:
+        if target:
+            ui_runfiles = ui_runfiles.merge(target[DefaultInfo].default_runfiles).merge(ctx.runfiles(transitive_files = target[DefaultInfo].files))
+    return [
+        DefaultInfo(files = depset([result]), runfiles = inputs),
+        BrowserSuiteInfo(tests = tests, runfiles = ui_runfiles, mode = ctx.attr.mode),
+    ]
 
 _inputs = rule(
     implementation = _inputs_impl,

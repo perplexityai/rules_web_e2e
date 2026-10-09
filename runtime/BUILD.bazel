@@ -111,6 +111,25 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
+filegroup(
+    name = "ui_entry",
+    srcs = ["ui.js"],
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "ui_files",
+    srcs = ["ui.js", "package.json"],
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "ui_test",
+    size = "small",
+    data = ["package.json", ":test_typecheck"],
+    entry_point = "ui.test.js",
+)
+
 js_library(
     name = "remote_result_files",
     srcs = ["remote-result.js", "baselines.js", "package.json"],
