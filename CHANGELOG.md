@@ -26,6 +26,21 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.9.0 (2026-10-09)
+
+## What's Changed
+* feat: prune source maps from browser input directories by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/114
+* fix: let callers control browser test selection by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/116
+* fix: preserve npm package paths in runtime inputs by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/117
+* fix: allow remote caching for local browser tests by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/119
+* fix: leave host browser execution restrictions to callers by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/120
+* feat: aggregate E2E suites in local Playwright UI by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/121
+* fix: resolve caller data paths in Playwright UI by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/122
+* fix: build Playwright UI bundles as declared Bazel outputs by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/123
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.8.1...v3.9.0
+
 ## 3.8.1 (2026-10-08)
 
 ## What's Changed
