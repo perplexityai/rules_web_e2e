@@ -34,15 +34,20 @@ entries recursively; specify those entries rather than relying on implicit
 package-wide test discovery. Bazel `test_suite` tag filtering is not applied by
 UI aggregation: every explicitly listed managed E2E target is selected.
 
-The rule selects compiled specs from each suite and includes their dependencies
-and explicit data. Duplicate specs appear once. At launch, it writes a temporary
-aggregate config and small modules that import exactly those specs. The UI watches
-this isolated directory rather than recursively watching Bazel outputs and runfiles,
-which can exhaust macOS file descriptors before a test worker starts. Imports still
-resolve from the original compiled specs. Source maps and original source inputs
-are retained for debugging. Temporary configuration is removed
-when Playwright exits. The UI process runs until closed and receives terminal
-interrupts; it has no suite execution timer.
+Bazel selects and deduplicates compiled specs during analysis. Declared actions
+build an immutable directory artifact containing the aggregate config and import
+modules for exactly those specs. A generated `js_binary` entry point starts the
+declared Playwright CLI directly with Bazel's Node toolchain. No session-time
+config generation, temporary spec copies, or workspace package-manager lookup.
+
+The UI watches only the bundle's spec directory. It cannot recursively watch
+neighboring Bazel outputs and runfiles, which exhausted macOS file descriptors
+and caused `spawn EBADF` when workers started. Specs execute at their original
+compiled locations, retaining relative imports, source maps, and debugger inputs.
+
+Test artifacts use the caller's configured output directory or default to
+`test-results/<package>/<target>` under the workspace. Bazel tests use their
+output/temp directory instead. The bundle itself is never modified by the UI.
 
 Supply one aggregate compiled config, including browser settings and a shared
 `webServer` if needed. Individual suite configs and environment variables are
@@ -53,28 +58,9 @@ working directory. Declare extra server dependencies in `data` and values in
 Specs and config must resolve the same `@playwright/test` instance as the declared
 runtime, matching the regular test rule's package contract.
 
-Compiled mode displays the emitted JavaScript executed by CI. Watching workspace
-TypeScript does not rebuild Bazel outputs automatically. Rebuild/relaunch after
-source edits, or use source mode for the live edit/watch workflow.
+The UI displays the emitted JavaScript executed by CI. Rebuild/relaunch after
+TypeScript edits. `mode = "source"` and `source_config` are no longer supported;
+this rule uses declared compiled suites and the declared Playwright runtime only.
 
-## Workspace source mode
-
-```starlark
-web_e2e_ui(
-    name = "e2e_ui_source",
-    suites = [":e2e_tests"],
-    mode = "source",
-    source_config = "playwright.source.config.ts",
-)
-```
-
-Source mode runs the caller's original config from `BUILD_WORKSPACE_DIRECTORY`.
-That config owns source test discovery, TypeScript aliases, server startup, and
-watch behavior. Configure it to discover the same feature specs selected by the
-suite list. It uses the workspace's installed `@playwright/test`, so run the
-workspace package-manager setup first. It inherits the developer's environment
-and browser installation. It deliberately runs outside hermetic test actions;
-source discovery is not constrained to the compiled suite selection.
-
-Both modes currently support managed-server E2E suites. Component, visual, and
-process-owned suites require different runtime contracts and are rejected.
+Managed-server E2E suites are supported. Component, visual, and process-owned
+suites require different runtime contracts and are rejected.

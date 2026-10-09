@@ -2,6 +2,9 @@ load(":remote.bzl", "linux_platform")
 
 exports_files([
     "capture-launcher.sh.tpl",
+    "ui-config.mjs.tpl",
+    "ui-runfiles.mjs.tpl",
+    "ui-launcher.mjs.tpl",
     "browser.bzl",
     "snapshots.bzl",
     "matching.bzl",
@@ -31,4 +34,7 @@ linux_platform(
     target_compatible_with = ["@platforms//os:linux"],
 )
 
-exports_files(["matching-config.ts"], visibility = ["//visibility:private"])
+exports_files(
+    ["matching-config.ts"],
+    visibility = ["//visibility:private"],
+)

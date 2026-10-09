@@ -1,7 +1,8 @@
-"""Aggregate browser suites for local Playwright development."""
+"""Aggregate browser suites into a declared Playwright UI bundle."""
 
 load("@aspect_rules_js//js:defs.bzl", "js_binary")
-load("@bazel_lib//lib:paths.bzl", "to_rlocation_path")
+load("@bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory_bin_action")
+load("@bazel_lib//lib:paths.bzl", "to_repository_relative_path", "to_rlocation_path")
 load("//playwright:defs.bzl", "PlaywrightInfo")
 
 BrowserSuiteInfo = provider(fields = ["tests", "runfiles", "mode"])
@@ -21,6 +22,15 @@ def _suites_impl(target, ctx):
 
 _suites = aspect(implementation = _suites_impl, attr_aspects = ["data", "tests"])
 
+def _common_directory(files):
+    parts = [file.path.split("/")[:-1] for file in files]
+    common = []
+    for i in range(min([len(value) for value in parts])):
+        if any([value[i] != parts[0][i] for value in parts]):
+            break
+        common.append(parts[0][i])
+    return common
+
 def _inputs_impl(ctx):
     tests = []
     runfiles = ctx.runfiles()
@@ -36,59 +46,97 @@ def _inputs_impl(ctx):
     tests = depset(tests).to_list()
     if not tests:
         fail("suites must select at least one compiled spec")
-    if ctx.attr.mode == "compiled":
-        if not ctx.attr.config:
-            fail("compiled mode requires an aggregate config")
-        config_files = [file for file in ctx.files.config if file.extension in ["js", "mjs"]]
-        if len(config_files) != 1 or config_files[0].is_source:
-            fail("config must supply one compiled JavaScript module")
-        config = to_rlocation_path(ctx, config_files[0])
-        runfiles = runfiles.merge(ctx.attr.config[DefaultInfo].default_runfiles).merge(ctx.runfiles(files = ctx.files.config))
-    else:
-        if not ctx.file.source_config or not ctx.file.source_config.is_source or ctx.file.source_config.short_path.startswith("../"):
-            fail("source mode requires a workspace source_config")
-        config = ctx.file.source_config.short_path
+    config_files = [file for file in ctx.files.config if file.extension in ["js", "mjs"]]
+    if len(config_files) != 1 or config_files[0].is_source:
+        fail("config must supply one compiled JavaScript module")
     runtime = ctx.attr.playwright[PlaywrightInfo]
-    manifest = ctx.actions.declare_file(ctx.label.name + ".json")
-    ctx.actions.write(manifest, json.encode({
-        "mode": ctx.attr.mode,
-        "config": config,
-        "tests": [to_rlocation_path(ctx, file) for file in tests],
-        "playwright": runtime.test,
-    }))
-    for target in [ctx.attr.playwright] + ctx.attr.data:
+    bundle = ctx.actions.declare_directory(ctx.label.name + ".suite")
+    generated = []
+    destinations = {}
+    for file in tests:
+        destination = "specs/" + to_rlocation_path(ctx, file) + ".mjs"
+        wrapper = ctx.actions.declare_file(ctx.label.name + ".generated/" + destination)
+        helper = "../" * (len(destination.split("/")) - 1) + "runfiles.mjs"
+        ctx.actions.write(wrapper, "import { importModule } from %s;\nawait importModule(%s);\n" % (
+            json.encode(helper),
+            json.encode(to_rlocation_path(ctx, file)),
+        ))
+        generated.append(wrapper)
+        destinations[to_repository_relative_path(wrapper)] = destination
+    root_up = "/".join([".."] * (len(tests[0].path.split("/")) - 1 - len(_common_directory(tests)))) or "."
+    substitutions = {
+        "%{config}": json.encode(to_rlocation_path(ctx, config_files[0])),
+        "%{playwright}": json.encode(runtime.test),
+        "%{root_anchor}": json.encode(to_rlocation_path(ctx, tests[0])),
+        "%{root_up}": json.encode(root_up),
+        "%{output_path}": json.encode(ctx.label.package + "/" + ctx.attr.output_name),
+    }
+    for template, destination in [
+        (ctx.file._config_template, "playwright.config.mjs"),
+        (ctx.file._runfiles_template, "runfiles.mjs"),
+    ]:
+        output = ctx.actions.declare_file(ctx.label.name + ".generated/" + destination)
+        ctx.actions.expand_template(template = template, output = output, substitutions = substitutions)
+        generated.append(output)
+        destinations[to_repository_relative_path(output)] = destination
+
+    # Playwright ignores individually symlinked specs. A tree artifact contains real
+    # files and bounds directory watching to the selected specs, not Bazel runfiles.
+    copy_to_directory_bin_action(
+        ctx,
+        name = ctx.label.name,
+        dst = bundle,
+        copy_to_directory_bin = ctx.toolchains["@bazel_lib//lib:copy_to_directory_toolchain_type"].copy_to_directory_info.bin,
+        files = generated,
+        root_paths = [],
+        include_external_repositories = ["**"],
+        replace_prefixes = destinations,
+        hardlink = "off",
+    )
+    launcher = ctx.actions.declare_file(ctx.label.name + ".mjs")
+    ctx.actions.expand_template(
+        template = ctx.file._launcher_template,
+        output = launcher,
+        substitutions = {"%{bundle}": json.encode(to_rlocation_path(ctx, bundle))},
+    )
+    for target in [ctx.attr.config, ctx.attr.playwright] + ctx.attr.data:
         runfiles = runfiles.merge(target[DefaultInfo].default_runfiles).merge(ctx.runfiles(transitive_files = target[DefaultInfo].files))
-    return [DefaultInfo(files = depset([manifest]), runfiles = runfiles.merge(ctx.runfiles(files = [manifest])))]
+    return [
+        DefaultInfo(files = depset([launcher]), runfiles = runfiles.merge(ctx.runfiles(files = [launcher, bundle]))),
+        OutputGroupInfo(ui_bundle = depset([bundle])),
+    ]
 
 _inputs = rule(
     implementation = _inputs_impl,
     attrs = {
         "suites": attr.label_list(mandatory = True, aspects = [_suites]),
-        "config": attr.label(allow_files = True),
-        "source_config": attr.label(allow_single_file = True),
-        "mode": attr.string(default = "compiled", values = ["compiled", "source"]),
+        "config": attr.label(mandatory = True, allow_files = True),
         "playwright": attr.label(mandatory = True, providers = [PlaywrightInfo]),
         "data": attr.label_list(allow_files = True),
+        "output_name": attr.string(mandatory = True),
+        "_config_template": attr.label(default = Label("//internal:ui-config.mjs.tpl"), allow_single_file = True),
+        "_runfiles_template": attr.label(default = Label("//internal:ui-runfiles.mjs.tpl"), allow_single_file = True),
+        "_launcher_template": attr.label(default = Label("//internal:ui-launcher.mjs.tpl"), allow_single_file = True),
     },
+    toolchains = ["@bazel_lib//lib:copy_to_directory_toolchain_type"],
 )
 
-def web_e2e_ui(name, suites, config = None, source_config = None, mode = "compiled", playwright = Label("//runtime:playwright"), data = [], env = {}, args = [], visibility = None):
-    """Launch one local UI session over existing E2E suites with a shared config."""
+def web_e2e_ui(name, suites, config, playwright = Label("//runtime:playwright"), data = [], env = {}, args = [], visibility = None):
+    """Build an aggregate UI bundle and run it with declared Node and Playwright."""
     _inputs(
         name = name + "_ui_inputs",
         suites = depset(suites).to_list(),
         config = config,
-        source_config = source_config,
-        mode = mode,
         playwright = playwright,
         data = data,
+        output_name = name,
         testonly = True,
     )
     js_binary(
         name = name,
-        entry_point = Label("//runtime:ui_entry"),
-        data = [":" + name + "_ui_inputs", Label("//runtime:ui_files")] + data,
-        env = env | {"WEB_E2E_UI_INPUTS": "$(rlocationpath :%s_ui_inputs)" % name},
+        entry_point = ":" + name + "_ui_inputs",
+        data = [":" + name + "_ui_inputs"] + data,
+        env = env,
         args = args,
         patch_node_fs = False,
         copy_data_to_bin = False,
