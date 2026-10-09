@@ -1,4 +1,4 @@
-load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("//e2e:defs.bzl", "web_e2e_test", "web_e2e_ui")
@@ -6,8 +6,10 @@ load("//e2e:defs.bzl", "web_e2e_test", "web_e2e_ui")
 ts_project(
     name = "compiled",
     srcs = [
+        "aggregate.config.ts",
         "auth.spec.ts",
         "billing.spec.ts",
+        "expected-base-url.ts",
         "ui.config.ts",
         "unused.spec.ts",
     ],
@@ -21,6 +23,7 @@ ts_project(
         "strict": True,
         "types": ["node"],
         "declaration": True,
+        "sourceMap": True,
         "skipLibCheck": True,
     }},
     deps = [
@@ -70,16 +73,6 @@ web_e2e_ui(
     ],
 )
 
-web_e2e_ui(
-    name = "source",
-    mode = "source",
-    source_config = "source.config.ts",
-    suites = [
-        ":auth_test",
-        ":billing_test",
-    ],
-)
-
 test_suite(
     name = "auth_suite",
     tags = ["manual"],
@@ -97,7 +90,7 @@ test_suite(
 
 web_e2e_ui(
     name = "suite_aggregate",
-    config = ":config",
+    config = ":aggregate_config",
     data = ["package.json"],
     env = {"UI_FIXTURE_PACKAGE": "$(rootpath package.json)"},
     suites = [
@@ -120,4 +113,39 @@ sh_test(
     srcs = ["discovery_test.sh"],
     args = ["$(rootpath :suite_aggregate)"],
     data = [":suite_aggregate"],
+)
+
+js_library(
+    name = "aggregate_config",
+    srcs = ["aggregate.config.js"],
+    deps = [":compiled"],
+)
+
+filegroup(
+    name = "suite_bundle",
+    testonly = True,
+    srcs = [":suite_aggregate_ui_inputs"],
+    output_group = "ui_bundle",
+)
+
+js_test(
+    name = "bundle_test",
+    size = "small",
+    data = [
+        ":suite_aggregate",
+        ":suite_bundle",
+    ],
+    entry_point = "bundle_test.mjs",
+    env = {"UI_BUNDLE": "$(rootpath :suite_bundle)"},
+    patch_node_fs = False,
+)
+
+js_test(
+    name = "headless_startup_test",
+    size = "small",
+    data = [":suite_aggregate"],
+    entry_point = "headless_startup_test.mjs",
+    env = {"UI_LAUNCHER": "$(rootpath :suite_aggregate)"},
+    patch_node_fs = False,
+    target_compatible_with = ["@platforms//os:linux"],
 )
