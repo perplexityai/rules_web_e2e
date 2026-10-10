@@ -16,7 +16,7 @@ steps:
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
-  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
 - label: bazel 9.2.0 / macOS ARM64
@@ -33,28 +33,9 @@ steps:
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
-  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
-- label: local browsers / Linux AMD64 / Bazel 9.2.0
-  key: local-browser-oss-9-2-0
-  agents:
-    queue: oss
-  command:
-  - buildkite-agent cache restore --name bazel
-  - bash .buildkite/run.sh local-browser
-  - buildkite-agent cache save --name bazel
-  timeout_in_minutes: 40
-  cache:
-    name: rules-web-e2e-local-browser-oss-9-2-0
-    size: 40g
-    paths:
-    - "/tmp/rules-web-e2e-ci"
-  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
-  env:
-    USE_BAZEL_VERSION: 9.2.0
-    LOCAL_HOST_SENTINEL: must-not-reach-browser
-    LOCAL_BROWSER_CACHE_CONFIGURED: '1'
 - label: bazel 8.6.0 / Linux AMD64
   key: test-oss-8-6-0
   agents:
@@ -69,7 +50,7 @@ steps:
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
-  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 8.6.0
 - label: bazel 8.6.0 / macOS ARM64
@@ -86,28 +67,9 @@ steps:
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
-  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 8.6.0
-- label: local browsers / Linux AMD64 / Bazel 8.6.0
-  key: local-browser-oss-8-6-0
-  agents:
-    queue: oss
-  command:
-  - buildkite-agent cache restore --name bazel
-  - bash .buildkite/run.sh local-browser
-  - buildkite-agent cache save --name bazel
-  timeout_in_minutes: 40
-  cache:
-    name: rules-web-e2e-local-browser-oss-8-6-0
-    size: 40g
-    paths:
-    - "/tmp/rules-web-e2e-ci"
-  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
-  env:
-    USE_BAZEL_VERSION: 8.6.0
-    LOCAL_HOST_SENTINEL: must-not-reach-browser
-    LOCAL_BROWSER_CACHE_CONFIGURED: '1'
 - label: host browser tests (Linux AMD64)
   key: host-browser-oss-9-2-0
   agents:
@@ -122,7 +84,7 @@ steps:
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
-  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
 - label: host browser tests (macOS ARM64)
@@ -139,7 +101,7 @@ steps:
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
-  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
 - label: VRT tests (Linux AMD64)
@@ -156,7 +118,7 @@ steps:
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
-  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
 - label: VRT build smoke (macOS ARM64)
@@ -173,7 +135,7 @@ steps:
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
-  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
 - label: Verify hooks

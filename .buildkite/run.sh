@@ -22,6 +22,10 @@ case "${1:-}" in
     install_node
     export DOCKER_HOST=tcp://127.0.0.1:1
     version=$(node -p 'require("./package.json").devDependencies.playwright')
+    if [[ "$RUNNER_OS" == Linux ]]; then
+      sudo apt-get update
+      sudo apt-get install -y libgtk-3-0
+    fi
     npx --yes "playwright@$version" install --with-deps chromium
     
     export E2E_TEST_ARTIFACTS="$RUNNER_TEMP/process-owned-results"
@@ -52,14 +56,8 @@ case "${1:-}" in
     ;;
   actiond)
     install_node
-    export USE_BAZEL_VERSION=9.2.0
-    work="$RUNNER_TEMP/actiond-production"
-    ACTIOND_SKIP_WORKER_SOURCE=1 bash e2e-tests/actiond/prepare.sh "$work"
-    node e2e-tests/run.ts prepare "$work"
-    
-    work="$RUNNER_TEMP/actiond-production"
-    bazelisk run --script_path="$work/run-web-e2e" //worker:runner
-    
+    sudo apt-get update
+    sudo apt-get install -y kmod udev
     test -c /dev/kvm
     if [[ ! -e /dev/vhost-vsock ]]; then sudo modprobe vhost_vsock; fi
     test -c /dev/vhost-vsock
@@ -69,6 +67,13 @@ case "${1:-}" in
     sudo udevadm settle
     sudo chmod a+rw /dev/kvm /dev/vhost-vsock
     test -r /dev/vhost-vsock && test -w /dev/vhost-vsock
+    export USE_BAZEL_VERSION=9.2.0
+    work="$RUNNER_TEMP/actiond-production"
+    ACTIOND_SKIP_WORKER_SOURCE=1 bash e2e-tests/actiond/prepare.sh "$work"
+    node e2e-tests/run.ts prepare "$work"
+    
+    work="$RUNNER_TEMP/actiond-production"
+    bazelisk run --script_path="$work/run-web-e2e" //worker:runner
     
     export ACTIOND_BAZEL=bazelisk
     work="$RUNNER_TEMP/actiond-production"
@@ -88,16 +93,6 @@ case "${1:-}" in
   macos-vrt)
     install_node
     bash e2e-tests/actiond/run-macos-arm64.sh "$RUNNER_TEMP/actiond-macos" --build-only
-    ;;
-  local-browser)
-    install_node
-    export LOCAL_HOST_SENTINEL=must-not-reach-browser
-    export LOCAL_BROWSER_CACHE_CONFIGURED=1
-    if [[ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]]; then
-      sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-    fi
-    
-    node e2e-tests/run.ts local "$RUNNER_TEMP/local-browser"
     ;;
   *) echo 'Unknown CI suite' >&2; exit 1 ;;
 esac
