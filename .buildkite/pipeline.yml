@@ -7,15 +7,10 @@ steps:
   agents:
     queue: oss
   command:
-  - buildkite-agent cache restore --name bazel
+  - buildkite-agent cache restore --registry oss-ci-v2 --name bazel
   - bash .buildkite/run.sh test
-  - buildkite-agent cache save --name bazel
+  - buildkite-agent cache save --registry oss-ci-v2 --name bazel
   timeout_in_minutes: 60
-  cache:
-    name: rules-web-e2e-test-oss-9-2-0
-    size: 40g
-    paths:
-    - "/tmp/rules-web-e2e-ci"
   artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
@@ -24,15 +19,10 @@ steps:
   agents:
     queue: oss_darwin_arm64
   command:
-  - buildkite-agent cache restore --name bazel
+  - buildkite-agent cache restore --registry oss-ci-v2 --name bazel
   - bash .buildkite/run.sh test
-  - buildkite-agent cache save --name bazel
+  - buildkite-agent cache save --registry oss-ci-v2 --name bazel
   timeout_in_minutes: 60
-  cache:
-    name: rules-web-e2e-test-oss-darwin-arm64-9-2-0
-    size: 40g
-    paths:
-    - "/tmp/rules-web-e2e-ci"
   artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
@@ -41,15 +31,10 @@ steps:
   agents:
     queue: oss
   command:
-  - buildkite-agent cache restore --name bazel
+  - buildkite-agent cache restore --registry oss-ci-v2 --name bazel
   - bash .buildkite/run.sh test
-  - buildkite-agent cache save --name bazel
+  - buildkite-agent cache save --registry oss-ci-v2 --name bazel
   timeout_in_minutes: 60
-  cache:
-    name: rules-web-e2e-test-oss-8-6-0
-    size: 40g
-    paths:
-    - "/tmp/rules-web-e2e-ci"
   artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 8.6.0
@@ -58,15 +43,10 @@ steps:
   agents:
     queue: oss_darwin_arm64
   command:
-  - buildkite-agent cache restore --name bazel
+  - buildkite-agent cache restore --registry oss-ci-v2 --name bazel
   - bash .buildkite/run.sh test
-  - buildkite-agent cache save --name bazel
+  - buildkite-agent cache save --registry oss-ci-v2 --name bazel
   timeout_in_minutes: 60
-  cache:
-    name: rules-web-e2e-test-oss-darwin-arm64-8-6-0
-    size: 40g
-    paths:
-    - "/tmp/rules-web-e2e-ci"
   artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 8.6.0
@@ -75,15 +55,10 @@ steps:
   agents:
     queue: oss
   command:
-  - buildkite-agent cache restore --name bazel
+  - buildkite-agent cache restore --registry oss-ci-v2 --name bazel
   - bash .buildkite/run.sh host-browser
-  - buildkite-agent cache save --name bazel
+  - buildkite-agent cache save --registry oss-ci-v2 --name bazel
   timeout_in_minutes: 60
-  cache:
-    name: rules-web-e2e-host-browser-oss-9-2-0
-    size: 40g
-    paths:
-    - "/tmp/rules-web-e2e-ci"
   artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
@@ -92,15 +67,10 @@ steps:
   agents:
     queue: oss_darwin_arm64
   command:
-  - buildkite-agent cache restore --name bazel
+  - buildkite-agent cache restore --registry oss-ci-v2 --name bazel
   - bash .buildkite/run.sh host-browser
-  - buildkite-agent cache save --name bazel
+  - buildkite-agent cache save --registry oss-ci-v2 --name bazel
   timeout_in_minutes: 60
-  cache:
-    name: rules-web-e2e-host-browser-oss-darwin-arm64-9-2-0
-    size: 40g
-    paths:
-    - "/tmp/rules-web-e2e-ci"
   artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
@@ -109,15 +79,10 @@ steps:
   agents:
     queue: oss_darwin_arm64
   command:
-  - buildkite-agent cache restore --name bazel
+  - buildkite-agent cache restore --registry oss-ci-v2 --name bazel
   - bash .buildkite/run.sh macos-vrt
-  - buildkite-agent cache save --name bazel
+  - buildkite-agent cache save --registry oss-ci-v2 --name bazel
   timeout_in_minutes: 40
-  cache:
-    name: rules-web-e2e-macos-vrt-oss-darwin-arm64-9-2-0
-    size: 40g
-    paths:
-    - "/tmp/rules-web-e2e-ci"
   artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
@@ -127,3 +92,9 @@ steps:
   agents:
     queue: oss
   timeout_in_minutes: 15
+
+notify:
+- github_commit_status:
+    context: release-ready/rules-web-e2e
+    blocked_builds_as_pending: true
+  if: build.branch == "main" && build.pull_request.id == null && build.tag == null
