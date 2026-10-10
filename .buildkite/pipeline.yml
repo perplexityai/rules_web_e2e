@@ -29,7 +29,7 @@ steps:
   - buildkite-agent cache save --name bazel
   timeout_in_minutes: 60
   cache:
-    name: rules-web-e2e-test-oss_darwin_arm64-9-2-0
+    name: rules-web-e2e-test-oss-darwin-arm64-9-2-0
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
@@ -82,7 +82,7 @@ steps:
   - buildkite-agent cache save --name bazel
   timeout_in_minutes: 60
   cache:
-    name: rules-web-e2e-test-oss_darwin_arm64-8-6-0
+    name: rules-web-e2e-test-oss-darwin-arm64-8-6-0
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
@@ -135,7 +135,7 @@ steps:
   - buildkite-agent cache save --name bazel
   timeout_in_minutes: 60
   cache:
-    name: rules-web-e2e-host-browser-oss_darwin_arm64-9-2-0
+    name: rules-web-e2e-host-browser-oss-darwin-arm64-9-2-0
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
@@ -169,7 +169,7 @@ steps:
   - buildkite-agent cache save --name bazel
   timeout_in_minutes: 40
   cache:
-    name: rules-web-e2e-macos-vrt-oss_darwin_arm64-9-2-0
+    name: rules-web-e2e-macos-vrt-oss-darwin-arm64-9-2-0
     size: 40g
     paths:
     - "/tmp/rules-web-e2e-ci"
