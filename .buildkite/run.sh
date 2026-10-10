@@ -54,45 +54,6 @@ case "${1:-}" in
     node e2e-tests/lingering.ts
     node e2e-tests/temp-paths.ts
     ;;
-  actiond)
-    install_node
-    sudo apt-get update
-    sudo apt-get install -y kmod
-    test -c /dev/kvm
-    if [[ ! -c /dev/vhost-vsock ]]; then
-      minor=$(awk '$2 == "vhost-vsock" { print $1 }' /proc/misc)
-      if [[ -z "$minor" ]]; then
-        sudo modprobe vhost_vsock
-        minor=$(awk '$2 == "vhost-vsock" { print $1 }' /proc/misc)
-      fi
-      [[ "$minor" =~ ^[0-9]+$ ]] || { echo 'Kernel lacks vhost-vsock' >&2; exit 1; }
-      sudo mknod /dev/vhost-vsock c 10 "$minor"
-    fi
-    sudo chmod a+rw /dev/kvm /dev/vhost-vsock
-    test -r /dev/vhost-vsock && test -w /dev/vhost-vsock
-    export USE_BAZEL_VERSION=9.2.0
-    work="$RUNNER_TEMP/actiond-production"
-    ACTIOND_SKIP_WORKER_SOURCE=1 bash e2e-tests/actiond/prepare.sh "$work"
-    node e2e-tests/run.ts prepare "$work"
-
-    work="$RUNNER_TEMP/actiond-production"
-    bazelisk run --script_path="$work/run-web-e2e" //worker:runner
-
-    export ACTIOND_BAZEL=bazelisk
-    work="$RUNNER_TEMP/actiond-production"
-    "$work/run-web-e2e" --log-dir="$work/supervisor" exec -- node e2e-tests/vm.ts "$work"
-
-    work="$RUNNER_TEMP/actiond-production"
-    "$work/run-web-e2e" --log-dir="$work/supervisor" --memory-mib=8192 --cas-image-size-mib=8192 exec -- node e2e-tests/capacity.ts "$work"
-
-    (cd examples/react
-    mkdir -p .web-e2e
-    bazelisk run --script_path="$PWD/.web-e2e/run" @rules_web_e2e//worker:runner
-    .web-e2e/run --bazel=bazelisk doctor
-    .web-e2e/run --bazel=bazelisk test //:e2e_test //:component_test //:native_config_test //:visual_test //:component_visual_test //:native_visual_test
-
-    )
-    ;;
   macos-vrt)
     install_node
     bash e2e-tests/actiond/run-macos-arm64.sh "$RUNNER_TEMP/actiond-macos" --build-only

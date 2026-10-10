@@ -1,6 +1,6 @@
 # Buildkite CI
 
-Bazel 9.2.0/8.6.0 module and BCR consumers on Linux/macOS; host Chromium/Electron; production KVM VRT; macOS VRT build smoke; commit hooks. Test reports upload on failure too. Linux VRT requires `/dev/kvm` and `/dev/vhost-vsock`; unsupported runners fail rather than skip the suite.
+Bazel 9.2.0/8.6.0 module and BCR consumers on Linux/macOS; host Chromium/Electron; macOS VRT build smoke; commit hooks. Test reports upload on failure too.
 
 ```mermaid
 flowchart TD
@@ -14,7 +14,7 @@ flowchart TD
   U --> H["Hook checks"]
   T --> S["Required Buildkite status"]
   H --> S
-  E --> ARM["Linux local browser suites stay on GitHub Actions"]
+  E --> ARM["Linux local browsers and KVM VRT stay on GitHub Actions"]
   R["Release / deployment triggers"] --> G["Retained GitHub publishing workflows"]
 ```
 
@@ -29,3 +29,5 @@ Remaining GHA: Release Please and bazel-contrib release/BCR publishing retain th
 Linux ARM64 jobs stay on GHA per requested runner policy. No new queue provisioned.
 
 Local Linux browsers (AMD64 and ARM64) stay on GHA: hosted OSS agents reject `pivot_root`. No host-execution fallback added.
+
+Production KVM VRT stays on GHA: hosted OSS agents cannot open `/dev/vhost-vsock`. Original required VRT check stays enforced.

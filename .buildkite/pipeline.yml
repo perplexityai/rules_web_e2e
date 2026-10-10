@@ -104,23 +104,6 @@ steps:
   artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
   env:
     USE_BAZEL_VERSION: 9.2.0
-- label: VRT tests (Linux AMD64)
-  key: actiond-oss-9-2-0
-  agents:
-    queue: oss
-  command:
-  - buildkite-agent cache restore --name bazel
-  - bash .buildkite/run.sh actiond
-  - buildkite-agent cache save --name bazel
-  timeout_in_minutes: 40
-  cache:
-    name: rules-web-e2e-actiond-oss-9-2-0
-    size: 40g
-    paths:
-    - "/tmp/rules-web-e2e-ci"
-  artifact_paths: ".buildkite-artifacts/**/results/**/*;.buildkite-artifacts/*-results/**/*;.buildkite-artifacts/**/supervisor/**/*;.buildkite-artifacts/**/worker-build.log;.buildkite-artifacts/**/bazel-testlogs/**/test.log;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/react/.web-e2e/logs/**/*;bcr_test/bazel-testlogs/**/test.log"
-  env:
-    USE_BAZEL_VERSION: 9.2.0
 - label: VRT build smoke (macOS ARM64)
   key: macos-vrt-oss_darwin_arm64-9-2-0
   agents:
