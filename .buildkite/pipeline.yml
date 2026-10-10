@@ -1,0 +1,184 @@
+---
+agents:
+  queue: oss
+steps:
+- label: bazel 9.2.0 / Linux AMD64
+  key: test-oss-9-2-0
+  agents:
+    queue: oss
+  command:
+  - buildkite-agent cache restore --name bazel
+  - bash .buildkite/run.sh test
+  - buildkite-agent cache save --name bazel
+  timeout_in_minutes: 60
+  cache:
+    name: rules-web-e2e-test-oss-9-2-0
+    size: 40g
+    paths:
+    - "/tmp/rules-web-e2e-ci"
+  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  env:
+    USE_BAZEL_VERSION: 9.2.0
+- label: bazel 9.2.0 / macOS ARM64
+  key: test-oss_darwin_arm64-9-2-0
+  agents:
+    queue: oss_darwin_arm64
+  command:
+  - buildkite-agent cache restore --name bazel
+  - bash .buildkite/run.sh test
+  - buildkite-agent cache save --name bazel
+  timeout_in_minutes: 60
+  cache:
+    name: rules-web-e2e-test-oss_darwin_arm64-9-2-0
+    size: 40g
+    paths:
+    - "/tmp/rules-web-e2e-ci"
+  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  env:
+    USE_BAZEL_VERSION: 9.2.0
+- label: local browsers / Linux AMD64 / Bazel 9.2.0
+  key: local-browser-oss-9-2-0
+  agents:
+    queue: oss
+  command:
+  - buildkite-agent cache restore --name bazel
+  - bash .buildkite/run.sh local-browser
+  - buildkite-agent cache save --name bazel
+  timeout_in_minutes: 40
+  cache:
+    name: rules-web-e2e-local-browser-oss-9-2-0
+    size: 40g
+    paths:
+    - "/tmp/rules-web-e2e-ci"
+  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  env:
+    USE_BAZEL_VERSION: 9.2.0
+    LOCAL_HOST_SENTINEL: must-not-reach-browser
+    LOCAL_BROWSER_CACHE_CONFIGURED: '1'
+- label: bazel 8.6.0 / Linux AMD64
+  key: test-oss-8-6-0
+  agents:
+    queue: oss
+  command:
+  - buildkite-agent cache restore --name bazel
+  - bash .buildkite/run.sh test
+  - buildkite-agent cache save --name bazel
+  timeout_in_minutes: 60
+  cache:
+    name: rules-web-e2e-test-oss-8-6-0
+    size: 40g
+    paths:
+    - "/tmp/rules-web-e2e-ci"
+  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  env:
+    USE_BAZEL_VERSION: 8.6.0
+- label: bazel 8.6.0 / macOS ARM64
+  key: test-oss_darwin_arm64-8-6-0
+  agents:
+    queue: oss_darwin_arm64
+  command:
+  - buildkite-agent cache restore --name bazel
+  - bash .buildkite/run.sh test
+  - buildkite-agent cache save --name bazel
+  timeout_in_minutes: 60
+  cache:
+    name: rules-web-e2e-test-oss_darwin_arm64-8-6-0
+    size: 40g
+    paths:
+    - "/tmp/rules-web-e2e-ci"
+  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  env:
+    USE_BAZEL_VERSION: 8.6.0
+- label: local browsers / Linux AMD64 / Bazel 8.6.0
+  key: local-browser-oss-8-6-0
+  agents:
+    queue: oss
+  command:
+  - buildkite-agent cache restore --name bazel
+  - bash .buildkite/run.sh local-browser
+  - buildkite-agent cache save --name bazel
+  timeout_in_minutes: 40
+  cache:
+    name: rules-web-e2e-local-browser-oss-8-6-0
+    size: 40g
+    paths:
+    - "/tmp/rules-web-e2e-ci"
+  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  env:
+    USE_BAZEL_VERSION: 8.6.0
+    LOCAL_HOST_SENTINEL: must-not-reach-browser
+    LOCAL_BROWSER_CACHE_CONFIGURED: '1'
+- label: host browser tests (Linux AMD64)
+  key: host-browser-oss-9-2-0
+  agents:
+    queue: oss
+  command:
+  - buildkite-agent cache restore --name bazel
+  - bash .buildkite/run.sh host-browser
+  - buildkite-agent cache save --name bazel
+  timeout_in_minutes: 60
+  cache:
+    name: rules-web-e2e-host-browser-oss-9-2-0
+    size: 40g
+    paths:
+    - "/tmp/rules-web-e2e-ci"
+  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  env:
+    USE_BAZEL_VERSION: 9.2.0
+- label: host browser tests (macOS ARM64)
+  key: host-browser-oss_darwin_arm64-9-2-0
+  agents:
+    queue: oss_darwin_arm64
+  command:
+  - buildkite-agent cache restore --name bazel
+  - bash .buildkite/run.sh host-browser
+  - buildkite-agent cache save --name bazel
+  timeout_in_minutes: 60
+  cache:
+    name: rules-web-e2e-host-browser-oss_darwin_arm64-9-2-0
+    size: 40g
+    paths:
+    - "/tmp/rules-web-e2e-ci"
+  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  env:
+    USE_BAZEL_VERSION: 9.2.0
+- label: VRT tests (Linux AMD64)
+  key: actiond-oss-9-2-0
+  agents:
+    queue: oss
+  command:
+  - buildkite-agent cache restore --name bazel
+  - bash .buildkite/run.sh actiond
+  - buildkite-agent cache save --name bazel
+  timeout_in_minutes: 40
+  cache:
+    name: rules-web-e2e-actiond-oss-9-2-0
+    size: 40g
+    paths:
+    - "/tmp/rules-web-e2e-ci"
+  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  env:
+    USE_BAZEL_VERSION: 9.2.0
+- label: VRT build smoke (macOS ARM64)
+  key: macos-vrt-oss_darwin_arm64-9-2-0
+  agents:
+    queue: oss_darwin_arm64
+  command:
+  - buildkite-agent cache restore --name bazel
+  - bash .buildkite/run.sh macos-vrt
+  - buildkite-agent cache save --name bazel
+  timeout_in_minutes: 40
+  cache:
+    name: rules-web-e2e-macos-vrt-oss_darwin_arm64-9-2-0
+    size: 40g
+    paths:
+    - "/tmp/rules-web-e2e-ci"
+  artifact_paths: ".buildkite-artifacts/**/*;bazel-testlogs/**/test.log;bazel-testlogs/**/test.xml;examples/*/bazel-testlogs/**/test.log;examples/*/bazel-testlogs/**/test.xml;bcr_test/bazel-testlogs/**/test.log"
+  env:
+    USE_BAZEL_VERSION: 9.2.0
+- label: Verify hooks
+  key: verify-hooks
+  command: bash .buildkite/verify-hooks.sh
+  agents:
+    queue: oss
+  timeout_in_minutes: 15
