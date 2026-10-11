@@ -54,9 +54,5 @@ case "${1:-}" in
     node e2e-tests/lingering.ts
     node e2e-tests/temp-paths.ts
     ;;
-  macos-vrt)
-    install_node
-    bash e2e-tests/actiond/run-macos-arm64.sh "$RUNNER_TEMP/actiond-macos" --build-only
-    ;;
   *) echo 'Unknown CI suite' >&2; exit 1 ;;
 esac
