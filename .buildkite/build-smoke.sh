@@ -10,7 +10,9 @@ cp "$RUNNER_TEMP/actiond-macos/actiond-worker" "$directory/actiond-worker"
 python3 .buildkite/artifacts.py pack "$directory" darwin-arm64
 buildkite-agent artifact upload "$directory/*"
 
-work="$RUNNER_TEMP/actiond-macos"
+work="$RUNNER_TEMP/actiond-windows"
+ACTIOND_ARCH=x64 bash e2e-tests/actiond/prepare.sh "$work"
+node e2e-tests/run.ts prepare "$work"
 (
   cd "$work/actiond"
   flags=(--bes_backend= --remote_executor= --remote_cache= --spawn_strategy=local --jobs=2)
