@@ -74,3 +74,17 @@ flowchart TD
   Archive --> Provenance[GHA provenance]
   Provenance --> BCR[GitHub release and BCR]
 ```
+
+## Artifact smoke
+
+The Linux producer cross-builds the signed macOS ARM64 actiond worker and Linux ARM64 VRT inputs. macOS smoke downloads that exact worker, verifies its signature/virtualization entitlement, then runs its CLI. It does not compile or start a nested VM. Native browser and module tests remain separate; this is not a VM-backed VRT execution test.
+
+Downloads are scoped to the producer step in the same build. Manifest checks build ID, pipeline, commit, Bazel version, platform, and SHA-256 before execution. Missing or mismatched artifacts fail; no rebuild fallback. Artifacts are transport, not shared writable caches. Smoke runs on PRs too, after the existing fork approval gate.
+
+```mermaid
+flowchart LR
+  P[Linux producer] --> A[Build-scoped binaries and checksums]
+  A --> M[macOS artifact smoke]
+  N[Native tests] --> S[Pipeline status]
+  M --> S
+```

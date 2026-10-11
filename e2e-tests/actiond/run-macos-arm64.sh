@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # Build and exercise VRT through a local Apple Virtualization Linux ARM64 VM.
 set -euo pipefail
-[[ $(uname -s) == Darwin && $(uname -m) == arm64 ]] || {
-  echo 'Run this script on an Apple Silicon Mac with Xcode command-line tools.' >&2
-  exit 1
-}
 work=${1:?usage: run-macos-arm64.sh ABSOLUTE_WORK_DIRECTORY [--build-only]}
 mode=${2:-}
 [[ -z $mode || $mode == --build-only ]] || { echo 'Unknown option' >&2; exit 1; }
@@ -15,7 +11,11 @@ bazel_bin=${ACTIOND_BAZEL:-bazelisk}
 export ACTIOND_BAZEL="$bazel_bin"
 command -v "$bazel_bin" >/dev/null
 command -v node >/dev/null
-xcrun --find clang >/dev/null
+if [[ $mode != --build-only ]]; then
+  [[ $(uname -s)-$(uname -m) == Darwin-arm64 ]] || {
+    echo 'VM execution requires an Apple Silicon Mac' >&2; exit 1;
+  }
+fi
 bash "$here/prepare.sh" "$work"
 node "$here/../run.ts" prepare "$work"
 (
@@ -31,7 +31,9 @@ node "$here/../run.ts" prepare "$work"
   cp -f "$worker" "$work/actiond-worker"
 )
 if [[ $mode == --build-only ]]; then
-  codesign --verify --strict "$work/actiond-worker"
+  if [[ $(uname -s) == Darwin ]]; then
+    codesign --verify --strict "$work/actiond-worker"
+  fi
   cd "$work/public"
   "$bazel_bin" --output_base="$work/public-bazel-output" build \
     //:actiond_native_test_capture //:actiond_native_test \
