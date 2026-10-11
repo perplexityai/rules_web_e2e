@@ -1,6 +1,6 @@
 # Buildkite CI
 
-Bazel 9.2.0/8.6.0 module and BCR consumers on Linux/macOS; host Chromium/Electron; macOS VRT build smoke; commit hooks. Test reports upload on failure too.
+Bazel 9.2.0/8.6.0 module and BCR consumers on Linux/macOS; host Chromium/Electron; Linux cross-built VRT inputs and macOS worker artifact smoke; commit hooks. Test reports upload on failure too.
 
 ```mermaid
 flowchart TD
