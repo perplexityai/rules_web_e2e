@@ -99,7 +99,7 @@ visual_test(
 
 `:runtime_tar` declared file target. It can be built by caller or fetched
 with Bazel's downloader using pinned checksum. Paths above describe
-prototype's layout; select paths matching caller's runtime.
+example layout; select paths matching your runtime.
 
 Generated archives use Bazel’s BSD tar toolchain for compression, then a TS
 validator for paths and links. Compression detected from bytes, not filename.
@@ -112,8 +112,8 @@ than absolute system or build-machine paths.
 Execution uses pinned worker's glibc 2.39 and standard ELF interpreter paths.
 Runner executes declared Node/Chromium and caller programs unchanged; it does
 not repair executable layouts. Legacy `loader` and `bash` descriptor fields
-remain accepted for source compatibility, but execution no longer uses them.
-See [execution details and shell limitations](actiond.md).
+remain accepted for actiond compatibility. `execution = "local"` uses the declared
+shell/loader layout. See [actiond](actiond.md) and [local Linux](local-linux.md).
 
 By default, VRT inputs configured for Linux amd64 even when Bazel client runs on
 macOS. Caller with additional native toolchain constraints can set

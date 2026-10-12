@@ -93,6 +93,6 @@ producer owns providers, templates, and assets. For existing app servers,
 same target also accepts `server`, `base_url`, or `base_url_env` instead of
 `shell`. See [API reference](api.md).
 
-Component target forwards same selector flags as E2E. It rejects
-baseline options and does not create update target. Keep separate VRT
-target for screenshot coverage from shared visual modules.
+Component targets share E2E selection, execution modes, and optional host
+`snapshot_dir`/`.update`. They reject VRT `baselines`/`baseline_dir`; use a separate
+visual target for generated screenshots from shared modules.

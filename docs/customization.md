@@ -64,7 +64,7 @@ root.render(
 ```
 
 Build shell, template, styles, and other assets into one directory and
-wrap it in `browser_shell` target. Build must depend on strict typechecks. OSS runtime has
+wrap it in `browser_shell` target. Keep semantic typechecks in separate validation targets. OSS runtime has
 no React dependency, provider conventions, or shell serialization protocol.
 Built-in static server serves resulting files. Playwright uses ordinary
 navigation and locators. Shells can supply theme,
@@ -81,8 +81,9 @@ server serves fixture. Standalone React example demonstrates this.
 - Component library can serve small gallery with theme, language, and
   direction providers while reusing its existing bundler and npm lockfile.
 
-Both use same screenshot comparison and update contract. External services in VRT
-require explicit `network_origins` opt-ins; prefer declared fixture responses.
+Isolated tests use loopback-only services; declare fixture responses.
+`network_origins` and `network_origins_env` exceptions are rejected. Host tests
+use host networking under caller execution policy.
 
 Native `mount()` uses same server and shell through consumer gallery; see
 [component browser tests](component-browser.md).

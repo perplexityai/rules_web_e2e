@@ -1,29 +1,38 @@
 # Scope and roadmap
 
-Supported APIs documented in [API reference](api.md). Current
-capabilities include managed and remote E2E, native component mounts, shared
-visual modules, generated VRT captures, and explicit baseline updates.
+[API reference](api.md) covers the supported public rules and contracts:
 
-Runtime uses Playwright Test and actiond, with Bazel integration
-through `rules_js` and strict TypeScript compilation through `rules_ts`.
-Applications supply their own rendering framework, servers, and fixtures.
+- Managed/deployed E2E, component mounts, and process-owned Electron/browser tests.
+- Native screenshot specs and gallery-generated visual captures.
+- Actiond VMs, local Linux namespaces, host interaction tests, and controlled host VRT.
+- Pinned browser/worker presets, custom runtimes, fonts, and optional video helpers.
+- Native Bazel caching, retries, shards, filters, JUnit, and failure artifacts.
+- Guarded VRT updates, host snapshot export/updates, and aggregate Playwright UI.
+
+Consumers own builds, typechecks, frameworks, fixtures, and baseline review.
 
 ```mermaid
 flowchart LR
-  Inputs[Consumer config, specs, visuals and assets] --> Rules[Bazel targets]
-  Rules --> Runtime[Playwright Test and actiond]
-  Runtime --> Browser[Pinned Linux Chromium]
-  Runtime --> Reports[JUnit, traces and image diffs]
-  Runtime --> Update[Explicit baseline update]
+  Inputs[Built consumer inputs] --> Rules[Bazel rules]
+  Rules --> Host[Host or process-owned Playwright]
+  Rules --> Linux[actiond VM or local namespaces]
+  Rules --> UI[Local aggregate Playwright UI]
+  Host --> Reports[Reports and snapshots]
+  Linux --> Reports
+  Reports --> Update[Explicit guarded baseline update]
 ```
 
-## Possible extensions
+## Remaining limits
 
-Generic `playwright_test` and page-oriented `web_visual_test` wrappers
-not implemented. Starlark `component_visual_module` macro not exported;
-use TypeScript `ComponentVisualModule` interface today.
+Actiond ARM64 interaction tests remain unsupported; local Linux ARM64 supports
+interactions and VRT. Apple Silicon VM evidence is recorded in the
+[ARM64 guide](macos-arm64-vrt.md). Pixel equivalence across architectures and
+execution modes remains unverified; review separate baselines.
 
-Native ARM64 screenshot baselines, macOS VM validation, and interchangeable
-baselines across architectures need separate validation before support.
-Any extension should preserve declared inputs, explicit network access,
-reviewed baseline updates, and useful failure artifacts.
+Generic `playwright_test`, `web_visual_test`, and Starlark `component_visual_module`
+macros are not exported. Use `visual_test` for page screenshots and TypeScript
+`ComponentVisualModule` for galleries. UI supports compiled managed E2E suites;
+component/process/VRT suites and source-mode execution are unsupported.
+
+Extensions must preserve declared inputs, execution boundaries, baseline
+ownership, and useful failure artifacts.

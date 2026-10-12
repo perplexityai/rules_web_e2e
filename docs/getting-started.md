@@ -8,7 +8,7 @@ different versions, fonts, architecture, or infrastructure.
 Add to `MODULE.bazel`:
 
 ```starlark
-bazel_dep(name = "rules_web_e2e", version = "3.4.0")
+bazel_dep(name = "rules_web_e2e", version = "3.9.0")
 
 browsers = use_extension("@rules_web_e2e//playwright:extensions.bzl", "browser_presets")
 browsers.linux_amd64(name = "web_browser", release = "20260921")
@@ -20,7 +20,7 @@ Use Playwright **1.63.0** with this preset. Set
 
 Your Bazel build must supply:
 
-- Compiled ESM specs with typechecking and runtime dependencies.
+- Compiled ESM specs with runtime dependencies; separate semantic typecheck targets.
 - Built HTML/JS/CSS directory wrapped in `browser_shell`, or compiled server
   adapter. Component tests and gallery VRT need gallery that registers visual
   modules with `installVisualGallery`.
@@ -71,13 +71,17 @@ Browser targets participate in wildcard test selection by default. Add
 | --- | --- |
 | Different Chromium/Node, extra fonts, custom Linux runtime | [Browser runtimes](browser-runtime.md) |
 | Managed worker or custom execution configuration | [Manual actiond setup](actiond.md) |
-| ARM64 VRT | [Apple Silicon / ARM64](macos-arm64-vrt.md) |
+| Linux x64/ARM64 browser isolation without VM | [Local Linux](local-linux.md) |
+| ARM64 VRT on Apple Silicon | [Apple Silicon / ARM64](macos-arm64-vrt.md) |
+| Electron/process-owned tests or host snapshots | [E2E](e2e.md) |
+| Aggregate local Playwright UI | [UI](ui.md) |
 | Live deployed service, or host E2E/component tests | [Host browsers](host-browsers.md) |
 | Custom server, providers, fixtures | [Customization](customization.md) |
 
 Custom runtimes can use supported worker supervisor; custom workers can use
 runtime preset. Isolated tests use declared inputs and loopback-only
-networking. Live-service checks use host tests; VRT always requires isolation.
+networking. Live-service checks use host tests. `host_vrt` separately opts into
+controlled Linux amd64 host rendering without VM/network isolation.
 
 ## Migrating from 1.0.0
 

@@ -9,10 +9,9 @@ lifecycle, readiness, isolation, and reuse decisions.
 
 ## Stable capture
 
-Pin browser image by digest and match its Playwright version to
-consumer's client package. Declare app's fonts, styles, fixtures, and other
-rendering inputs. Pinned image alone cannot stabilize remote data, random
-values, clocks, or asynchronous application state.
+Pin runtime archives by checksum and match Chromium to Playwright packages.
+Declare fonts, styles, and fixtures; tests must also control clocks, randomness,
+animations, and asynchronous state.
 
 Current helper fixes viewport, locale, timezone, color scheme, and reduced
 motion; it disables animations and hides caret during capture. Consumers
@@ -22,9 +21,10 @@ between cases. Screenshots of portals must include intended overlay element.
 
 Default allows zero mismatched pixels under configured comparator;
 this not promise of byte-level equality across platforms. Any relaxed
-`tolerance` must be explicit consumer choice. Validate each architecture
+matching budget must be explicit consumer choice. Validate each architecture
 separately before claiming interchangeable baselines, particularly for text
-rasterization and device scale. Current screenshot validation Linux amd64.
+rasterization and device scale. ARM64 VM evidence and local Linux checks
+validate execution, not interchangeable screenshots.
 
 ## Baselines are consumer-owned
 
@@ -44,14 +44,13 @@ where available, plus JUnit, go to Bazel's undeclared test outputs for CI upload
 
 Explicit `.update` run captures full target into fresh directory. Only
 successful nonempty capture synchronizes PNGs into consumer's baseline
-directory. Synchronization removes stale PNGs and preserves unrelated files;
-paths cannot traverse outside workspace or through directory symlinks.
+directory. VRT directories must contain only regular PNGs; stale PNGs are
+removed. Paths cannot traverse outside the workspace or through symlinks.
 Each target must own separate directory. CLI filters rejected because
 partial capture cannot safely determine which previous screenshots stale.
 
-Synchronization uses per-file replacement, not transaction for whole
-directory. Do not run concurrent updates to same directory; inspect and
-review resulting image changes before committing them.
+Updates use the guarded Bazel source writer. Concurrent updates and edits during
+capture are rejected; review resulting image changes before committing.
 
 ## Execution and evidence
 
@@ -66,7 +65,7 @@ visual change intended. Reporting does not depend on hosted VRT service.
 
 Changes to capture behavior should exercise unchanged comparison, intentional
 visual mismatch, missing baselines, and explicit update followed by comparison.
-Also verify type errors stop build, repeated captures remain stable, and
+Run separate semantic typechecks; verify repeated captures remain stable and
 timed-out and cancelled actions release their processes. [React example](../examples/react)
 small integration fixture; larger consumers exercise real application rendering.
 
@@ -74,7 +73,7 @@ small integration fixture; larger consumers exercise real application rendering.
 
 `*.visual.tsx` module declares component states for previews, browser tests,
 and generated VRT. `*.browser.spec.tsx` file contains interaction assertions.
-No consumer-authored screenshot specs.
+Gallery VRT generates screenshot specs; `visual_test` accepts native page specs.
 
 ```tsx
 import type {ComponentVisualModule} from '@rules-web-e2e/vrt/visual'

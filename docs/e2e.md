@@ -5,7 +5,7 @@ Write clicks, navigation, form interactions, and assertions with `@playwright/te
 No screenshot baseline or `.update` target required.
 
 Use [aggregate Playwright UI](ui.md) to run one local UI session over split E2E
-targets, with compiled inputs or workspace source watching.
+targets using compiled inputs. Rebuild/relaunch after source edits.
 
 ```ts
 import {expect, test} from '@playwright/test'
@@ -52,8 +52,9 @@ cd examples/react
 ```
 
 Selection flags `--grep`, `--grep-invert`, `--project`, and `--shard` forwarded
-through `--test_arg`. Configure other Playwright settings in declared config;
-Add custom reporters through [compiled Playwright config](api.md#optional-playwright-configuration). CLI overrides of config, reporters, output paths, and in-place snapshot updates rejected.
+through `--test_arg`. Use the [compiled config](api.md#optional-playwright-configuration)
+for other settings and reporters. CLI config/reporter/output overrides and
+in-place snapshot updates are rejected.
 
 ## Snapshot updates
 
@@ -127,7 +128,7 @@ fixture APIs for deterministic data; declare any authentication state files in
 `data`. Keep credentials in explicitly declared environment variables rather
 than checked-in state. VRT uses separate offline Linux actions.
 
-Host E2E is local and uses Bazel test caching by default. It requires a provisioned host browser, not
+Host E2E uses caller execution policy and Bazel test caching by default. It requires a provisioned host browser, not
 Docker; see [host setup](host-browsers.md).
 Server processes and browser resources cleaned up after completion. Failures
 return nonzero status and preserve JUnit, screenshots, and traces in Bazel's

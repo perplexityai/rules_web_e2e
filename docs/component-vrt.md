@@ -59,8 +59,9 @@ Custom compiled `server` or action-local URL can replace `shell`; see
 
 ## Execution contract
 
-- Tested versions: Bazel 8.6/9.2, Playwright Test/core 1.63.0, Vite 8.2.2, React 19.2.8. Initial screenshot support Linux amd64.
-  macOS/arm64 screenshot equivalence has not been validated.
+- See [repository pins](dependencies.md). Actiond VRT supports x64/ARM64;
+  local Linux supports both; host VRT supports amd64. Cross-architecture pixel
+  equivalence remains unverified.
 - Declared runtime supplies Chromium, Node, libraries, and fonts. Pin it and
   keep its browser compatible with consumer's Playwright packages.
 - Fixture server and browser share action-local loopback network. External
@@ -77,16 +78,16 @@ Custom compiled `server` or action-local URL can replace `shell`; see
 - Compare mode reads declared baselines directly from runfiles. Missing or
   changed screenshots fail without modifying source baselines. Playwright writes
   JUnit and image attachments under `TEST_UNDECLARED_OUTPUTS_DIR`.
-- Update mode captures into fresh directory, then synchronizes PNGs into
-  source directory, removing stale PNGs and retaining other files. It rejects
+- Update mode captures into a fresh directory, then replaces the owned PNG set.
+  Source baseline directories must contain only regular PNGs. It rejects
   empty captures, path traversal, directory symlinks, and CLI filters. It also
   rejects baseline edits made during capture and concurrent updates to same
   directory. Interrupted update may leave `.vrt-update.lock` directory
   beside baselines; inspect baselines before removing that stale lock.
-- `execution_timeout_seconds` bounds each Playwright invocation (default: 180
-  seconds each for discovery and capture). Managed server startup has separate
-  30-second deadline; Bazel’s `timeout` also bounds native comparison tests, but does not bound capture build actions. Failed updates leave existing
-  baselines intact and print artifact directory.
+- Bazel's `timeout` bounds native comparison. `execution_timeout_seconds`
+  bounds capture/standalone invocations (default 180 seconds per phase);
+  managed server startup has a separate 30-second deadline. Failed updates
+  retain baselines and report their artifacts.
 
 ## Fixed and portaled visuals
 
