@@ -31,3 +31,5 @@ Runtime has no React dependency. Consumers own their framework versions,
 plugins, lockfiles, and strict TypeScript configuration. React example
 tested integration; other frameworks must implement gallery renderer
 and validate their own compatibility.
+
+See [Renovate maintenance](renovate.md) for automated groups and coordinated upgrades.
