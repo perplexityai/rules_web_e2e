@@ -16,16 +16,14 @@ Validated worker used actiond `4b767e8`, without patches, with SHA256
 `9a4a666543311a5ebc6e894b9157ae8e1cf0e72df21c522b966c3c2d35320a05`.
 This verifies local ARM64 VRT; pixel equivalence with amd64 remains unverified.
 
-MacOS GitHub Actions workflow builds ARM64 runtime, signed worker, and
-native/gallery capture and comparison inputs on every PR. GitHub-hosted Macs
-[do not support nested virtualization](https://docs.github.com/en/actions/reference/runners/github-hosted-runners),
-so this build smoke check. Running VM suite in CI requires physical
-Apple Silicon runner. Reproduce hosted check with script's `--build-only`
-option.
+[Buildkite CI](../.buildkite/README.md#artifact-smoke) cross-builds the signed
+macOS worker and ARM64 VRT inputs on Linux. macOS verifies the exact artifact
+and runs its CLI; it does not boot a VM. Reproduce input builds with
+`--build-only`. VM execution requires a physical Apple Silicon host.
 
 ## Run the integration suite
 
-Install Xcode command-line tools, Bazelisk, Node.js 24+, and Python 3. From
+Install Xcode command-line tools, Bazelisk, and Node.js 24+. From
 repository root:
 
 ```sh
@@ -45,7 +43,8 @@ retries, repeated runs, and test-cache bypass. It writes
 baselines into temporary example checkout under `WORK/public`, leaving
 repository's baselines untouched. Logs `WORK/worker-build.log`, `WORK/vm.log`,
 and `WORK/results/`. Ordinary isolated E2E/component tests not included in
-this ARM64 lane; public isolated E2E/component API remains amd64-only.
+this ARM64 lane; actiond interaction tests remain amd64-only. Local Linux namespace execution
+supports ARM64 interactions separately.
 
 Worker source pinned in `MODULE.bazel` to actiond `4b767e8`. This already
 includes memory-advice kernel fix required by Node/V8. No additional upstream

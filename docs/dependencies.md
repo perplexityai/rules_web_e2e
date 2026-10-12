@@ -1,7 +1,8 @@
 # Dependency versions
 
-Versions pinned in this repository (2026-09-09). Direct npm
-versions exact pins; lockfiles pin transitive dependencies.
+Pins come from [package.json](../package.json), [MODULE.bazel](../MODULE.bazel),
+[the React example](../examples/react/package.json), and [CI](../.buildkite/pipeline.yml).
+Lockfiles pin transitive dependencies.
 
 | Dependency | Version |
 | ---------------------------------------- | ----------------------------------------- |
@@ -15,8 +16,14 @@ versions exact pins; lockfiles pin transitive dependencies.
 | Bazel | 9.2.0; CI also checks 8.6.0 compatibility |
 | rules_js / rules_ts | 3.4.1 / 3.10.1 |
 | bazel_lib / rules_shell | 3.7.2 / 0.8.0 |
+| Runtime mrmime | 2.0.1 |
+| Tool runfiles / fflate / tar | 6.5.0 / 0.8.3 / 7.5.22 |
+| tar.bzl / Bubblewrap | 0.10.4 / 0.13.0.bcr.1 |
+| Browser preset Chromium / Node | 153.0.8010.12 / 24.14.0 |
+| Browser / system preset release | 20260921 / Noble 20260901 |
+| Worker actiond release | 0.0.7 |
 
-Callers pin their Linux amd64 runtime image or archive. Keep browser and npm
+Callers select a versioned preset or checksum-pinned runtime archives. Keep browser and npm
 versions synchronized and compare reviewed screenshots after upgrades. pnpm 12's
 release-age exceptions name only exact recent releases selected here.
 

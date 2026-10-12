@@ -5,7 +5,7 @@ and cleanup. Use it with [browser preset](browser-runtime.md) or compatible
 custom Linux amd64 runtime. It owns one worker per command or CI bucket.
 
 Consumers that start worker on another machine can depend on
-`@rules_web_e2e//worker:supervisor` and call `worker.supervisor.bazel_config(endpoint)`
+`@rules_web_e2e//worker:supervisor` and call the TypeScript export `bazelConfig(endpoint)`
 to generate same Bazel flags for forwarded loopback endpoint.
 
 ## Materialize once, run outside Bazel

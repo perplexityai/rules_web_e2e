@@ -4,8 +4,8 @@
 | --- | --- | --- |
 | `web_e2e_test` | Version-matched host Chromium | Host network |
 | `component_browser_test` | Version-matched host Chromium | Host network |
-| `visual_test` | Declared Linux runtime; actiond by default, Linux amd64 host with `host_vrt = True` | Action-local loopback |
-| `component_visual_test` | Declared Linux runtime; actiond by default, Linux amd64 host with `host_vrt = True` | Action-local loopback |
+| `visual_test` | Declared Linux runtime; actiond by default, Linux amd64 host with `host_vrt = True` | Loopback in actiond/local mode; host network with `host_vrt` |
+| `component_visual_test` | Declared Linux runtime; actiond by default, Linux amd64 host with `host_vrt = True` | Loopback in actiond/local mode; host network with `host_vrt` |
 
 VRT uses [actiond](actiond.md) by default; host interaction tests keep their
 existing browser setup.
@@ -119,8 +119,9 @@ component_visual_test(
 
 `:linux_browser` caller-owned [browser_runtime](browser-runtime.md).
 Actual editor gallery built, captured, locally applied references, and
-compared all eight screenshots in actiond's process sandbox with this interface. That check does not establish full AGI or
-FormatJS CI migration, or macOS worker support.
+compared eight screenshots in the recorded actiond process-sandbox check.
+That evidence does not establish downstream CI migration; see the
+[Apple Silicon guide](macos-arm64-vrt.md) for separate ARM64 VM evidence.
 
 `playwright_runtime` now groups only matching npm packages and their version.
 Replace its former `image` setting with declared package/browser runtime assembled

@@ -20,8 +20,8 @@ standard ELF interpreter paths and its pinned libc; browser-specific libraries
 and fonts remain declared inputs. Native Bazel tests also use rules'
 [hermetic launcher utilities](../internal/test_tools/README.md).
 
-With pinned worker listening on `127.0.0.1:8980`, put this in consumer's
-Bazel configuration:
+With the worker on `127.0.0.1:8980`, add these settings to the consumer
+workspace's `.bazelrc` (or an imported `.bazelrc.user`):
 
 ```text
 build:vrt --jobs=2
@@ -37,10 +37,10 @@ build:vrt --remote_download_outputs=all
 build:vrt --extra_execution_platforms=@platforms//host:host,@rules_web_e2e//internal:linux_amd64
 ```
 
-Include worker binary SHA256 in execution platform properties, for example
-`--remote_default_exec_properties=actiond-worker-sha256=WORKER_SHA256`. Change it
-when worker or embedded kernel changes; otherwise previous action results can
-be reused across execution environments. Worker operator owns this identity.
+Set `worker_sha256` on browser targets for custom workers; update it when the
+binary or embedded kernel changes. Linux amd64 defaults to the preset digest;
+ARM64 requires an explicit custom digest. Identity belongs on browser actions,
+so unrelated compilation/bundling cache keys stay unchanged.
 
 Use remote worker address when appropriate. Existing amd64 baselines use
 amd64 worker. For validated local Apple Silicon execution, see
@@ -98,9 +98,8 @@ this adapter requires upstream worker with standard shell/env support.
 
 Generated Playwright configuration, caches, and working snapshots live in private
 scratch directories. Explicit `playwright_runtime` must reference same
-physical test/core packages used by caller's specs and config. When omitted,
-runner selects package resolved by first spec/config and checks that
-all modules agree. It never replaces dependency to force agreement.
+physical test/core packages used by specs/config. Omitting `playwright` selects
+the rules' pinned packages; it does not infer or replace the consumer graph.
 
 Action has loopback-only networking. Start fixture services inside it using
 `server` or native Playwright `webServer`, and declare their files in `data`.

@@ -1,40 +1,28 @@
 # Actiond migration
 
-VRT now runs through actiond Linux amd64 actions with caller-owned runtime files. Testcontainers, Ryuk, control relay, image manifests, and their
-preload/patch dependencies removed. Host E2E/component tests retain host
-Chromium and host networking.
-
-Changes stacked as #27 (initial proof), #28 (declared runtime/actions),
-and #29 (backend replacement).
-
-## Validation
-
-[Production VM run 34783532975](https://github.com/perplexityai/rules_web_e2e/actions/runs/34783532975)
-passes native/component capture and comparison, local baseline updates, network
-isolation, failed/empty captures, screenshot diffs, deadlines, cancellation, and
-worker recovery. Native fixture launches real Bazel `js_binary` server.
-
-Bazel 8.6/9.2 build/tests and host browser suites pass on Linux and macOS.
-actual FormatJS editor gallery builds its Vite/StyleX assets, captures all eight
-screenshots, applies references locally, and compares them in actiond process
-isolation. See [consumer migration](host-browsers.md) for actual interface
-and AGI wrapper requirements; this not claim that their full CI
-migrations have landed.
+Actiond replaced Testcontainers, Ryuk, image manifests, relay services, and preload
+jobs. Browser/client packages, fixtures, and baselines remain caller-owned.
 
 ## Caller changes
 
-- Supply `browser` from declared `browser_runtime`; assemble pinned browser, Node, library,
-  and font inputs with `browser_runtime_archive`.
-- Configure pinned amd64 worker using [the execution guide](actiond.md).
-  Set `target_platform` when native dependencies need additional ABI constraints.
-- Keep compiled specs, built shells, matching, server data, and baseline ownership.
-  `$(rootpath ...)` expands in explicit environment values, including JSON.
-- Replace external VRT services with declared local fixtures. Live deployed
-  checks stay in host E2E targets; inherited environment and origin exceptions
-  do not carry over.
+- Select a [browser preset or custom runtime](browser-runtime.md) with `browser`.
+- Use the [worker supervisor](worker-preset.md) or [manual setup](actiond.md).
+- Preserve compiled specs/configs, built shells, matching, data, and baseline names.
+- Declare fixture services and explicit environment values; origin exceptions
+  and inherited environment are unsupported with declared browsers.
+- Set `target_platform` for Linux ABI constraints and `worker_sha256` for custom workers.
+- Remove Docker preparation and network/image tags from the isolated lane.
 
-Pinned upstream actiond includes memory-advice syscalls. Browser actions now
-request worker's glibc 2.39 and Bash runtime, and execute caller artifacts
-without rewriting them. See [the ownership contract](actiond.md#declared-inputs-and-isolation).
-Native macOS VM execution and cross-architecture
-pixel equivalence remain unvalidated. These baselines require Linux amd64 worker.
+Actiond supplies pinned glibc 2.39/Bash; caller artifacts execute unchanged.
+Host tests still support deployed services. Local Linux namespaces and controlled
+host VRT are separate [execution choices](api.md#execution-modes).
+
+## Validation scope
+
+[Production KVM CI](../.github/workflows/actiond-production.yaml) exercises public
+rules, isolation, failure artifacts, deadlines, retries, cancellation, and baseline
+protection. [Apple Silicon evidence](macos-arm64-vrt.md) records local ARM64 VRT;
+Buildkite cross-build/artifact smoke does not boot the macOS VM.
+
+Cross-architecture pixel equivalence and full AGI/FormatJS CI migrations are not
+established by repository checks. See [consumer migration](host-browsers.md#consumer-migration).

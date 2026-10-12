@@ -10,7 +10,8 @@ screenshot updates.
 | --- | --- | --- |
 | **Basic: presets** | Isolated Linux amd64 tests | One browser release and worker launcher |
 | **Advanced: custom** | Custom browsers, fonts, ARM64, or worker infrastructure | Runtime inputs and/or worker execution settings |
-| **Host tests** | Live services or E2E/component tests without VM | Version-matched host Playwright browser; no VRT |
+| **Local Linux** | Declared browsers without VM, x64 or ARM64 | `execution = "local"` and Linux namespace support |
+| **Host tests** | Live services, component interactions, or process-owned tests | Caller-provisioned browsers/executables and execution policy |
 | **Host VRT** | Screenshot tests on controlled Linux amd64 host without VM | `host_vrt = True`, declared browser runtime, and host environment parity |
 
 Preset supplies Chromium, Node, libraries, and fonts. Its worker supervisor
@@ -61,4 +62,6 @@ See [API reference](docs/api.md), [documentation index](docs/README.md),
 and [development guide](docs/development.md).
 
 Host suites can [own snapshots and run `.update`](docs/e2e.md#snapshot-updates).
-Fully mocked host suites can [opt into local result caching](docs/e2e.md#opt-in-local-result-caching).
+Host suites use [normal Bazel result caching](docs/e2e.md#result-caching); callers control cache restrictions.
+Use `browser_process_test` for Electron/browser executables owned by specs, or
+[`web_e2e_ui`](docs/ui.md) to debug aggregate compiled E2E suites.
