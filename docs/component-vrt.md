@@ -136,3 +136,7 @@ metadata used by the gallery. Generate both from one source when possible.
 The catalog participates in Bazel's input hash. Each worker checks it against the
 loaded gallery before taking screenshots; missing stories and stale options fail.
 Omit it only for galleries that need browser execution to discover their catalog.
+
+For Windows high contrast, set `vrt.forcedColors: 'active'`. The runner emulates
+the `forced-colors` media feature on that capture's page before loading the
+gallery, so other visuals in the same target are unaffected.

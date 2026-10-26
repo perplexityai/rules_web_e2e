@@ -26,7 +26,18 @@ const server = createServer((_request, response) => {
     installVisualGallery([{id:'capture', title:'Capture', visuals:[
       viewportVisual('desktop', {width:1280, height:720}),
       viewportVisual('mobile', {width:390, height:844}),
-      {visualId:'element', name:'element', render:()=>false, vrt:{deviceScaleFactor:2}},
+      {visualId:'element', name:'element', render:()=>false,
+        beforeCapture() {
+          if (matchMedia('(forced-colors: active)').matches)
+            throw new Error('Forced colors must stay scoped to its own capture');
+        },
+        vrt:{deviceScaleFactor:2}},
+      {visualId:'forced', name:'forced', render:()=>'forced',
+        beforeCapture() {
+          if (!matchMedia('(forced-colors: active)').matches)
+            throw new Error('vrt.forcedColors must emulate forced colors before capture');
+        },
+        vrt:{deviceScaleFactor:2, forcedColors:'active'}},
       {visualId:'hover', name:'hover', render:()=> 'hover',
         beforeCapture() {
           const target = document.querySelector('#hover-target');
@@ -36,6 +47,11 @@ const server = createServer((_request, response) => {
         vrt:{deviceScaleFactor:2, hoverSelector:'#hover-target'}},
     ]}], {
       render(fixed) {
+        if (fixed === 'forced') {
+          // Opt out of system-color repainting so the pixel check still sees red.
+          document.body.innerHTML = '<div id="root" style="width:200px;height:150px;background:red;forced-color-adjust:none"></div>';
+          return;
+        }
         if (fixed === 'hover') {
           document.body.innerHTML = '<div id="root" style="width:200px;height:150px"><div id="hover-target" style="width:200px;height:150px;background:blue"></div></div>';
           return;
@@ -89,7 +105,7 @@ try {
     for (const scale of ['css', 'device']) {
       await run(false, scale)
       for (const [id, width, height] of [
-        ['desktop', 1280, 720], ['mobile', 390, 844], ['element', 200, 150], ['hover', 200, 150],
+        ['desktop', 1280, 720], ['mobile', 390, 844], ['element', 200, 150], ['forced', 200, 150], ['hover', 200, 150],
       ] as const) {
         const png = fs.readFileSync(path.join(temp, scale, `capture-${id}.png`))
         const factor = scale === 'device' ? 2 : 1

@@ -26,6 +26,9 @@ if (process.env.VRT_DISCOVER === '1') {
         ...(visual.theme ? {colorScheme: visual.theme} : {}),
       })
       test(visual.name, async ({page, baseURL}) => {
+        // Page-level emulation keeps the config's own contextOptions intact.
+        if (visual.forcedColors)
+          await page.emulateMedia({forcedColors: visual.forcedColors})
         await page.goto(baseURL!)
         await page.waitForFunction(() => !!window.rulesVisuals)
         if (!catalogChecked) {

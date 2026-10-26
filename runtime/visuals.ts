@@ -7,6 +7,8 @@ export interface ComponentVisualVrtOptions {
   deviceScaleFactor?: number
   documentLanguage?: string
   theme?: 'light' | 'dark'
+  /** Emulate the `forced-colors` media feature (Windows high contrast) for this capture. */
+  forcedColors?: 'active' | 'none'
   /** CSS target for a real browser hover before the capture hook runs. */
   hoverSelector?: string
 }
@@ -63,6 +65,7 @@ export function visualCaptures<Node>(
       if (options.hoverSelector !== undefined &&
           (typeof options.hoverSelector !== 'string' || !options.hoverSelector.trim()))
         throw new Error(`Invalid hover selector: ${id}`)
+      validateForcedColors(options.forcedColors)
       const screenshotName =
         options.screenshotName ??
         `${kebab(module.id.split('/').at(-1)!)}-${kebab(visual.visualId)}`
@@ -159,6 +162,11 @@ export function installVisualGallery<Node>(
   })
 }
 
+function validateForcedColors(forcedColors: unknown): void {
+  if (forcedColors !== undefined && forcedColors !== 'active' && forcedColors !== 'none')
+    throw new Error('Invalid visual forced colors')
+}
+
 function validateCaptureMode(capture: unknown): void {
   if (capture !== undefined && capture !== 'element' && capture !== 'viewport')
     throw new Error('Invalid visual capture mode')
@@ -209,6 +217,7 @@ export function validateCaptures(
       item.theme !== 'dark'
     )
       throw new Error('Invalid visual theme')
+    validateForcedColors(item.forcedColors)
     if (
       item.documentLanguage !== undefined &&
       typeof item.documentLanguage !== 'string'
