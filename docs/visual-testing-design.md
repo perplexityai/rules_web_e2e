@@ -103,7 +103,7 @@ export default visuals
 | `beforeCapture` | Browser-side setup/readiness before capture |
 | `getScreenshotElement` | Capture element, including portals; defaults to `#root` |
 | `vrt: false` | Keep preview/browser case out of screenshots |
-| `vrt` options | Screenshot name, viewport, integer device scale, language, light/dark theme, CSS hover target |
+| `vrt` options | Screenshot name, viewport, integer device scale, language, light/dark theme, forced colors, CSS hover target |
 
 VRT enabled by default. Names default to kebab-cased final segment of `module.id` plus
 `visualId`, with `.png`; explicit names retain existing baselines. Duplicate IDs,
@@ -129,7 +129,8 @@ inputs. See React example's gallery.
 Bazel builds the capture spec into the declared suite harness. A declared
 `capture_manifest` skips discovery. Without one, a discovery pass reads the
 gallery catalog. Playwright runs one test per enabled visual with native context isolation. Per-case
-viewport, density, and theme use Playwright test options; language and capture
+viewport, density, and theme use Playwright test options; forced colors uses page
+media emulation; language and capture
 hooks run inside page. Without a manifest, global setup/teardown runs for both phases
 and must tolerate repeated invocation. Empty catalog fails, including updates.
 

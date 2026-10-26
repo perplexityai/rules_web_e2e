@@ -320,7 +320,7 @@ Import from `@rules-web-e2e/vrt/visual`:
 | --- | --- |
 | `ComponentVisualModule<Node>` | Stable `id`, `title`, readonly `visuals`; optional `renderShell(children)` |
 | `ComponentVisual<Node>` | Stable `visualId`, `name`, `render(props?)`; optional async `beforeCapture`, `getScreenshotElement`, and `vrt` |
-| `ComponentVisualVrtOptions` | `capture`, `screenshotName`, `viewport`, `deviceScaleFactor`, `documentLanguage`, `theme`, `hoverSelector` |
+| `ComponentVisualVrtOptions` | `capture`, `screenshotName`, `viewport`, `deviceScaleFactor`, `documentLanguage`, `theme`, `forcedColors`, `hoverSelector` |
 | `VisualCapture` | VRT options plus `id`, `name`, `screenshotName` |
 | `VisualGallery` | `captures`, async `mount({story, props})`, `prepareCapture()`, `unmount()` |
 | `visualCaptures(modules)` | Metadata for VRT-enabled cases |

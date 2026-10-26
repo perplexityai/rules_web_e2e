@@ -21,7 +21,7 @@ const module: ComponentVisualModule = {
       visualId: 'dark',
       name: 'Dark',
       render: () => null,
-      vrt: {screenshotName: 'code-dark', theme: 'dark', deviceScaleFactor: 2, hoverSelector: '#target'},
+      vrt: {screenshotName: 'code-dark', theme: 'dark', deviceScaleFactor: 2, hoverSelector: '#target', forcedColors: 'active'},
     },
   ],
 }
@@ -39,9 +39,14 @@ test('visual modules enable capture by default and respect opt-outs and override
   )
   validateCaptures(captures)
   assert.equal(captures[1].hoverSelector, '#target')
+  assert.equal(captures[1].forcedColors, 'active')
 })
 test('duplicate identities and unsafe screenshot destinations fail before capture', () => {
   assert.throws(() => visualCaptures([module, module]), /Duplicate/)
+  assert.throws(() => visualCaptures([{id: 'bad', title: 'Bad', visuals: [
+    {visualId: 'forced', name: 'Forced', render: () => null,
+      vrt: {forcedColors: 'on' as never}},
+  ]}]), /forced colors/)
   const capture = visualCaptures([module])[0]
   for (const value of [
     [],
@@ -51,6 +56,7 @@ test('duplicate identities and unsafe screenshot destinations fail before captur
     [{...capture, capture: 'fullPage'}],
     [{...capture, viewport: {width: 0, height: 100}}],
     [{...capture, hoverSelector: ''}],
+    [{...capture, forcedColors: 'on'}],
   ])
     assert.throws(() => validateCaptures(value))
 })
