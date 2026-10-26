@@ -26,6 +26,23 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.10.0 (2026-10-26)
+
+## What's Changed
+* ci: migrate CI to Buildkite by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/124
+* ci: isolate caches and gate releases on main Buildkite checks by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/126
+* fix(ci): smoke-test artifacts from one cross-build by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/127
+* ci: smoke cross-built Windows worker artifacts by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/128
+* docs: audit guides and complete public API reference by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/129
+* build: configure Renovate dependency updates by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/130
+* chore(deps): update actions/checkout digest to d23441a by @renovate[bot] in https://github.com/perplexityai/rules_web_e2e/pull/132
+* feat(vrt): support per-visual forced-colors emulation by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/139
+
+## New Contributors
+* @renovate[bot] made their first contribution in https://github.com/perplexityai/rules_web_e2e/pull/132
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.9.0...v3.10.0
+
 ## 3.9.0 (2026-10-09)
 
 ## What's Changed
