@@ -70,9 +70,12 @@ async function run(temp: string) {
   const fileEnvironment = Object.fromEntries(
     Object.entries(descriptor.fileEnvironment).map(([name, file]) => [name, input(file)])
   )
-  // Keep specs inside runfiles. With rules_js fs patches, Node then resolves
-  // imports from declared inputs instead of the host execroot.
-  const testFiles = descriptor.tests.map(name => input(name))
+  // Keep js_test specs inside runfiles. With rules_js fs patches, Node then
+  // resolves imports from declared inputs instead of the host execroot.
+  // Declared-browser runs use plain Node without those patches, where
+  // Playwright discovery skips symlinked specs, so they keep real paths.
+  const testFiles = descriptor.tests.map(name =>
+    descriptor.browser ? fs.realpathSync(input(name)) : input(name))
   let discoveryRoot = testFiles.length ? path.dirname(testFiles[0]) : inputs
   while (testFiles.some(file => path.relative(discoveryRoot, file).split(path.sep)[0] === '..'))
     discoveryRoot = path.dirname(discoveryRoot)
