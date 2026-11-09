@@ -16,7 +16,7 @@ Validated worker used actiond `4b767e8`, without patches, with SHA256
 `9a4a666543311a5ebc6e894b9157ae8e1cf0e72df21c522b966c3c2d35320a05`.
 This verifies local ARM64 VRT; pixel equivalence with amd64 remains unverified.
 
-[Buildkite CI](../.buildkite/README.md#artifact-smoke) cross-builds the signed
+[CI](../.github/workflows/ci.yaml) cross-builds the signed
 macOS worker and ARM64 VRT inputs on Linux. macOS verifies the exact artifact
 and runs its CLI; it does not boot a VM. Reproduce input builds with
 `--build-only`. VM execution requires a physical Apple Silicon host.

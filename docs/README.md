@@ -28,4 +28,4 @@
 
 [Architecture](architecture.md) · [Visual design](visual-testing-design.md) ·
 [Roadmap](oss-browser-testing-plan.md) · [Development and releases](development.md) ·
-[Buildkite CI](../.buildkite/README.md) · [End-to-end validation](../e2e-tests/README.md)
+[CI](../.github/workflows/ci.yaml) · [End-to-end validation](../e2e-tests/README.md)
