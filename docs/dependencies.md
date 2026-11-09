@@ -1,7 +1,7 @@
 # Dependency versions
 
 Pins come from [package.json](../package.json), [MODULE.bazel](../MODULE.bazel),
-[the React example](../examples/react/package.json), and [CI](../.buildkite/pipeline.yml).
+[the React example](../examples/react/package.json), and [CI](../.github/workflows/ci.yaml).
 Lockfiles pin transitive dependencies.
 
 | Dependency | Version |

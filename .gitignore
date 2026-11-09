@@ -8,6 +8,3 @@ release_notes.txt
 .playwright-browsers/
 
 .web-e2e/
-
-# Buildkite test reports and temporary consumers.
-.buildkite-artifacts/
