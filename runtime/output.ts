@@ -2,7 +2,7 @@ import {createInterface} from 'node:readline'
 import type {Readable, Writable} from 'node:stream'
 
 // Buffer complete lines so credentials split across chunks never reach Bazel logs.
-export function forwardOutput(source: Readable, destination: Writable): void {
+export function forwardOutput(source: Readable, destination: Writable, observe?: (line: string) => void): void {
   const lines = createInterface({input: source, crlfDelay: Infinity})
   lines.on('line', line => {
     const plain = line.replace(/\x1b\[[0-9;]*m/g, '')
@@ -10,6 +10,7 @@ export function forwardOutput(source: Readable, destination: Writable): void {
       destination.write('[redacted sensitive HTTP header]\n')
       return
     }
+    observe?.(plain)
     destination.write(line + '\n')
   })
 }

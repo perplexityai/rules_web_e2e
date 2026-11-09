@@ -71,6 +71,7 @@ js_library(
         "child-process.js",
         "isolation.js",
         "host-browser.js",
+        "module-diagnostics.js",
         "network.js",
         "output.js",
         "remote-job.js",
@@ -315,6 +316,13 @@ js_test(
     timeout = "short",
     data = ["package.json", ":test_typecheck"],
     entry_point = "remote-job.test.js",
+)
+
+js_test(
+    name = "module_diagnostics_test",
+    size = "small",
+    data = ["package.json", ":test_typecheck"],
+    entry_point = "module-diagnostics.test.js",
 )
 
 js_test(

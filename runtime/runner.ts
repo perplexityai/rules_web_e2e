@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import {forwardOutput} from './output.js'
+import {describeMissingModules, MissingModules} from './module-diagnostics.js'
 import {manageChild} from './child-process.js'
 import os from 'node:os'
 import path from 'node:path'
@@ -232,6 +233,7 @@ async function run(temp: string) {
       })
     }
     if (interrupted) throw new Error('VRT interrupted')
+    const missingModules: MissingModules[] = []
     const run = (discover: boolean) =>
       new Promise<number>((resolve, reject) => {
         const child = spawn(
@@ -254,8 +256,12 @@ async function run(temp: string) {
             },
           }
         )
-        if (child.stdout) forwardOutput(child.stdout, process.stdout)
-        if (child.stderr) forwardOutput(child.stderr, process.stderr)
+        // Streams interleave, so each needs its own multi-line error state.
+        const stdout = new MissingModules()
+        const stderr = new MissingModules()
+        missingModules.push(stdout, stderr)
+        if (child.stdout) forwardOutput(child.stdout, process.stdout, line => stdout.observe(line))
+        if (child.stderr) forwardOutput(child.stderr, process.stderr, line => stderr.observe(line))
         const managed = manageChild(child, processOwned)
         children.push(managed)
         let timedOut = false
@@ -280,6 +286,11 @@ async function run(temp: string) {
     if (code !== 0) {
       // Captures already live in the declared outputs, including partial failures.
       process.exitCode = code
+      const diagnostics = describeMissingModules(
+        new Set(missingModules.flatMap(missing => [...missing.roots])),
+        path.join(inputs, workspace)
+      )
+      if (diagnostics) console.error(diagnostics)
       console.error(`VRT artifacts: ${outputs}`)
       return
     }
