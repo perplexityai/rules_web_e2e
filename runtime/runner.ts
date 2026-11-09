@@ -141,12 +141,11 @@ async function run(temp: string) {
     ...declaredBrowser?.env,
     ...descriptor.environment,
     ...fileEnvironment,
-    ...(declaredBrowser ? {
-      NODE_OPTIONS: [
-        fixtureEnv.NODE_OPTIONS || '',
-        `--import=${JSON.stringify(fileURLToPath(new URL('./process-shell.js', import.meta.url)))}`,
-      ].filter(Boolean).join(' '),
-    } : {}),
+    NODE_OPTIONS: [
+      fixtureEnv.NODE_OPTIONS || '',
+      `--import=${JSON.stringify(fileURLToPath(new URL('./declared-inputs-hook.js', import.meta.url)))}`,
+      declaredBrowser ? `--import=${JSON.stringify(fileURLToPath(new URL('./process-shell.js', import.meta.url)))}` : '',
+    ].filter(Boolean).join(' '),
     VRT_INPUTS: inputs,
     VRT_PLAYWRIGHT_CORE: core,
     VRT_PLAYWRIGHT_PACKAGE: path.join(testPackage, 'package.json'),
