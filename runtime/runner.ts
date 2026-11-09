@@ -70,7 +70,9 @@ async function run(temp: string) {
   const fileEnvironment = Object.fromEntries(
     Object.entries(descriptor.fileEnvironment).map(([name, file]) => [name, input(file)])
   )
-  const testFiles = descriptor.tests.map(name => fs.realpathSync(input(name)))
+  // Keep specs inside runfiles. With rules_js fs patches, Node then resolves
+  // imports from declared inputs instead of the host execroot.
+  const testFiles = descriptor.tests.map(name => input(name))
   let discoveryRoot = testFiles.length ? path.dirname(testFiles[0]) : inputs
   while (testFiles.some(file => path.relative(discoveryRoot, file).split(path.sep)[0] === '..'))
     discoveryRoot = path.dirname(discoveryRoot)
@@ -84,7 +86,8 @@ async function run(temp: string) {
     ? browserRuntime(inputs, descriptor.browser, process.env.VRT_HOST_EXECUTION === '1')
     : undefined
   const hostEnv = declaredBrowser || processOwned ? {} : hostBrowserEnvironment(process.env.PLAYWRIGHT_BROWSERS_PATH)
-  const node = declaredBrowser?.node || fs.realpathSync(required('JS_BINARY__NODE_BINARY'))
+  // The rules_js wrapper loads the fs patches into Playwright and its workers.
+  const node = declaredBrowser?.node || required('JS_BINARY__NODE_WRAPPER')
   const testRoot = processOwned
     ? path.join(inputs, workspace)
     : path.dirname(descriptorPath)
@@ -146,6 +149,8 @@ async function run(temp: string) {
       `--import=${JSON.stringify(fileURLToPath(new URL('./declared-inputs-hook.js', import.meta.url)))}`,
       declaredBrowser ? `--import=${JSON.stringify(fileURLToPath(new URL('./process-shell.js', import.meta.url)))}` : '',
     ].filter(Boolean).join(' '),
+    // The node wrapper and fs patches read their configuration from JS_BINARY__*.
+    ...Object.fromEntries(Object.entries(process.env).filter(([name]) => name.startsWith('JS_BINARY__'))),
     VRT_INPUTS: inputs,
     VRT_PLAYWRIGHT_CORE: core,
     VRT_PLAYWRIGHT_PACKAGE: path.join(testPackage, 'package.json'),
