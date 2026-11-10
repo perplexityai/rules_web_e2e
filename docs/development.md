@@ -13,11 +13,11 @@ pnpm test:bcr
 
 Corresponding Bazel commands `bazelisk build //...` and
 `bazelisk test //...`. Run `bazelisk test //...` inside [`bcr_test/`](../bcr_test/) to test
-module as dependency. [Buildkite](../.buildkite/README.md) runs Bazel 9.2.0/8.6.0
+module as dependency. [GitHub Actions CI](../.github/workflows/ci.yaml) runs Bazel 9.2.0/8.6.0
 module/BCR and host-browser checks on Linux/macOS, plus worker artifact smoke
-on macOS/Windows. [GitHub Actions](../.github/workflows/local-linux.yaml) retains
-Linux namespace checks; [KVM VRT](../.github/workflows/actiond-production.yaml)
-also stays on GitHub Actions. Local overrides belong in `.bazelrc.user`.
+on macOS/Windows. [Local Linux browsers](../.github/workflows/local-linux.yaml) run
+namespace checks, and [KVM VRT](../.github/workflows/actiond-production.yaml) runs
+production VRT. Local overrides belong in `.bazelrc.user`.
 
 Lefthook validates Conventional Commit messages, for example
 `feat: add browser test rule` or `fix: resolve test runfiles`.
@@ -34,8 +34,8 @@ and [BCR configuration](../.bcr/config.yml) for publishing destinations.
 
 `MODULE.bazel` uses development version `0.0.0`; Release Please tracks the
 release in `version.txt`. Archive `rules_web_e2e-vX.Y.Z.tar.gz` has prefix
-`rules_web_e2e-X.Y.Z`. Publishing waits for successful main-only Buildkite status
-on the exact tag commit; see [release gate](../.buildkite/README.md#releases).
+`rules_web_e2e-X.Y.Z`. The [module release workflow](../.github/workflows/module_release.yaml)
+tests the tag, packages the attested archive, and submits the BCR update.
 
 Maintainers configure these Actions secrets with access to this repository:
 

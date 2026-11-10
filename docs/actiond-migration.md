@@ -22,7 +22,7 @@ host VRT are separate [execution choices](api.md#execution-modes).
 [Production KVM CI](../.github/workflows/actiond-production.yaml) exercises public
 rules, isolation, failure artifacts, deadlines, retries, cancellation, and baseline
 protection. [Apple Silicon evidence](macos-arm64-vrt.md) records local ARM64 VRT;
-Buildkite cross-build/artifact smoke does not boot the macOS VM.
+CI cross-build/artifact smoke does not boot the macOS VM.
 
 Cross-architecture pixel equivalence and full AGI/FormatJS CI migrations are not
 established by repository checks. See [consumer migration](host-browsers.md#consumer-migration).
