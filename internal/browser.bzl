@@ -277,9 +277,9 @@ def browser_test(
         entry_point = Label("//runtime:runner_entry"),
         data = [":" + name + "_inputs", Label("//runtime:files")] + data,
         env = env | {
-            # Nested js_binary callers may export this flag even when our
-            # patch_node_fs attribute is false. Resolve real artifacts consistently.
-            "JS_BINARY__PATCH_NODE_FS": "0",
+            # Keep module resolution inside runfiles, including when a nested
+            # js_binary caller exported a different value.
+            "JS_BINARY__PATCH_NODE_FS": "1",
             "VRT_DESCRIPTOR": "$(rlocationpath :%s_inputs)" % name,
             "VRT_BASE_URL": base_url or "",
             "VRT_BASE_URL_ENV": base_url_env or "",
@@ -300,7 +300,7 @@ def browser_test(
         return
     js_test(
         name = name,
-        patch_node_fs = False,
+        patch_node_fs = True,
         args = args,
         env_inherit = browser_env_inherit + env_inherit,
         tags = ["browser_process_test" if process_owned else "visual_test" if visual else "component_browser_test" if component else "e2e_test"] + tags,
