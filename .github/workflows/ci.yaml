@@ -27,7 +27,7 @@ jobs:
     env:
       USE_BAZEL_VERSION: ${{ matrix.bazel }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       - uses: bazel-contrib/setup-bazel@104e3eea9447cdaa4b00d0fb46191a3985d26ab3 # 0.19.1
         with:
           bazelisk-cache: true
@@ -46,7 +46,7 @@ jobs:
         if: runner.os == 'Linux'
         working-directory: examples/preset
         run: bazelisk test //... --test_output=errors
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:
           name: bazel-testlogs-${{ matrix.os }}-${{ matrix.bazel }}
@@ -68,10 +68,10 @@ jobs:
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-browsers
       DOCKER_HOST: tcp://127.0.0.1:1
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: '24'
+          node-version: '24.22.2'
       - uses: bazel-contrib/setup-bazel@104e3eea9447cdaa4b00d0fb46191a3985d26ab3 # 0.19.1
         with:
           bazelisk-cache: true
@@ -94,7 +94,7 @@ jobs:
           else
             node e2e-tests/process-owned.ts
           fi
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: process-owned-${{ matrix.os }}
@@ -113,7 +113,7 @@ jobs:
         env:
           E2E_TEST_ARTIFACTS: ${{ runner.temp }}/isolated-e2e-results
         run: node e2e-tests/run.ts
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: isolated-e2e-${{ matrix.os }}
@@ -136,10 +136,10 @@ jobs:
     env:
       USE_BAZEL_VERSION: '9.2.0'
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: '24'
+          node-version: '24.22.2'
       - uses: bazel-contrib/setup-bazel@104e3eea9447cdaa4b00d0fb46191a3985d26ab3 # 0.19.1
         with:
           bazelisk-cache: true
@@ -171,17 +171,17 @@ jobs:
           mkdir -p "$directory"
           cp "$work/actiond-worker.exe" "$directory/actiond-worker.exe"
           python3 .github/scripts/artifacts.py pack "$directory" windows-amd64
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: worker-darwin-arm64
           path: ${{ runner.temp }}/worker-artifacts/darwin-arm64/
           if-no-files-found: error
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: worker-windows-amd64
           path: ${{ runner.temp }}/worker-artifacts/windows-amd64/
           if-no-files-found: error
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: actiond-macos-vrt-build
@@ -196,7 +196,7 @@ jobs:
     env:
       USE_BAZEL_VERSION: '9.2.0'
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: worker-darwin-arm64
@@ -218,7 +218,7 @@ jobs:
     env:
       USE_BAZEL_VERSION: '9.2.0'
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: worker-windows-amd64
