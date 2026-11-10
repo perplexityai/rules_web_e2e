@@ -26,6 +26,23 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.10.1 (2026-11-10)
+
+## What's Changed
+* ci: migrate CI back to GitHub Actions by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/142
+* fix: resolve Playwright modules from declared test inputs by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/141
+* chore(deps): update actions/setup-node digest to 2499707 by @renovate[bot] in https://github.com/perplexityai/rules_web_e2e/pull/134
+* chore(deps): update bazel-contrib/.github action to v7.7.0 by @renovate[bot] in https://github.com/perplexityai/rules_web_e2e/pull/137
+* chore(deps): update commitlint by @renovate[bot] in https://github.com/perplexityai/rules_web_e2e/pull/135
+* chore(deps): update dependency vite to v8.2.4 [security] by @renovate[bot] in https://github.com/perplexityai/rules_web_e2e/pull/138
+* chore(deps): update bazel-contrib/publish-to-bcr action to v1.6.0 by @renovate[bot] in https://github.com/perplexityai/rules_web_e2e/pull/145
+* chore(deps): update bazel-contrib/setup-bazel action to v0.19.1 by @renovate[bot] in https://github.com/perplexityai/rules_web_e2e/pull/144
+* chore(deps): pin dependencies by @renovate[bot] in https://github.com/perplexityai/rules_web_e2e/pull/131
+* chore(deps): update dependency @vitejs/plugin-react to v6.2.1 by @renovate[bot] in https://github.com/perplexityai/rules_web_e2e/pull/136
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.10.0...v3.10.1
+
 ## 3.10.0 (2026-10-26)
 
 ## What's Changed
