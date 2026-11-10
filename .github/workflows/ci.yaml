@@ -1,0 +1,233 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  bazel-test:
+    name: bazel ${{ matrix.bazel }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        bazel: ['9.2.0', '8.6.0']
+        os: [ubuntu-latest, macos-latest]
+    env:
+      USE_BAZEL_VERSION: ${{ matrix.bazel }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ matrix.os }}-bazel${{ matrix.bazel }}
+          repository-cache: true
+      - name: Build
+        run: bazelisk build //...
+      - name: Test
+        run: bazelisk test //... //tests/process:owned_test //tests/process:without_config_test //tests/process:timeout_contract_test
+      - name: Build and test the BCR consumer
+        working-directory: bcr_test
+        run: |
+          bazelisk build @rules_web_e2e//:distribution //...
+          bazelisk test //...
+      - name: Build and execute the external Linux browser preset
+        if: runner.os == 'Linux'
+        working-directory: examples/preset
+        run: bazelisk test //... --test_output=errors
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: bazel-testlogs-${{ matrix.os }}-${{ matrix.bazel }}
+          path: |
+            bazel-testlogs/**/test.log
+            bazel-testlogs/**/test.xml
+            bcr_test/bazel-testlogs/**/test.log
+            examples/*/bazel-testlogs/**/test.log
+
+  host-browser:
+    name: host browser tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-browsers
+      DOCKER_HOST: tcp://127.0.0.1:1
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '24'
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-host-browser-${{ matrix.os }}
+          repository-cache: true
+      - name: Provision version-matched host browsers before tests
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then
+            sudo apt-get update
+            sudo apt-get install -y libgtk-3-0
+          fi
+          version=$(node -p 'require("./package.json").devDependencies.playwright')
+          npx --yes "playwright@$version" install --with-deps chromium
+      - name: Test caller-owned Chromium and Electron processes
+        env:
+          E2E_TEST_ARTIFACTS: ${{ runner.temp }}/process-owned-results
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a node e2e-tests/process-owned.ts
+          else
+            node e2e-tests/process-owned.ts
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: process-owned-${{ matrix.os }}
+          path: ${{ runner.temp }}/process-owned-results
+      - name: Run host browser suites without Docker
+        working-directory: examples/react
+        run: bazelisk test //:host_e2e_test //:host_component_test //:remote_integration_test //:host_native_config_test --test_output=errors
+      - name: Run Linux host VRT
+        if: runner.os == 'Linux'
+        working-directory: examples/react
+        run: |
+          bazelisk test --nocache_test_results //:host_visual_test --test_output=errors
+          bazelisk run //:host_component_visual_test.update
+          bazelisk test --nocache_test_results //:host_component_visual_test --test_output=errors
+      - name: Run isolated E2E consumer workspace
+        env:
+          E2E_TEST_ARTIFACTS: ${{ runner.temp }}/isolated-e2e-results
+        run: node e2e-tests/run.ts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: isolated-e2e-${{ matrix.os }}
+          path: ${{ runner.temp }}/isolated-e2e-results
+      - name: Verify generated capture bounds and pixels
+        run: bazelisk test //runtime:capture_browser_test --test_output=errors
+      - name: Export, update, and compare host snapshots
+        run: node e2e-tests/snapshot-updates.ts
+      - name: Verify host result caching and input invalidation
+        run: node e2e-tests/cacheable.ts
+      - name: Clean up descendants holding browser output pipes
+        run: node e2e-tests/lingering.ts
+      - name: Launch Chromium under deep and symlinked temp roots
+        run: node e2e-tests/temp-paths.ts
+
+  worker-artifacts:
+    name: Cross-build macOS/Windows workers / Linux ARM64 VRT inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      USE_BAZEL_VERSION: '9.2.0'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '24'
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-worker-artifacts
+          repository-cache: true
+      - name: Test artifact manifests
+        run: python3 -B .github/scripts/artifacts_test.py
+      - name: Cross-build the macOS ARM64 worker and Linux ARM64 VRT inputs
+        run: |
+          bash e2e-tests/actiond/run-macos-arm64.sh "$RUNNER_TEMP/actiond-macos" --build-only
+          directory="$RUNNER_TEMP/worker-artifacts/darwin-arm64"
+          mkdir -p "$directory"
+          cp "$RUNNER_TEMP/actiond-macos/actiond-worker" "$directory/actiond-worker"
+          python3 .github/scripts/artifacts.py pack "$directory" darwin-arm64
+      - name: Cross-build the Windows AMD64 worker
+        run: |
+          work="$RUNNER_TEMP/actiond-windows"
+          ACTIOND_ARCH=x64 bash e2e-tests/actiond/prepare.sh "$work"
+          node e2e-tests/run.ts prepare "$work"
+          (
+            cd "$work/actiond"
+            flags=(--bes_backend= --remote_executor= --remote_cache= --spawn_strategy=local --jobs=2)
+            target=//cmd/windows-actiond:windows-actiond_windows_x86_64
+            bazelisk --output_base="$work/worker-output" build "${flags[@]}" "$target"
+            worker=$(bazelisk --output_base="$work/worker-output" cquery "${flags[@]}" "$target" --output=starlark '--starlark:expr=providers(target)["DefaultInfo"].files_to_run.executable.path')
+            cp -L "$worker" "$work/actiond-worker.exe"
+          )
+          directory="$RUNNER_TEMP/worker-artifacts/windows-amd64"
+          mkdir -p "$directory"
+          cp "$work/actiond-worker.exe" "$directory/actiond-worker.exe"
+          python3 .github/scripts/artifacts.py pack "$directory" windows-amd64
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: worker-darwin-arm64
+          path: ${{ runner.temp }}/worker-artifacts/darwin-arm64/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: worker-windows-amd64
+          path: ${{ runner.temp }}/worker-artifacts/windows-amd64/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: actiond-macos-vrt-build
+          path: ${{ runner.temp }}/actiond-macos/worker-build.log
+
+  # Smoke the exact binaries built above. These jobs do not compile or boot a VM.
+  worker-smoke-macos:
+    name: Worker artifact smoke / macOS ARM64
+    needs: worker-artifacts
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      USE_BAZEL_VERSION: '9.2.0'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: worker-darwin-arm64
+          path: ${{ runner.temp }}/worker
+      - name: Verify signature, entitlement, and CLI
+        run: |
+          directory="$RUNNER_TEMP/worker"
+          python3 .github/scripts/artifacts.py verify "$directory" darwin-arm64
+          codesign --verify --strict "$directory/actiond-worker"
+          codesign -d --entitlements - "$directory/actiond-worker" 2>/dev/null > "$RUNNER_TEMP/entitlements.plist"
+          grep -q 'com.apple.security.virtualization' "$RUNNER_TEMP/entitlements.plist"
+          "$directory/actiond-worker" --help | grep -q 'serve-vm'
+
+  worker-smoke-windows:
+    name: Worker artifact smoke / Windows AMD64
+    needs: worker-artifacts
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      USE_BAZEL_VERSION: '9.2.0'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: worker-windows-amd64
+          path: ${{ runner.temp }}/worker
+      - name: Verify checksums and CLI
+        shell: pwsh
+        run: |
+          $directory = Join-Path $env:RUNNER_TEMP 'worker'
+          python .github/scripts/artifacts.py verify $directory windows-amd64
+          if ($LASTEXITCODE -ne 0) { throw 'Artifact verification failed' }
+          $help = & (Join-Path $directory 'actiond-worker.exe') --help
+          if ($LASTEXITCODE -ne 0 -or -not ($help | Select-String -SimpleMatch 'serve-vm')) { throw 'Windows worker CLI smoke failed' }
