@@ -69,6 +69,8 @@ js_library(
         "baselines.js",
         "browser-runtime.js",
         "child-process.js",
+        "declared-inputs.js",
+        "declared-inputs-hook.js",
         "isolation.js",
         "host-browser.js",
         "network.js",
@@ -329,6 +331,13 @@ js_test(
     size = "small",
     data = ["package.json", ":test_typecheck"],
     entry_point = "runner-cleanup.test.js",
+)
+
+js_test(
+    name = "declared_inputs_test",
+    size = "small",
+    data = ["package.json", ":test_typecheck"],
+    entry_point = "declared-inputs.test.js",
 )
 
 js_test(
