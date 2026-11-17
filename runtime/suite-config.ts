@@ -7,7 +7,7 @@ import {defineConfig} from './playwright-test.js'
 import {pathToFileURL, fileURLToPath} from 'node:url'
 import {createRequire} from 'node:module'
 import path from 'node:path'
-import {e2eConfig, componentBrowserConfig, visualConfig, processConfig} from './config.js'
+import {e2eConfig, componentBrowserConfig, visualConfig, processConfig, declaredChromiumArgs} from './config.js'
 import {screenshotMatching, type VisualMatching} from './matching.js'
 import {remoteAppUrl} from './network.js'
 
@@ -124,7 +124,7 @@ function isolatedUse(use: PlaywrightTestConfig['use']) {
       ...use?.launchOptions,
       executablePath: process.env.VRT_CHROMIUM_EXECUTABLE!,
       chromiumSandbox: process.env.VRT_EXECUTION === 'local',
-      args: [...(use?.launchOptions?.args ?? []), ...(process.env.VRT_EXECUTION === 'local' ? [] : ['--no-zygote'])],
+      args: [...(use?.launchOptions?.args ?? []), ...declaredChromiumArgs()],
     },
   }
 }
