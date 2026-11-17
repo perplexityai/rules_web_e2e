@@ -15,6 +15,16 @@ export interface VisualConfigOptions extends BrowserConfigOptions {
   tolerance?: number
 }
 
+// Headless shell defaults to full hinting, which autohints unhinted fonts and
+// snaps glyph advances to whole pixels. Desktop Chrome on Linux uses slight
+// hinting and Mac/Windows don't snap, so match what users see.
+export function declaredChromiumArgs(): string[] {
+  return [
+    '--font-render-hinting=none',
+    ...(process.env.VRT_EXECUTION === 'local' ? [] : ['--no-zygote']),
+  ]
+}
+
 function required(name: string): string {
   const value = process.env[name]
   if (!value)
@@ -77,7 +87,7 @@ export function visualConfig({
       launchOptions: {
         executablePath: required('VRT_CHROMIUM_EXECUTABLE'),
         chromiumSandbox: process.env.VRT_EXECUTION === 'local',
-        args: process.env.VRT_EXECUTION === 'local' ? [] : ['--no-zygote'],
+        args: declaredChromiumArgs(),
       },
     },
     testMatch: '**/.rules-visual.spec.ts',

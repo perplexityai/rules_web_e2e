@@ -188,7 +188,7 @@ test('compiled suite config preserves runner paths and accepts a pixel-count bud
     assert.deepEqual(declared.use.launchOptions, {
       executablePath: '/inputs/runtime/chrome',
       chromiumSandbox: false,
-      args: ['--no-zygote'],
+      args: ['--font-render-hinting=none', '--no-zygote'],
     })
     assert.deepEqual(declared.use.viewport, {width: 800, height: 600})
   } finally {
@@ -345,7 +345,7 @@ test('isolated ordinary suites preserve projects but reject host browser selecti
         assert.equal(config.updateSnapshots, 'none')
         assert.equal(config.projects[0].use.locale, 'ar')
         assert.equal(config.projects[0].use.launchOptions.executablePath, '/declared/chromium')
-        assert.deepEqual(config.projects[0].use.launchOptions.args, ['--disable-gpu', '--no-zygote'])
+        assert.deepEqual(config.projects[0].use.launchOptions.args, ['--disable-gpu', '--font-render-hinting=none', '--no-zygote'])
       }
     }
   } finally {
@@ -374,7 +374,7 @@ test('local execution enables Chromium sandbox while preserving caller launch tu
     const {default: config} = await import(new URL('./suite-config.js?local-policy', import.meta.url).href)
     assert.equal(config.use.launchOptions.chromiumSandbox, true)
     assert.equal(config.use.launchOptions.executablePath, '/declared/chromium')
-    assert.deepEqual(config.use.launchOptions.args, ['--disable-gpu'])
+    assert.deepEqual(config.use.launchOptions.args, ['--disable-gpu', '--font-render-hinting=none'])
   } finally {
     for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key]
     Object.assign(process.env, previous)
