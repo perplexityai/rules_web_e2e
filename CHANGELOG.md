@@ -26,6 +26,14 @@ Select compiled specs through the Bazel target's `tests` attribute. Use separate
 Bazel targets for independent suites and suite-owned fixtures for setup; see
 [the migration examples](docs/e2e.md#suite-selection-belongs-to-bazel).
 
+## 3.10.2 (2026-11-17)
+
+## What's Changed
+* fix(runtime): disable font hinting in declared Chromium by @longlho in https://github.com/perplexityai/rules_web_e2e/pull/153
+
+
+**Full Changelog**: https://github.com/perplexityai/rules_web_e2e/compare/v3.10.1...v3.10.2
+
 ## 3.10.1 (2026-11-10)
 
 ## What's Changed
