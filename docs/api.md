@@ -348,7 +348,7 @@ Import from `@rules-web-e2e/vrt/server`:
 | `ServerContext` | `root` (target package), `inputs` (runfiles tree), private `cache`, `host` (`127.0.0.1`) |
 | `RunningServer` | Ready HTTP `url` with explicit port; `close(): void \| Promise<void>` |
 | `ServerAdapter` | `(context) => RunningServer \| Promise<RunningServer>`; compiled default export |
-| `serveDirectory(directory, entryPoint?, host?)` | `Promise<RunningServer>`; defaults `index.html`, `host = false`; host mode permits declared sandbox links |
+| `serveDirectory(directory, entryPoint?, host?, {spa?}?)` | `Promise<RunningServer>`; defaults `index.html`, `host = false`; host mode permits declared sandbox links; `spa` serves the entry point for extensionless `text/html` requests matching no file |
 
 Adapters own readiness and cleanup, including partial startup failures.
 Runner cleans private scratch state, retaining reports and failure artifacts.

@@ -58,6 +58,30 @@ test('host VRT serves Bazel sandbox links while rejecting URL traversal', async 
   await assert.rejects(serveDirectory(root, '../built.html', true), /within the asset directory/)
 })
 
+test('SPA mode serves the entry point only for extensionless HTML navigations', async t => {
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'spa-'))
+  t.after(() => fs.rm(temp, {recursive: true, force: true}))
+  const root = path.join(temp, 'dist')
+  await fs.mkdir(path.join(root, 'assets'), {recursive: true})
+  await fs.writeFile(path.join(root, 'index.html'), '<main>App</main>')
+  await fs.writeFile(path.join(root, 'assets', 'app.js'), 'export {}')
+  await fs.writeFile(path.join(temp, 'secret'), 'outside')
+  await fs.symlink(path.join(temp, 'secret'), path.join(root, 'link'))
+  const html = {headers: {accept: 'text/html,application/xhtml+xml'}}
+  const plain = await serveDirectory(root)
+  t.after(() => plain.close())
+  assert.equal((await fetch(new URL('settings/profile', plain.url), html)).status, 404)
+  const server = await serveDirectory(root, 'index.html', false, {spa: true})
+  t.after(() => server.close())
+  for (const route of ['settings/profile?tab=1', 'assets'])
+    assert.equal(await (await fetch(new URL(route, server.url), html)).text(), '<main>App</main>', route)
+  assert.equal(await (await fetch(new URL('assets/app.js', server.url), html)).text(), 'export {}')
+  for (const [route, init] of [
+    ['settings/profile', {}], ['assets/missing.js', html], ['link', html], ['%2e%2e%2fsecret', html],
+  ] as const)
+    assert.equal((await fetch(new URL(route, server.url), init)).status, 404, route)
+})
+
 test('matching validates pixel budgets and preserves an explicit pixel-count budget', () => {
   assert.deepEqual(screenshotMatching({maxDiffPixels: 5}), {
     threshold: 0.1,
