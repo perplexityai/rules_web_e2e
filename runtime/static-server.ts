@@ -6,11 +6,17 @@ import path from 'node:path'
 import {createServer} from 'node:http'
 import type {RunningServer} from './server-types.js'
 
+export interface ServeDirectoryOptions {
+  /** Serve the entry point for extensionless HTML navigations that match no file. */
+  spa?: boolean
+}
+
 /** Serve only a built asset directory; never resolve source imports or compile code. */
 export async function serveDirectory(
   directory: string,
   entryPoint = 'index.html',
-  host = false
+  host = false,
+  {spa = false}: ServeDirectoryOptions = {}
 ): Promise<RunningServer> {
   const root = await fs.realpath(directory)
   const resolve = async (relative: string) => {
@@ -40,9 +46,18 @@ export async function serveDirectory(
         const relative = pathname === '/' ? entryPoint : pathname.slice(1)
         if (relative.includes('\0') || relative.includes('\\'))
           throw new Error('Invalid path')
-        const file = await resolve(relative)
-        if (!(await fs.stat(file)).isFile())
-          throw new Error('Not a file')
+        // Client-side routes have no file; missing assets and data requests still 404.
+        const navigation = spa && !path.posix.extname(pathname) &&
+          (request.headers.accept ?? '').includes('text/html')
+        const found = await resolve(relative).then(
+          async file => ((await fs.stat(file)).isFile() ? file : undefined),
+          (error: NodeJS.ErrnoException) => {
+            if (error.code === 'ENOENT') return undefined
+            throw error
+          }
+        )
+        const file = found ?? (navigation ? entry : undefined)
+        if (!file) throw new Error('Not found')
         const type = lookup(file) || 'application/octet-stream'
         response.writeHead(200, {
           'content-type': type.startsWith('text/') ? `${type}; charset=utf-8` : type,

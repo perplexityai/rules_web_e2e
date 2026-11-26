@@ -105,3 +105,7 @@ export default start
 Declare built `assets` directory in adapter target's data. Use
 `inputs` and declared paths for artifacts from other packages. No source
 compilation or npm installation occurs during browser execution.
+
+For single-page apps with client-side routes, pass `{spa: true}` as the fourth
+argument. Extensionless navigations accepting `text/html` that match no file
+receive the entry point; missing assets still return 404.

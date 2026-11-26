@@ -19,4 +19,4 @@ export type ServerAdapter = (
   context: ServerContext
 ) => RunningServer | Promise<RunningServer>
 
-export {serveDirectory} from './static-server.js'
+export {serveDirectory, type ServeDirectoryOptions} from './static-server.js'
