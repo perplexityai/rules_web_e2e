@@ -35,6 +35,9 @@ const custom = process.env.VRT_CONFIG_OVERRIDE
   ? ((await import(pathToFileURL(process.env.VRT_CONFIG_OVERRIDE).href))
       .default as PlaywrightTestConfig)
   : {}
+// Server, shell, and remote targets receive their app URL from the runner; it
+// replaces the config's own app endpoint so one config also works outside Bazel.
+const runnerApp = !processOwned && !!process.env.VRT_APP_URL
 // Config-only suites already load this module in Playwright. Resolve their URL
 // here instead of importing the consumer config in a second Node process.
 if (!processOwned && !process.env.VRT_APP_URL) {
@@ -139,11 +142,27 @@ const lifecycleModules = (value: string | string[] | undefined) =>
     : (Array.isArray(value) ? value : [value]).map(file =>
         createRequire(path.join(configDirectory, 'package.json')).resolve(file)
       )
-const webServer = custom.webServer
-  ? (Array.isArray(custom.webServer)
-      ? custom.webServer
-      : [custom.webServer]
-    ).map(server => ({
+const loopback = new Set(['localhost', '127.0.0.1', '[::1]'])
+const defaultPort = (url: URL) => url.port || (url.protocol === 'https:' ? '443' : '80')
+const configuredApp = custom.use?.baseURL ? new URL(custom.use.baseURL) : undefined
+// The runner's app replaces a webServer that only backs the config's baseURL;
+// servers for other ports, such as fixture APIs, still start.
+function servesConfiguredApp(server: {url?: string; port?: number}) {
+  if (!runnerApp || !configuredApp) return false
+  const local = loopback.has(configuredApp.hostname)
+  if (server.url) {
+    const url = new URL(server.url)
+    return url.origin === configuredApp.origin ||
+      (local && loopback.has(url.hostname) && defaultPort(url) === defaultPort(configuredApp))
+  }
+  return local && server.port !== undefined && String(server.port) === defaultPort(configuredApp)
+}
+const webServers = (custom.webServer
+  ? (Array.isArray(custom.webServer) ? custom.webServer : [custom.webServer])
+  : []
+).filter(server => !servesConfiguredApp(server))
+const webServer = webServers.length
+  ? webServers.map(server => ({
       ...server,
       cwd: server.cwd
         ? path.resolve(configDirectory, server.cwd)
@@ -160,6 +179,7 @@ const testMatch =
       )
 const managedUse = processOwned ? merged.use : {
   ...merged.use,
+  ...(runnerApp ? {baseURL: defaults.use!.baseURL} : {}),
   connectOptions: defaults.use!.connectOptions,
   ...(visual
     ? {launchOptions: defaults.use!.launchOptions}
@@ -205,6 +225,7 @@ export default defineConfig(
             use: processOwned ? {...managedUse, ...project.use} : isolatedUse({
               ...managedUse,
               ...project.use,
+              ...(runnerApp ? {baseURL: managedUse!.baseURL} : {}),
               connectOptions: defaults.use!.connectOptions,
               browserName: 'chromium' as const,
             }),
