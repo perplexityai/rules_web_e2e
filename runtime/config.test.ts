@@ -420,3 +420,40 @@ test('config-only suites resolve the application URL in Playwright and reject in
     fs.rmSync(temp, {recursive: true, force: true})
   }
 })
+
+test('runner app URLs replace the config baseURL and the webServer that serves it', async () => {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const {tmpdir} = await import('node:os')
+  const temp = fs.mkdtempSync(path.join(tmpdir(), 'runner-app-'))
+  const previous = {...process.env}
+  try {
+    fs.writeFileSync(path.join(temp, 'package.json'), '{"type":"module"}')
+    Object.assign(process.env, {
+      VRT_MODE: 'e2e', VRT_ISOLATED: '1', VRT_OUTPUTS: temp, VRT_APP_URL: 'http://127.0.0.1:4321/',
+      VRT_TEST_ROOT: temp, VRT_TEST_FILES: JSON.stringify([path.join(temp, 'app.spec.js')]),
+      VRT_CHROMIUM_EXECUTABLE: '/declared/chromium',
+    })
+    delete process.env.VRT_MATCHING
+    const api = {command: 'node api.js', port: 8081}
+    const cases = [
+      {webServer: [{command: 'vite preview', url: 'http://localhost:5173/app/'}, api]},
+      {webServer: [{command: 'vite preview', port: 5173}, api]},
+    ]
+    for (const [index, servers] of cases.entries()) {
+      process.env.VRT_CONFIG_OVERRIDE = path.join(temp, `config-${index}.js`)
+      fs.writeFileSync(process.env.VRT_CONFIG_OVERRIDE, `export default ${JSON.stringify({
+        ...servers, use: {baseURL: 'http://localhost:5173/app/'},
+        projects: [{name: 'nested', use: {baseURL: 'http://localhost:5173/other/'}}],
+      })}`)
+      const {default: config} = await import(new URL(`./suite-config.js?runner-app-${index}`, import.meta.url).href)
+      assert.equal(config.use.baseURL, 'http://127.0.0.1:4321/')
+      assert.equal(config.projects[0].use.baseURL, 'http://127.0.0.1:4321/')
+      assert.deepEqual(config.webServer, [{...api, cwd: temp, reuseExistingServer: false}])
+    }
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key]
+    Object.assign(process.env, previous)
+    fs.rmSync(temp, {recursive: true, force: true})
+  }
+})

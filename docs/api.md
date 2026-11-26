@@ -300,6 +300,9 @@ Supply a compiled default `PlaywrightTestConfig`. Fixtures, setup/teardown,
 reporters, timeouts, E2E projects, and native `webServer` are supported. Declare
 all modules/executables; relative lifecycle/server/reporter paths resolve against
 compiled config. Existing servers are never reused. Projects share one app origin.
+With `server`, `shell`, `base_url`, or `base_url_env`, the runner's URL replaces
+`use.baseURL` and project `baseURL`s, and a `webServer` serving the config's
+`baseURL` origin or loopback port is skipped; other `webServer` entries still start.
 
 `testDir`, `testMatch`, and `testIgnore` are rejected: Bazel selects specs.
 VRT rejects projects. Managed isolated browsers reject channels, executable
